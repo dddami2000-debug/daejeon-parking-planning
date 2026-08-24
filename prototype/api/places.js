@@ -56,12 +56,19 @@ module.exports = async function handler(req, res) {
   if (category && !ALLOWED_CATEGORIES.has(category)) return sendJson(res, 400, { error: 'invalid_category' });
 
   try {
-    const filter = category ? `&category=eq.${encodeURIComponent(category)}` : '';
-    const rows = await supabaseRequest(`places?select=id,source,category,name,address,latitude,longitude,start_date,end_date,operating_hours,description,homepage_url,metadata,updated_at&order=updated_at.desc${filter}`);
-    const places = (Array.isArray(rows) ? rows : []).map(mapPlace);
+    const sourceFilter = category === 'landmark'
+      ? '&source=eq.daejeon_tourspot'
+      : '&source=in.(kto_festival,daejeon_festival,daejeon_tourspot)';
+    const categoryFilter = category ? `&category=eq.${category}` : '';
+    const rows = await supabaseRequest(`places?select=id,source,category,name,address,latitude,longitude,start_date,end_date,operating_hours,description,homepage_url,metadata,updated_at&order=updated_at.desc${sourceFilter}${categoryFilter}`);
+    const mapped = (Array.isArray(rows) ? rows : []).map(mapPlace);
+    const hasCurrentFestivalSource = mapped.some((place) => place.source === 'kto_festival');
+    const places = hasCurrentFestivalSource
+      ? mapped.filter((place) => place.type !== 'festival' || place.source === 'kto_festival')
+      : mapped;
     return sendJson(res, 200, {
       places,
-      sourceAttribution: '출처: 대전광역시 문화축제 정보 · 대전광역시 문화관광(관광지)',
+      sourceAttribution: '출처: 한국관광공사 TourAPI · 대전광역시 문화관광(관광지)',
       generatedAt: new Date().toISOString()
     }, 'public, s-maxage=300, stale-while-revalidate=600');
   } catch (error) {
