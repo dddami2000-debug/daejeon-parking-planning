@@ -134,7 +134,11 @@ function openPlace(id){
   excludedParkings=[];
   $('.app-shell').classList.add('is-place-focused');
   renderMap();
-  if(naverMap){naverMap.panTo(new naver.maps.LatLng(activePlace.lat,activePlace.lng));naverMap.setZoom(15,true);}
+  if(naverMap){
+    const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
+    naverMap.stop();
+    naverMap.morph(targetPosition,15,{duration:750,easing:'easeOutCubic'});
+  }
   const parkingPreview=currentParkingList().map((parking,index)=>`<li><span>${index+1}</span><div><b>${parking.name}</b><small>${costFor(parking).toLocaleString()}원 · 도보 ${parking.walk}분</small></div></li>`).join('');
   $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${activePlace.emoji}'"><div class="place-hero-badges"><span>${activePlace.type==='festival'?'축제':'랜드마크'}</span><span>${activePlace.date}</span></div><h2>${activePlace.name}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${activePlace.period}</b></div><div><span>오늘 운영</span><b>${activePlace.hours}</b></div><div><span>현재 위치</span><b>${activePlace.distance}km · ${activePlace.eta}분</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${activePlace.reason}</b></span></div><p class="place-description">${activePlace.summary}</p><div class="place-parking-preview"><div><span>주변 주차장</span><b>꿈돌이 추천 1·2·3순위</b></div><ol>${parkingPreview}</ol></div><button class="primary-button" id="openPlanner">주차 플랜 자세히 보기 <span>→</span></button>`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
@@ -161,6 +165,9 @@ function closeSheets(){
 function resetMapFocus(){
   isPlaceFocused=false;
   $('.app-shell').classList.remove('is-place-focused');
+  $('#placeSheet').classList.remove('show');
+  $('#sheetBackdrop').classList.remove('show');
+  if(naverMap)naverMap.stop();
   renderMap();
   fitAllPlaces();
 }
@@ -272,4 +279,5 @@ document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener(
 $('#currentButton').addEventListener('click',moveToCurrentLocation);
 $('#locationButton').addEventListener('click',moveToCurrentLocation);
 $('#brandButton').addEventListener('click',resetMapFocus);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&isPlaceFocused){event.preventDefault();resetMapFocus();}});
 $('#searchButton').addEventListener('click',()=>toast('장소 검색은 다음 버전에서 API와 연결해요.'));
