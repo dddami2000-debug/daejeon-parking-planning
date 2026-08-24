@@ -1,0 +1,346 @@
+/* SEED Design System theme — @seed-design/css 2.4.0 */
+:root {
+  --ink: var(--seed-color-fg-neutral);
+  --muted: var(--seed-color-fg-neutral-muted);
+  --line: var(--seed-color-stroke-neutral-weak);
+  --cream: var(--seed-color-bg-layer-default);
+  --paper: var(--seed-color-bg-layer-basement);
+  --yellow: var(--seed-color-palette-yellow-500);
+  --orange: var(--seed-color-bg-brand-solid);
+  --mint: var(--seed-color-bg-positive-weak);
+  --green: var(--seed-color-fg-positive-contrast);
+  --blue: var(--seed-color-fg-informative);
+  --purple: var(--seed-color-palette-purple-600);
+  --shadow: var(--seed-shadow-s2);
+  --app-bottom: calc(72px + var(--seed-safe-area-bottom));
+}
+
+html, body {
+  background: var(--seed-color-bg-layer-basement);
+  color: var(--seed-color-fg-neutral);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+}
+
+body { letter-spacing: -.012em; }
+button, input { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--seed-color-stroke-focus-ring);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  background: var(--seed-color-bg-layer-default);
+  box-shadow: var(--seed-shadow-s3);
+}
+
+.app-header {
+  height: 56px;
+  padding: 0 var(--seed-dimension-x3);
+  gap: var(--seed-dimension-x2);
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r4);
+  background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 94%, transparent);
+  box-shadow: var(--seed-shadow-s2);
+  backdrop-filter: blur(20px);
+}
+
+.brand {
+  gap: var(--seed-dimension-x2);
+  color: var(--seed-color-fg-neutral);
+  font-family: inherit;
+  font-size: var(--seed-font-size-t6);
+  font-weight: var(--seed-font-weight-bold);
+  letter-spacing: -.04em;
+}
+
+.brand-orbit {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-brand-solid);
+  color: var(--seed-color-palette-static-white);
+  box-shadow: none;
+  transform: none;
+}
+
+.location-pill {
+  min-height: 40px;
+  padding: 0 var(--seed-dimension-x3);
+  gap: var(--seed-dimension-x2);
+  border: 0;
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-neutral-weak);
+  color: var(--seed-color-fg-neutral);
+}
+
+.location-pill:hover, .location-pill:active { background: var(--seed-color-bg-neutral-weak-pressed); }
+.location-pill small { color: var(--seed-color-fg-neutral-subtle); }
+.pulse-dot {
+  background: var(--seed-color-bg-positive-solid);
+  box-shadow: 0 0 0 4px var(--seed-color-bg-positive-weak);
+}
+
+.profile-button {
+  min-width: 40px;
+  min-height: 40px;
+  justify-content: center;
+  padding: 0 var(--seed-dimension-x3);
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand-contrast);
+}
+
+.profile-button:hover, .profile-button:active { background: var(--seed-color-bg-brand-weak-pressed); }
+
+.recommend-section {
+  padding: var(--seed-dimension-x3);
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r5);
+  background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 96%, transparent);
+  box-shadow: var(--seed-shadow-s2);
+}
+
+.section-heading { margin-bottom: var(--seed-dimension-x2); }
+.dream-copy {
+  color: var(--seed-color-fg-brand);
+  font-size: var(--seed-font-size-t2);
+  font-weight: var(--seed-font-weight-bold);
+}
+.mini-dream { background: var(--seed-color-bg-brand-weak); color: var(--seed-color-fg-brand); }
+
+.section-heading h1, .explore-head h2, .nearby-title h3, .planner-head h2,
+.place-hero h2, .nav-card h2, .onboarding-card h2, .parking-info-sheet h2 {
+  color: var(--seed-color-fg-neutral);
+  font-family: inherit;
+  font-weight: var(--seed-font-weight-bold);
+  letter-spacing: -.04em;
+}
+
+.slider-controls button, .map-toolbar button, .sheet-close, .modal-close {
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  background: var(--seed-color-bg-layer-floating);
+  color: var(--seed-color-fg-neutral);
+  box-shadow: var(--seed-shadow-s1);
+}
+
+.slider-controls button:hover, .map-toolbar button:hover,
+.sheet-close:hover, .modal-close:hover { background: var(--seed-color-bg-layer-floating-pressed); }
+
+.festival-slider { gap: var(--seed-dimension-x2); }
+.festival-card {
+  border: 1px solid var(--seed-color-palette-static-white-alpha-500);
+  border-radius: var(--seed-radius-r4);
+  box-shadow: none;
+  transition: transform var(--seed-duration-d3), box-shadow var(--seed-duration-d3);
+}
+.festival-card:hover { transform: translateY(-2px); box-shadow: var(--seed-shadow-s2); }
+.festival-content h3 {
+  font-family: inherit;
+  font-weight: var(--seed-font-weight-bold);
+  letter-spacing: -.04em;
+}
+.festival-badge {
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-layer-floating);
+  color: var(--seed-color-fg-neutral);
+}
+.festival-badge.hot { background: var(--seed-color-bg-brand-weak); color: var(--seed-color-fg-brand-contrast); }
+
+.map-tabs {
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-layer-floating);
+  box-shadow: var(--seed-shadow-s1);
+}
+.map-tabs button {
+  min-height: 32px;
+  border-radius: var(--seed-radius-full);
+  color: var(--seed-color-fg-neutral-subtle);
+}
+.map-tabs button.active {
+  background: var(--seed-color-bg-neutral-solid);
+  color: var(--seed-color-fg-neutral-inverted);
+  box-shadow: none;
+}
+
+.map-card {
+  border-color: var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r5);
+  box-shadow: none;
+}
+.map-toolbar button { width: 40px; height: 40px; padding: 0; border-radius: var(--seed-radius-r3); }
+.map-legend {
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r3);
+  background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 94%, transparent);
+  color: var(--seed-color-fg-neutral-muted);
+  box-shadow: var(--seed-shadow-s1);
+}
+
+.marker-bubble, .parking-map-marker {
+  border-color: var(--seed-color-stroke-brand-solid);
+  border-radius: var(--seed-radius-r3) var(--seed-radius-r3) var(--seed-radius-r3) var(--seed-radius-r1);
+  background: var(--seed-color-bg-layer-floating);
+  color: var(--seed-color-fg-neutral);
+  box-shadow: var(--seed-shadow-s2);
+  font-family: inherit;
+}
+.marker-icon, .parking-map-marker > span {
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand-contrast);
+}
+.parking-map-marker.parking-dot {
+  border-color: var(--seed-color-bg-layer-floating);
+  background: var(--seed-color-bg-brand-solid);
+  box-shadow: var(--seed-shadow-s2);
+}
+.parking-map-marker.parking-dot:hover { background: var(--seed-color-bg-brand-solid-pressed); }
+.destination-marker {
+  border-color: var(--seed-color-bg-layer-floating);
+  background: var(--seed-color-bg-brand-solid);
+  box-shadow: var(--seed-shadow-s3);
+}
+
+.nearby-panel, .nearby-item, .onboarding-card, .nav-card {
+  border-color: var(--seed-color-stroke-neutral-weak);
+  background: var(--seed-color-bg-layer-floating);
+  box-shadow: var(--seed-shadow-s2);
+}
+.nearby-panel { border-radius: var(--seed-radius-r4); }
+.nearby-item { border-radius: var(--seed-radius-r3); }
+.nearby-item:hover {
+  border-color: var(--seed-color-stroke-brand-solid);
+  background: var(--seed-color-bg-layer-floating-pressed);
+}
+.nearby-title > span, .parking-info-kicker span, .place-detail-toggle {
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand-contrast);
+}
+
+.mobile-nav {
+  border-top: 1px solid var(--seed-color-stroke-neutral-weak);
+  background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 97%, transparent);
+  box-shadow: var(--seed-shadow-s2);
+}
+.mobile-nav button { border-radius: var(--seed-radius-r3); color: var(--seed-color-fg-neutral-subtle); }
+.mobile-nav button.active { background: var(--seed-color-bg-brand-weak); color: var(--seed-color-fg-brand-contrast); }
+
+.modal, .sheet-backdrop { background: var(--seed-color-bg-overlay-muted); }
+.onboarding {
+  background: color-mix(in srgb, var(--seed-color-bg-brand-weak) 38%, var(--seed-color-bg-layer-basement));
+}
+.onboarding-card, .nav-card {
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r5);
+}
+.skip-button, .test-description, .place-description, .data-source-note,
+.data-note, .nav-card > p, .nav-card .nav-note { color: var(--seed-color-fg-neutral-muted); }
+.question-progress > span, .test-kicker { color: var(--seed-color-fg-brand); }
+.question-progress > div { background: var(--seed-color-bg-neutral-weak); }
+.question-progress i { background: var(--seed-color-bg-brand-solid); }
+
+.answer-button {
+  min-height: 48px;
+  border-color: var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r3);
+  background: var(--seed-color-bg-layer-default);
+  color: var(--seed-color-fg-neutral);
+}
+.answer-button:hover, .answer-button:active {
+  border-color: var(--seed-color-stroke-brand-solid);
+  background: var(--seed-color-bg-brand-weak);
+  transform: none;
+}
+
+.primary-button, .route-button, .time-form button, .parking-info-actions .route-button {
+  min-height: 48px;
+  border-radius: var(--seed-radius-r3);
+  background: var(--seed-color-bg-brand-solid);
+  color: var(--seed-color-palette-static-white);
+  box-shadow: none;
+}
+.primary-button:hover, .primary-button:active, .route-button:hover, .route-button:active,
+.time-form button:hover, .time-form button:active { background: var(--seed-color-bg-brand-solid-pressed); }
+.primary-button span { color: currentColor; }
+
+.bottom-sheet, #placeSheet, #parkingInfoSheet {
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-bottom: 0;
+  border-radius: var(--seed-radius-r6) var(--seed-radius-r6) 0 0;
+  background: var(--seed-color-bg-layer-floating);
+  box-shadow: var(--seed-shadow-s3);
+}
+.sheet-handle, #placeSheet .sheet-handle { background: var(--seed-color-stroke-neutral-muted); }
+
+.place-info-grid div, .parking-stats div, .parking-info-grid div, .time-form {
+  border-radius: var(--seed-radius-r3);
+  background: var(--seed-color-bg-layer-fill);
+}
+.time-form label {
+  border-color: var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r2);
+  background: var(--seed-color-bg-layer-default);
+}
+.time-form input { color: var(--seed-color-fg-neutral); font-family: inherit; }
+
+.recommend-reason, .place-parking-preview {
+  border-color: var(--seed-color-stroke-brand-weak);
+  border-radius: var(--seed-radius-r3);
+  background: var(--seed-color-bg-brand-weak);
+}
+.recommend-reason i, .place-parking-preview li:first-child > span, .best .rank-badge {
+  background: var(--seed-color-bg-brand-solid);
+  color: var(--seed-color-palette-static-white);
+}
+
+.parking-item {
+  border-color: var(--seed-color-stroke-neutral-weak);
+  border-radius: var(--seed-radius-r4);
+  background: var(--seed-color-bg-layer-default);
+}
+.parking-item.best {
+  border-color: var(--seed-color-stroke-brand-solid);
+  box-shadow: 0 0 0 1px var(--seed-color-stroke-brand-solid);
+}
+.parking-type, .parking-reason, .parking-info-reason { color: var(--seed-color-fg-brand-contrast); }
+.rank-badge {
+  border-radius: var(--seed-radius-r2);
+  background: var(--seed-color-bg-neutral-weak);
+  color: var(--seed-color-fg-neutral-muted);
+  font-family: inherit;
+  font-weight: var(--seed-font-weight-bold);
+}
+.full-button { background: var(--seed-color-bg-critical-weak); color: var(--seed-color-fg-critical-contrast); }
+.parking-info-plan { background: var(--seed-color-bg-neutral-weak); color: var(--seed-color-fg-neutral); }
+
+.toast {
+  border-radius: var(--seed-radius-r3);
+  background: var(--seed-color-bg-neutral-inverted);
+  color: var(--seed-color-fg-neutral-inverted);
+  box-shadow: var(--seed-shadow-s3);
+}
+
+@media (min-width: 521px) {
+  body { background: var(--seed-color-bg-layer-basement); }
+  .app-shell { border-inline: 1px solid var(--seed-color-stroke-neutral-weak); }
+}
+
+@media (max-width: 520px) {
+  .app-header {
+    top: calc(var(--seed-dimension-x2) + var(--seed-safe-area-top));
+    left: var(--seed-dimension-x3);
+    right: var(--seed-dimension-x3);
+  }
+  .recommend-section {
+    left: var(--seed-dimension-x3);
+    right: var(--seed-dimension-x3);
+    bottom: calc(var(--app-bottom) + var(--seed-dimension-x3));
+  }
+  .explore-head, .map-toolbar { top: calc(72px + var(--seed-safe-area-top)); }
+  .map-legend { left: var(--seed-dimension-x3); }
+  .bottom-sheet, #placeSheet, #parkingInfoSheet {
+    padding-inline: var(--seed-dimension-spacing-x-global-gutter);
+    padding-bottom: calc(var(--seed-dimension-x5) + var(--seed-safe-area-bottom));
+  }
+}

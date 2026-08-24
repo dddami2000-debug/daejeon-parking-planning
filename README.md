@@ -57,6 +57,15 @@ python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
 - 기본 내비게이션 선택
 - `만차예요` 클릭 후 다음 후보 자동 승격 및 안내
 
+### SEED Design UI
+
+프로토타입 UI는 `@seed-design/css` 2.4.0의 공식 토큰을 사용합니다.
+
+- 공식 토큰 CSS: `prototype/index.html`
+- 프로젝트 테마 매핑: `prototype/seed-theme.css`
+- 적용 범위: 색상, 타이포그래피, 간격, 모서리, 버튼, 필터, 카드, 바텀시트, 하단 내비게이션
+- 기존 네이버지도와 공공데이터 로직은 변경하지 않음
+
 ## 공공데이터 연동
 
 `prototype/api/`의 Vercel Functions가 공공데이터를 서버에서 수집하고 Supabase에 저장합니다. 브라우저에는 공공데이터 키나 Supabase Secret Key를 전달하지 않습니다.
