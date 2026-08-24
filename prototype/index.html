@@ -135,7 +135,7 @@
       </div>
       <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>추천 근거가 있는 3곳</b></div>
       <div class="parking-list" id="parkingList"></div>
-      <p class="data-note">예상 요금은 운영시간과 무료 구간을 반영한 프로토타입 계산 결과예요.</p>
+      <p class="data-note" id="parkingDataNote">Supabase 주차장 정보를 불러오는 중이에요.</p>
     </section>
 
     <div class="modal" id="navigationModal" role="dialog" aria-modal="true" aria-labelledby="navTitle">
@@ -154,6 +154,7 @@
     </div>
 
     <div class="toast" id="toast" role="status"></div>
+    <script src="supabase-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

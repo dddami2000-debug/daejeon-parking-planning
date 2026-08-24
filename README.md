@@ -35,7 +35,8 @@ Manyfast의 **「자료보고 기획해줘」** 프로젝트를 팀 협업용 Gi
 - `main`: 합의된 기획 및 동작
 - 기능별 브랜치: `feature/onboarding`, `feature/place-discovery`, `feature/parking-plan`, `feature/navigation`
 - 기획 변경은 Pull Request에서 문서와 구현을 함께 리뷰
-- API Key, OpenAI Key 등 비밀값은 Git에 커밋하지 않고 `.env`로 관리
+- 공공데이터 API Key, OpenAI Key, Supabase `service_role`처럼 권한이 큰 비밀값은 Git에 커밋하지 않고 `.env`로 관리
+- 브라우저 공개용 Supabase publishable key는 RLS와 최소 권한이 적용된 경우에만 프런트엔드에서 사용
 
 ## 현재 기획 상태
 Manyfast 기준 Requirement / Feature / Spec은 모두 아직 `todo` 상태입니다.
@@ -57,4 +58,23 @@ python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
 - 기본 내비게이션 선택
 - `만차예요` 클릭 후 다음 후보 자동 승격 및 안내
 
-현재 버전은 외부 API를 연결하기 전 UI/UX 검증용이며 예시 데이터를 사용합니다.
+## Supabase 주차장 데이터
+
+프로토타입은 Supabase의 `public.parking_lots` 테이블에서 대전 실시간 주차장 데이터를 읽습니다.
+
+- 현재 적재 건수: 756곳
+- 브라우저 권한: `anon`, `authenticated` 모두 조회(`SELECT`)만 허용
+- 데이터 보호: RLS 정책으로 공개 조회만 허용
+- 연결 설정: [`prototype/supabase-config.js`](prototype/supabase-config.js)
+- 재현 가능한 스키마: [`supabase/schema.sql`](supabase/schema.sql)
+
+대전 공공데이터 API를 다시 확인하려면 원본 키가 든 `.env` 경로를 지정해 아래처럼 실행합니다. 키 값은 결과나 Git에 저장되지 않습니다.
+
+```bash
+python3 scripts/fetch_daejeon_parking.py \
+  --env-file "/Users/choijihun/Downloads/아카이브/.env" \
+  --page 1 \
+  --rows 50
+```
+
+Supabase 연결에 실패할 때만 화면의 예시 주차장 데이터가 대체 표시됩니다.
