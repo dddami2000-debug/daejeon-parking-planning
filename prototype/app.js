@@ -152,11 +152,20 @@ function openPlace(id){
     naverMap.morph(targetPosition,15,{duration:750,easing:'easeOutCubic'});
   }
   const parkingPreview=currentParkingList().map((parking,index)=>`<li><span>${index+1}</span><div><b>${parking.name}</b><small>${costFor(parking).toLocaleString()}원 · 도보 ${parking.walk}분</small></div></li>`).join('');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${activePlace.emoji}'"><div class="place-hero-badges"><span>${activePlace.type==='festival'?'축제':'랜드마크'}</span><span>${activePlace.date}</span></div><h2>${activePlace.name}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${activePlace.period}</b></div><div><span>오늘 운영</span><b>${activePlace.hours}</b></div><div><span>현재 위치</span><b>${activePlace.distance}km · ${activePlace.eta}분</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${activePlace.reason}</b></span></div><p class="place-description">${activePlace.summary}</p><div class="place-parking-preview"><div><span>주변 주차장</span><b>꿈돌이 추천 1·2·3순위</b></div><ol>${parkingPreview}</ol></div><button class="primary-button" id="openPlanner">주차 플랜 자세히 보기 <span>→</span></button>`;
+  const placeLabel=activePlace.type==='festival'?'축제':'랜드마크';
+  $('#placeSheet').classList.remove('is-expanded');
+  $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${activePlace.emoji}'"><div class="place-hero-badges"><span>${placeLabel}</span><span>${activePlace.date}</span></div><h2>${activePlace.name}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${activePlace.period}</b></div><div><span>오늘 운영</span><b>${activePlace.hours}</b></div><div><span>현재 위치</span><b>${activePlace.distance}km · ${activePlace.eta}분</b></div></div><button class="place-detail-toggle" id="expandPlaceDetails">${placeLabel} 정보 자세히 보기 <span>⌃</span></button><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${activePlace.reason}</b></span></div><p class="place-description">${activePlace.summary}</p><div class="place-parking-preview"><div><span>주변 주차장</span><b>꿈돌이 추천 1·2·3순위</b></div><ol>${parkingPreview}</ol></div><button class="primary-button" id="openPlanner">주차 플랜 자세히 보기 <span>→</span></button>`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   $('#placeSheet').classList.add('show');
+  $('#expandPlaceDetails').addEventListener('click',()=>togglePlaceDetails(placeLabel));
   $('#openPlanner').addEventListener('click',openPlanner);
+}
+
+function togglePlaceDetails(placeLabel){
+  const sheet=$('#placeSheet');
+  const expanded=sheet.classList.toggle('is-expanded');
+  $('#expandPlaceDetails').innerHTML=expanded?`${placeLabel} 정보 접기 <span>⌄</span>`:`${placeLabel} 정보 자세히 보기 <span>⌃</span>`;
 }
 
 function showSheet(selector){
