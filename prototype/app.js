@@ -279,6 +279,10 @@ $('#startTest').addEventListener('click',startTest);
 $('#skipTest').addEventListener('click',closeOnboarding);
 $('#retestButton').addEventListener('click',()=>{localStorage.removeItem('daejeonMap.onboardingCompleted');localStorage.removeItem('daejeonMap.personalityResult');location.reload();});
 $('#mobileTaste').addEventListener('click',()=>$('#retestButton').click());
+function setMobileNavActive(id){document.querySelectorAll('.mobile-nav button').forEach(button=>button.classList.toggle('active',button.id===id));}
+$('#mobileHome').addEventListener('click',()=>{resetMapFocus();setMobileNavActive('mobileHome');});
+$('#mobileMap').addEventListener('click',()=>{if(isPlaceFocused)resetMapFocus();setMobileNavActive('mobileMap');toast('지도에서 축제 또는 랜드마크 버블을 눌러보세요.');});
+$('#mobileMore').addEventListener('click',()=>toast('대전갈까?의 더 많은 기능을 준비하고 있어요.'));
 $('#slidePrev').addEventListener('click',()=>$('#festivalSlider').scrollBy({left:-320,behavior:'smooth'}));
 $('#slideNext').addEventListener('click',()=>$('#festivalSlider').scrollBy({left:320,behavior:'smooth'}));
 document.querySelectorAll('.map-tabs button').forEach(button=>button.addEventListener('click',()=>{if(isPlaceFocused)resetMapFocus();document.querySelectorAll('.map-tabs button').forEach(item=>item.classList.remove('active'));button.classList.add('active');activeFilter=button.dataset.filter;renderMap();}));
