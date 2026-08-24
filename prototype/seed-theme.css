@@ -1024,23 +1024,60 @@ button:focus-visible, input:focus-visible {
   }
 
   .app-header {
-    top: 44px;
+    top: 46px;
     left: 50%;
     right: auto;
     width: calc(100% - 24px);
-    height: 52px;
-    padding: 0 12px;
+    height: 44px;
+    padding: 0;
     gap: 8px;
-    border-radius: var(--seed-radius-r4);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
     transform: translateX(-50%);
   }
 
-  .brand { font-size: 17px; }
+  .brand {
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--seed-color-stroke-neutral-weak);
+    border-radius: var(--seed-radius-r4);
+    background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 95%, transparent);
+    box-shadow: var(--seed-shadow-s2);
+    font-size: 16px;
+    backdrop-filter: blur(16px);
+  }
+
   .brand-orbit { width: 28px; height: 28px; }
-  .location-pill { min-width: 0; max-width: 148px; min-height: 38px; padding: 0 10px; }
-  .location-pill b { display: block; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+  .location-pill {
+    min-width: 0;
+    max-width: 118px;
+    min-height: 44px;
+    margin-left: auto;
+    padding: 0 11px;
+    border: 1px solid var(--seed-color-stroke-neutral-weak);
+    border-radius: var(--seed-radius-r4);
+    background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 95%, transparent);
+    box-shadow: var(--seed-shadow-s2);
+    backdrop-filter: blur(16px);
+  }
+
+  .location-pill b { display: block; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
   .location-pill small, .location-pill .chevron { display: none; }
-  .profile-button { min-width: 38px; min-height: 38px; margin-left: auto; padding: 0 11px; }
+  .pulse-dot { width: 7px; height: 7px; box-shadow: 0 0 0 3px var(--seed-color-bg-positive-weak); }
+  .profile-button {
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: 0;
+    padding: 0;
+    border: 1px solid var(--seed-color-stroke-brand-weak);
+    border-radius: var(--seed-radius-r4);
+    background: color-mix(in srgb, var(--seed-color-bg-brand-weak) 92%, transparent);
+    box-shadow: var(--seed-shadow-s2);
+    backdrop-filter: blur(16px);
+  }
   .profile-button b { display: none; }
 
   main { height: 100%; }
@@ -1167,8 +1204,24 @@ button:focus-visible, input:focus-visible {
     transform: translate(-50%, 105%);
   }
 
+  #placeSheet,
+  .bottom-sheet,
+  #parkingInfoSheet {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .3s ease, opacity .18s ease, visibility 0s linear .3s;
+  }
+
+  #placeSheet.show,
   .bottom-sheet.show,
-  #parkingInfoSheet.show { transform: translate(-50%, 0); }
+  #parkingInfoSheet.show {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+    transition-delay: 0s;
+  }
 
   .sheet-backdrop,
   .modal {
