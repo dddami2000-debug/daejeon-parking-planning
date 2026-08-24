@@ -56,7 +56,10 @@ async function fetchPagedDataGov(url, key, source) {
     requestUrl.searchParams.set('numOfRows', '100');
     const payload = dataGovEnvelope(await fetchJson(requestUrl));
     const resultCode = cleanText(payload?.header?.resultCode);
-    if (resultCode && resultCode !== '00') throw new Error(`upstream_result_${resultCode}`);
+    if (resultCode && resultCode !== '00') {
+      const message = cleanText(payload?.header?.resultMsg).replace(/[^\w가-힣 -]/g, '').slice(0, 120);
+      throw new Error(`upstream_result_${resultCode}${message ? `_${message}` : ''}`);
+    }
     return payload;
   };
 
@@ -289,11 +292,10 @@ module.exports = async function handler(req, res) {
   if (!isAuthorizedCron(req)) return sendJson(res, 401, { error: 'unauthorized' });
   const requested = cleanText(req.query?.dataset || 'all');
   const datasets = requested === 'all' ? ['festival', 'landmark', 'parking', 'sharenuri'] : [requested];
-  try {
-    const results = [];
-    for (const dataset of datasets) results.push(await syncOne(dataset));
-    return sendJson(res, 200, { ok: true, results });
-  } catch (error) {
-    return sendJson(res, 502, { error: 'sync_failed', message: cleanText(error.message) });
-  }
+  const results = await Promise.allSettled(datasets.map(syncOne));
+  const summary = results.map((result, index) => result.status === 'fulfilled'
+    ? { ok: true, ...result.value }
+    : { ok: false, dataset: datasets[index], error: cleanText(result.reason?.message) });
+  const allSucceeded = summary.every((result) => result.ok);
+  return sendJson(res, allSucceeded ? 200 : 207, { ok: allSucceeded, results: summary });
 };
