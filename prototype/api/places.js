@@ -44,6 +44,7 @@ function mapPlace(place) {
     period: periodLabel(place),
     hours: cleanText(place.operating_hours?.raw) || (place.category === 'festival' ? '행사 시간 확인' : '운영 시간 확인'),
     summary: cleanText(place.description) || '대전에서 즐길 수 있는 추천 장소예요.',
+    imageUrl: cleanText(place.image_url) || cleanText(place.metadata?.image_url) || null,
     homepageUrl: cleanText(place.homepage_url) || null,
     metadata: place.metadata || {},
     updatedAt: place.updated_at || null
@@ -60,7 +61,7 @@ module.exports = async function handler(req, res) {
       ? '&source=eq.daejeon_tourspot'
       : '&source=in.(kto_festival,daejeon_festival,daejeon_tourspot)';
     const categoryFilter = category ? `&category=eq.${category}` : '';
-    const rows = await supabaseRequest(`places?select=id,source,category,name,address,latitude,longitude,start_date,end_date,operating_hours,description,homepage_url,metadata,updated_at&order=updated_at.desc${sourceFilter}${categoryFilter}`);
+    const rows = await supabaseRequest(`places?select=id,source,category,name,address,latitude,longitude,start_date,end_date,operating_hours,description,homepage_url,image_url,metadata,updated_at&order=updated_at.desc${sourceFilter}${categoryFilter}`);
     const mapped = (Array.isArray(rows) ? rows : []).map(mapPlace);
     const hasCurrentFestivalSource = mapped.some((place) => place.source === 'kto_festival');
     const places = hasCurrentFestivalSource
