@@ -236,7 +236,7 @@ function isAuthorizedCron(req) {
   const secret = cleanText(process.env.CRON_SECRET);
   if (!secret) return false;
   const authorization = cleanText(req.headers.authorization);
-  return authorization === `Bearer ${secret}` || cleanText(req.query?.secret) === secret;
+  return authorization === `Bearer ${secret}`;
 }
 
 module.exports = {
