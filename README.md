@@ -67,4 +67,6 @@ python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
 
 필수 환경 변수 이름은 [`prototype/.env.example`](prototype/.env.example)에 정리했습니다. Vercel에서 Production과 Preview에 모두 등록하고, 동기화용 `CRON_SECRET`도 추가해야 합니다.
 
+Vercel Cron은 매일 오전 6시(KST, UTC `0 21 * * *`)에 `/api/sync`를 호출해 축제·랜드마크·공영주차장·공유누리 주차장 데이터를 갱신합니다.
+
 축제 API에는 좌표가 포함되지 않습니다. 따라서 축제는 상세 정보와 추천 카드에 우선 노출되며, 지도 버블과 주변 주차장 추천은 좌표가 있는 랜드마크부터 실제 데이터로 동작합니다. 축제 주소의 좌표화(Geocoding)는 다음 단계로 분리했습니다.
