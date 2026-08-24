@@ -48,7 +48,7 @@ function festivalDates(period) {
   return { startDate: isoDate(matches[0]), endDate: isoDate(matches[1]) };
 }
 
-async function fetchPagedDataGov(url, key) {
+async function fetchPagedDataGov(url, key, source) {
   const requestPage = async (pageNo) => {
     const requestUrl = new URL(url);
     requestUrl.searchParams.set('serviceKey', normalizedServiceKey(key));
@@ -64,6 +64,7 @@ async function fetchPagedDataGov(url, key) {
   const firstItems = getPageItems(first?.body || first);
   const total = getTotalCount(first, firstItems.length);
   const pages = Math.max(1, Math.ceil(total / 100));
+  console.info(JSON.stringify({ event: 'datagov_page_summary', source, total, firstPageItems: firstItems.length, pages }));
   const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) => requestPage(index + 2)));
   return [first, ...rest].flatMap((payload) => getPageItems(payload?.body || payload));
 }
@@ -253,11 +254,11 @@ async function syncOne(dataset) {
   const jobs = {
     festival: {
       source: 'daejeon_festival',
-      run: () => fetchPagedDataGov(FESTIVAL_URL, process.env.FESTIVAL_API_KEY).then((items) => items.map(mapFestival))
+      run: () => fetchPagedDataGov(FESTIVAL_URL, process.env.FESTIVAL_API_KEY, 'festival').then((items) => items.map(mapFestival))
     },
     landmark: {
       source: 'daejeon_tourspot',
-      run: () => fetchPagedDataGov(TOURSPOT_URL, process.env.TOUR_API_KEY).then((items) => items.map(mapTourspot))
+      run: () => fetchPagedDataGov(TOURSPOT_URL, process.env.TOUR_API_KEY, 'landmark').then((items) => items.map(mapTourspot))
     },
     parking: {
       source: 'daejeon_parking',
