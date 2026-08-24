@@ -28,6 +28,11 @@ function getPageItems(body) {
   return asArray(items);
 }
 
+function dataGovEnvelope(payload) {
+  // Some data.go.kr services wrap the documented header/body inside `response`.
+  return payload?.response || payload;
+}
+
 function getTotalCount(body, fallback) {
   return toInteger(body?.totalCount || body?.body?.totalCount) || fallback;
 }
@@ -49,7 +54,7 @@ async function fetchPagedDataGov(url, key) {
     requestUrl.searchParams.set('serviceKey', normalizedServiceKey(key));
     requestUrl.searchParams.set('pageNo', String(pageNo));
     requestUrl.searchParams.set('numOfRows', '100');
-    const payload = await fetchJson(requestUrl);
+    const payload = dataGovEnvelope(await fetchJson(requestUrl));
     const resultCode = cleanText(payload?.header?.resultCode);
     if (resultCode && resultCode !== '00') throw new Error(`upstream_result_${resultCode}`);
     return payload;
@@ -85,8 +90,7 @@ async function fetchShareNuriRows() {
   const key = cleanText(process.env.SHARENURI_API_KEY);
   if (!key) throw new Error('sharenuri_api_key_missing');
   const apiKey = normalizedServiceKey(key);
-  const requestUrl = new URL(`${SHARE_NURI_LIST_URL}/${encodeURIComponent(apiKey)}`);
-  requestUrl.searchParams.set('rsrcClsCd', '010700');
+  const requestUrl = new URL(`${SHARE_NURI_LIST_URL}/010700/${encodeURIComponent(apiKey)}`);
   requestUrl.searchParams.set('pageNo', '1');
   requestUrl.searchParams.set('numOfRows', '1000');
   const listPayload = await fetchJson(requestUrl);
