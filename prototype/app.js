@@ -31,7 +31,9 @@ let excludedParkings = [];
 let pendingParking = null;
 let naverMap = null;
 let placeMarkers = [];
+let parkingMarkers = [];
 let currentLocationMarker = null;
+let isPlaceFocused = false;
 
 function renderFestivals(){
   const festivalPlaces = places.filter(place=>place.type==='festival');
@@ -41,12 +43,20 @@ function renderFestivals(){
 
 function renderMap(){
   const visible = places.filter(place=>activeFilter==='all'||place.type===activeFilter);
-  const near = [...visible].sort((a,b)=>a.distance-b.distance).slice(0,4);
-  $('#nearbyCount').textContent=`${near.length}곳`;
-  $('#nearbyList').innerHTML=near.map(place=>`<button class="nearby-item" data-place="${place.id}" style="--tile:${place.tile};--accent:${place.color}"><span class="nearby-emoji">${place.emoji}</span><span class="nearby-info"><span>${place.type==='festival'?'진행 중인 축제':'추천 랜드마크'}</span><b>${place.name}</b><p>${place.distance}km · ${place.eta}분 · ${place.date}</p></span></button>`).join('');
-  document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place)));
+  renderNearbyPanel(visible);
   if(!naverMap)return;
   placeMarkers.forEach(marker=>marker.setMap(null));
+  parkingMarkers.forEach(marker=>marker.setMap(null));
+  parkingMarkers=[];
+  if(isPlaceFocused){
+    const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
+    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="destination-marker" aria-label="선택한 장소"><i>${activePlace.emoji}</i></span>`,anchor:new naver.maps.Point(25,25)}})];
+    parkingMarkers=currentParkingList().map((parking,index)=>{
+      const position=parkingPosition(index);
+      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker rank-${index+1}" aria-label="${index+1}순위 ${parking.name}"><span>${index+1}</span><b>${parking.name}</b><small>${costFor(parking).toLocaleString()}원 · 도보 ${parking.walk}분</small></button>`,anchor:new naver.maps.Point(74,54)}});
+    });
+    return;
+  }
   placeMarkers=visible.map(place=>{
     const marker=new naver.maps.Marker({
       map:naverMap,
@@ -63,6 +73,38 @@ function renderMap(){
   });
 }
 
+function renderNearbyPanel(visible){
+  const title=$('.nearby-title h3'),eyebrow=$('.nearby-title p');
+  if(isPlaceFocused){
+    const parkings=currentParkingList();
+    eyebrow.textContent='선택한 장소 주변';
+    title.textContent='추천 주차장';
+    $('#nearbyCount').textContent=`${parkings.length}곳`;
+    $('#nearbyList').innerHTML=parkings.map((parking,index)=>`<button class="nearby-item nearby-parking" data-parking="${parking.name}" style="--tile:#eff7ef;--accent:#3d7657"><span class="nearby-emoji">${index+1}</span><span class="nearby-info"><span>${parking.type} 주차장</span><b>${parking.name}</b><p>${costFor(parking).toLocaleString()}원 · 도보 ${parking.walk}분</p></span></button>`).join('');
+    document.querySelectorAll('[data-parking]').forEach(item=>item.addEventListener('click',openPlanner));
+    return;
+  }
+  const near=[...visible].sort((a,b)=>a.distance-b.distance).slice(0,4);
+  eyebrow.textContent='내 주변';
+  title.textContent='가까운 장소';
+  $('#nearbyCount').textContent=`${near.length}곳`;
+  $('#nearbyList').innerHTML=near.map(place=>`<button class="nearby-item" data-place="${place.id}" style="--tile:${place.tile};--accent:${place.color}"><span class="nearby-emoji">${place.emoji}</span><span class="nearby-info"><span>${place.type==='festival'?'진행 중인 축제':'추천 랜드마크'}</span><b>${place.name}</b><p>${place.distance}km · ${place.eta}분 · ${place.date}</p></span></button>`).join('');
+  document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place)));
+}
+
+function parkingPosition(index){
+  const offsets=[[0.0020,0.0028],[-0.0016,0.0032],[0.0026,-0.0026],[-0.0024,-0.0020]];
+  const [latOffset,lngOffset]=offsets[index%offsets.length];
+  return new naver.maps.LatLng(activePlace.lat+latOffset,activePlace.lng+lngOffset);
+}
+
+function fitAllPlaces(){
+  if(!naverMap)return;
+  const bounds=new naver.maps.LatLngBounds();
+  places.forEach(place=>bounds.extend(new naver.maps.LatLng(place.lat,place.lng)));
+  naverMap.fitBounds(bounds,{top:110,right:120,bottom:110,left:120});
+}
+
 function initNaverMap(){
   if(!window.naver?.maps){
     $('#map').innerHTML='<p class="map-status">지도를 불러오지 못했어요. 등록한 Web 서비스 URL을 확인해 주세요.</p>';
@@ -71,9 +113,7 @@ function initNaverMap(){
   }
   naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(36.3504,127.3845),zoom:12,minZoom:10,maxZoom:18});
   renderMap();
-  const bounds=new naver.maps.LatLngBounds();
-  places.forEach(place=>bounds.extend(new naver.maps.LatLng(place.lat,place.lng)));
-  naverMap.fitBounds(bounds,{top:74,right:42,bottom:74,left:42});
+  fitAllPlaces();
 }
 
 function moveToCurrentLocation(){
@@ -90,10 +130,16 @@ function moveToCurrentLocation(){
 
 function openPlace(id){
   activePlace=places.find(place=>place.id===id)||places[0];
+  isPlaceFocused=true;
+  excludedParkings=[];
+  $('.app-shell').classList.add('is-place-focused');
   renderMap();
-  if(naverMap)naverMap.panTo(new naver.maps.LatLng(activePlace.lat,activePlace.lng));
-  $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${activePlace.emoji}'"><div class="place-hero-badges"><span>${activePlace.type==='festival'?'축제':'랜드마크'}</span><span>${activePlace.date}</span></div><h2>${activePlace.name}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${activePlace.period}</b></div><div><span>오늘 운영</span><b>${activePlace.hours}</b></div><div><span>현재 위치</span><b>${activePlace.distance}km · ${activePlace.eta}분</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${activePlace.reason}</b></span></div><p class="place-description">${activePlace.summary}</p><button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button>`;
-  showSheet('#placeSheet');
+  if(naverMap){naverMap.panTo(new naver.maps.LatLng(activePlace.lat,activePlace.lng));naverMap.setZoom(15,true);}
+  const parkingPreview=currentParkingList().map((parking,index)=>`<li><span>${index+1}</span><div><b>${parking.name}</b><small>${costFor(parking).toLocaleString()}원 · 도보 ${parking.walk}분</small></div></li>`).join('');
+  $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${activePlace.emoji}'"><div class="place-hero-badges"><span>${activePlace.type==='festival'?'축제':'랜드마크'}</span><span>${activePlace.date}</span></div><h2>${activePlace.name}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${activePlace.period}</b></div><div><span>오늘 운영</span><b>${activePlace.hours}</b></div><div><span>현재 위치</span><b>${activePlace.distance}km · ${activePlace.eta}분</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${activePlace.reason}</b></span></div><p class="place-description">${activePlace.summary}</p><div class="place-parking-preview"><div><span>주변 주차장</span><b>꿈돌이 추천 1·2·3순위</b></div><ol>${parkingPreview}</ol></div><button class="primary-button" id="openPlanner">주차 플랜 자세히 보기 <span>→</span></button>`;
+  document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
+  $('#sheetBackdrop').classList.remove('show');
+  $('#placeSheet').classList.add('show');
   $('#openPlanner').addEventListener('click',openPlanner);
 }
 
@@ -104,8 +150,19 @@ function showSheet(selector){
 }
 
 function closeSheets(){
+  const wasPlaceOpen=$('#placeSheet').classList.contains('show');
+  const wasPlannerOpen=$('#plannerSheet').classList.contains('show');
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
+  if(wasPlannerOpen&&isPlaceFocused){$('#placeSheet').classList.add('show');return;}
+  if(wasPlaceOpen)resetMapFocus();
+}
+
+function resetMapFocus(){
+  isPlaceFocused=false;
+  $('.app-shell').classList.remove('is-place-focused');
+  renderMap();
+  fitAllPlaces();
 }
 
 function minutes(time){const [h,m]=time.split(':').map(Number);return h*60+m}
@@ -206,7 +263,7 @@ $('#retestButton').addEventListener('click',()=>{localStorage.removeItem('daejeo
 $('#mobileTaste').addEventListener('click',()=>$('#retestButton').click());
 $('#slidePrev').addEventListener('click',()=>$('#festivalSlider').scrollBy({left:-320,behavior:'smooth'}));
 $('#slideNext').addEventListener('click',()=>$('#festivalSlider').scrollBy({left:320,behavior:'smooth'}));
-document.querySelectorAll('.map-tabs button').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.map-tabs button').forEach(item=>item.classList.remove('active'));button.classList.add('active');activeFilter=button.dataset.filter;renderMap();}));
+document.querySelectorAll('.map-tabs button').forEach(button=>button.addEventListener('click',()=>{if(isPlaceFocused)resetMapFocus();document.querySelectorAll('.map-tabs button').forEach(item=>item.classList.remove('active'));button.classList.add('active');activeFilter=button.dataset.filter;renderMap();}));
 document.querySelectorAll('[data-close-sheet]').forEach(button=>button.addEventListener('click',closeSheets));
 $('#sheetBackdrop').addEventListener('click',closeSheets);
 $('#recalculate').addEventListener('click',()=>{renderParkings();toast('선택한 시간으로 요금을 다시 계산했어요.');});
@@ -214,4 +271,5 @@ $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remo
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
 $('#currentButton').addEventListener('click',moveToCurrentLocation);
 $('#locationButton').addEventListener('click',moveToCurrentLocation);
+$('#brandButton').addEventListener('click',resetMapFocus);
 $('#searchButton').addEventListener('click',()=>toast('장소 검색은 다음 버전에서 API와 연결해요.'));
