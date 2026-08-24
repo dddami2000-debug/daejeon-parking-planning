@@ -1,0 +1,114 @@
+{
+  "manyfastProjectTitle": "자료보고 기획해줘",
+  "product": {
+    "subject": "대전 주차 추천 서비스",
+    "category": "lifestyle",
+    "devices": [
+      "모바일 웹",
+      "데스크톱 웹"
+    ],
+    "role": "방문 운전자"
+  },
+  "counts": {
+    "requirements": 5,
+    "features": 8,
+    "specs": 7,
+    "userFlows": 1
+  },
+  "requirements": [
+    {
+      "id": "R-TABLXR",
+      "name": "취향 분석 온보딩",
+      "importance": "high",
+      "progress": "todo"
+    },
+    {
+      "id": "R-FGBJMG",
+      "name": "장소 발견 및 추천",
+      "importance": "high",
+      "progress": "todo"
+    },
+    {
+      "id": "R-CVFEHL",
+      "name": "주차 플랜 및 요금 추천",
+      "importance": "high",
+      "progress": "todo"
+    },
+    {
+      "id": "R-ZFVGGZ",
+      "name": "길안내 및 만차 전환",
+      "importance": "high",
+      "progress": "todo"
+    },
+    {
+      "id": "R-MRSEJG",
+      "name": "외부 데이터 대체 및 반응형 경험",
+      "importance": "high",
+      "progress": "todo"
+    }
+  ],
+  "features": [
+    {
+      "id": "F-CSITRQ",
+      "name": "심리테스트 및 취향 결과"
+    },
+    {
+      "id": "F-CNHTDW",
+      "name": "지도 기반 장소 탐색"
+    },
+    {
+      "id": "F-YVTTIN",
+      "name": "추천 점수 및 근거 생성"
+    },
+    {
+      "id": "F-FPNZDX",
+      "name": "주차장 순위 및 요금 계산"
+    },
+    {
+      "id": "F-FFBBOE",
+      "name": "실시간 주차 상태 표시"
+    },
+    {
+      "id": "F-WJRMZM",
+      "name": "외부 내비게이션 길안내"
+    },
+    {
+      "id": "F-NYOCZB",
+      "name": "만차 시 다음 후보 전환"
+    },
+    {
+      "id": "F-RBBFYB",
+      "name": "장애 대체 및 반응형 화면"
+    }
+  ],
+  "specs": [
+    {
+      "id": "S-AFHOFG",
+      "name": "테스트 건너뛰기"
+    },
+    {
+      "id": "S-SFBHNV",
+      "name": "장소 상세 바텀시트"
+    },
+    {
+      "id": "S-QCWWUS",
+      "name": "운영시간 반영 주차비 계산"
+    },
+    {
+      "id": "S-STSJRI",
+      "name": "주차장 후보 순위 표시"
+    },
+    {
+      "id": "S-MOTYGF",
+      "name": "기본 내비게이션 앱 선택"
+    },
+    {
+      "id": "S-ZOYLJD",
+      "name": "후보 소진 시 재탐색 안내"
+    },
+    {
+      "id": "S-ZEGJUR",
+      "name": "저장 데이터 대체 로딩"
+    }
+  ]
+}
