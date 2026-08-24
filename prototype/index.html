@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=8" />
-    <link rel="stylesheet" href="mobile.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="mobile.css?v=9" />
   </head>
   <body>
     <div class="app-shell">
@@ -125,6 +125,12 @@
       <p class="data-note">예상 요금은 운영시간과 무료 구간을 반영한 프로토타입 계산 결과예요.</p>
     </section>
 
+    <section class="bottom-sheet parking-info-sheet" id="parkingInfoSheet" aria-label="주차장 정보">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close" data-close-sheet aria-label="닫기">×</button>
+      <div id="parkingInfoContent"></div>
+    </section>
+
     <div class="modal" id="navigationModal" role="dialog" aria-modal="true" aria-labelledby="navTitle">
       <div class="nav-card">
         <button class="modal-close" id="closeNav" aria-label="닫기">×</button>
@@ -142,6 +148,6 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
   </body>
 </html>
