@@ -34,6 +34,7 @@ let placeMarkers = [];
 let parkingMarkers = [];
 let currentLocationMarker = null;
 let isPlaceFocused = false;
+const overviewPosition = {lat:36.3504,lng:127.3845,zoom:12};
 
 function renderFestivals(){
   const festivalPlaces = places.filter(place=>place.type==='festival');
@@ -105,13 +106,19 @@ function fitAllPlaces(){
   naverMap.fitBounds(bounds,{top:110,right:120,bottom:110,left:120});
 }
 
+function morphToOverview(){
+  if(!naverMap)return;
+  naverMap.stop();
+  naverMap.morph(new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),overviewPosition.zoom,{duration:750,easing:'easeOutCubic'});
+}
+
 function initNaverMap(){
   if(!window.naver?.maps){
     $('#map').innerHTML='<p class="map-status">지도를 불러오지 못했어요. 등록한 Web 서비스 URL을 확인해 주세요.</p>';
     renderMap();
     return;
   }
-  naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(36.3504,127.3845),zoom:12,minZoom:10,maxZoom:18});
+  naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),zoom:overviewPosition.zoom,minZoom:10,maxZoom:18});
   renderMap();
   fitAllPlaces();
 }
@@ -167,9 +174,8 @@ function resetMapFocus(){
   $('.app-shell').classList.remove('is-place-focused');
   $('#placeSheet').classList.remove('show');
   $('#sheetBackdrop').classList.remove('show');
-  if(naverMap)naverMap.stop();
   renderMap();
-  fitAllPlaces();
+  morphToOverview();
 }
 
 function minutes(time){const [h,m]=time.split(':').map(Number);return h*60+m}
