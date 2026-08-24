@@ -34,7 +34,12 @@ function dataGovEnvelope(payload) {
 }
 
 function getTotalCount(body, fallback) {
-  return toInteger(body?.totalCount || body?.body?.totalCount) || fallback;
+  return toInteger(
+    body?.totalCount
+    || body?.totalCnt
+    || body?.pageInfo?.totalCount
+    || body?.body?.totalCount
+  ) || fallback;
 }
 
 function isoDate(value) {
@@ -94,26 +99,47 @@ async function fetchShareNuriRows() {
   const key = cleanText(process.env.SHARENURI_API_KEY);
   if (!key) throw new Error('sharenuri_api_key_missing');
   const apiKey = normalizedServiceKey(key);
-  const requestUrl = new URL(`${SHARE_NURI_LIST_URL}/010700/${encodeURIComponent(apiKey)}`);
-  requestUrl.searchParams.set('pageNo', '1');
-  requestUrl.searchParams.set('numOfRows', '1000');
-  const listPayload = await fetchJson(requestUrl);
-  const list = getPageItems(listPayload);
-  const daejeon = list.filter((item) => cleanText(item.addr).includes('대전'));
-  if (!daejeon.length) return [];
+  const requestPage = async (pageNo) => {
+    const requestUrl = new URL(`${SHARE_NURI_LIST_URL}/010700/${encodeURIComponent(apiKey)}`);
+    requestUrl.searchParams.set('pageNo', String(pageNo));
+    // 공유누리 주차장 목록 API의 한 페이지 최대값은 100이다.
+    requestUrl.searchParams.set('numOfRows', '100');
+    // 대전광역시 법정동 시도 코드는 30이다.
+    requestUrl.searchParams.set('ctpvCd', '30');
+    return fetchJson(requestUrl);
+  };
+
+  const first = await requestPage(1);
+  const firstItems = getPageItems(first);
+  const total = getTotalCount(first, firstItems.length);
+  const pages = Math.max(1, Math.ceil(total / 100));
+  console.info(JSON.stringify({ event: 'sharenuri_page_summary', total, firstPageItems: firstItems.length, pages }));
+  const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) => requestPage(index + 2)));
+  const list = [first, ...rest].flatMap(getPageItems);
+  if (!list.length) return [];
 
   try {
     const detailUrl = `${SHARE_NURI_DETAIL_URL}/${encodeURIComponent(apiKey)}`;
     const detailPayload = await fetchJson(detailUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rsrcNoList: daejeon.map((item) => item.rsrcNo).filter(Boolean).slice(0, 100) })
+      body: JSON.stringify({ rsrcNoList: list.map((item) => item.rsrcNo).filter(Boolean).slice(0, 100) })
     });
     const detailById = new Map(getPageItems(detailPayload).map((item) => [cleanText(item.rsrcNo), item]));
-    return daejeon.map((item) => ({ ...item, detail: detailById.get(cleanText(item.rsrcNo)) || {} }));
+    return list.map((item) => ({ ...item, detail: detailById.get(cleanText(item.rsrcNo)) || {} }));
   } catch {
-    return daejeon.map((item) => ({ ...item, detail: {} }));
+    // 목록 정보는 상세 API가 실패해도 유효하므로, 동기화 자체는 계속한다.
+    return list.map((item) => ({ ...item, detail: {} }));
   }
+}
+
+function dedupeRecords(records) {
+  const seen = new Map();
+  records.forEach((record) => {
+    const key = `${cleanText(record.source)}\u0000${cleanText(record.external_id)}`;
+    if (!seen.has(key)) seen.set(key, record);
+  });
+  return [...seen.values()];
 }
 
 function mapFestival(item) {
@@ -276,11 +302,16 @@ async function syncOne(dataset) {
   if (!job) throw new Error('unsupported_dataset');
   const log = await createSyncLog(dataset === 'landmark' ? 'landmark' : dataset === 'festival' ? 'festival' : 'parking', job.source);
   try {
-    const records = await job.run();
+    const receivedRecords = await job.run();
+    const records = dedupeRecords(receivedRecords);
     const table = dataset === 'festival' || dataset === 'landmark' ? 'places' : 'parking_lots';
     const written = await supabaseUpsert(table, records);
-    await finishSyncLog(log, 'success', { recordsReceived: records.length, recordsUpserted: written.length });
-    return { dataset, received: records.length, upserted: written.length };
+    await finishSyncLog(log, 'success', {
+      recordsReceived: receivedRecords.length,
+      recordsUpserted: written.length,
+      metadata: { duplicateRecordsSkipped: receivedRecords.length - records.length }
+    });
+    return { dataset, received: receivedRecords.length, upserted: written.length, duplicatesSkipped: receivedRecords.length - records.length };
   } catch (error) {
     await finishSyncLog(log, 'failed', { errorMessage: cleanText(error.message).slice(0, 500) });
     throw error;
