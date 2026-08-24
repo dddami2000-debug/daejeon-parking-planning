@@ -35,6 +35,7 @@ let parkingMarkers = [];
 let currentLocationMarker = null;
 let isPlaceFocused = false;
 const overviewPosition = {lat:36.3504,lng:127.3845,zoom:12};
+let previousMapView = {...overviewPosition};
 
 function renderFestivals(){
   const festivalPlaces = places.filter(place=>place.type==='festival');
@@ -109,7 +110,7 @@ function fitAllPlaces(){
 function morphToOverview(){
   if(!naverMap)return;
   naverMap.stop();
-  naverMap.morph(new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),overviewPosition.zoom,{duration:750,easing:'easeOutCubic'});
+  naverMap.morph(new naver.maps.LatLng(previousMapView.lat,previousMapView.lng),previousMapView.zoom,{duration:750,easing:'easeOutCubic'});
 }
 
 function initNaverMap(){
@@ -136,6 +137,10 @@ function moveToCurrentLocation(){
 }
 
 function openPlace(id){
+  if(naverMap&&!isPlaceFocused){
+    const center=naverMap.getCenter();
+    previousMapView={lat:center.lat(),lng:center.lng(),zoom:naverMap.getZoom()};
+  }
   activePlace=places.find(place=>place.id===id)||places[0];
   isPlaceFocused=true;
   excludedParkings=[];
