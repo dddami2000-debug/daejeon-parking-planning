@@ -177,7 +177,7 @@ function renderMap(){
   if(isPlaceFocused){
     if(!hasCoordinates(activePlace))return;
     const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
-    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="destination-marker" aria-label="선택한 장소"><i>${escapeHtml(activePlace.emoji)}</i></span>`,anchor:new naver.maps.Point(25,25)}})];
+    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="destination-marker" style="--pin:${activePlace.color}" aria-label="선택한 장소"><i>${escapeHtml(activePlace.emoji)}</i></span>`,anchor:new naver.maps.Point(24,46)}})];
     const recommendedParkings=currentParkingList();
     const otherParkings=allParkingCandidates().filter(parking=>!recommendedParkings.some(recommended=>recommended.name===parking.name));
     parkingMarkers=recommendedParkings.map((parking,index)=>{
@@ -198,8 +198,8 @@ function renderMap(){
       title:place.name,
       zIndex:place.id===activePlace.id?20:10,
       icon:{
-        content:`<button class="map-marker ${place.id===activePlace.id?'active':''}" style="--bubble:${place.color}" aria-label="${escapeHtml(place.name)} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${escapeHtml(place.emoji)}</span><span class="marker-text"><b>${escapeHtml(place.name)}</b><small>${escapeHtml(place.date)} · ${place.distance}km</small></span></span></button>`,
-        anchor:new naver.maps.Point(72,64)
+        content:`<button class="map-marker ${place.id===activePlace.id?'active':''}" style="--pin:${place.color}" aria-label="${escapeHtml(place.name)} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${escapeHtml(place.emoji)}</span></span></button>`,
+        anchor:new naver.maps.Point(24,46)
       }
     });
     naver.maps.Event.addListener(marker,'click',()=>openPlace(place.id));

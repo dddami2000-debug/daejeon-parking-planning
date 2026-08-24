@@ -893,3 +893,79 @@ button:focus-visible, input:focus-visible {
   .festival-actions { flex-direction: column-reverse; }
   .official-link { min-width: 100%; }
 }
+
+/* Compact reverse-teardrop place pins */
+.map-marker {
+  position: relative !important;
+  display: block;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  filter: drop-shadow(0 5px 5px rgba(30, 36, 33, .24));
+}
+
+.map-marker .marker-bubble,
+.destination-marker {
+  position: absolute;
+  top: 2px;
+  left: 7px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 3px;
+  border: 3px solid var(--seed-color-palette-static-white);
+  border-radius: 50% 50% 50% 0;
+  background: var(--pin);
+  box-shadow: 0 3px 9px rgba(35, 39, 37, .22);
+  transform: rotate(-45deg);
+  transform-origin: center;
+  transition: transform var(--seed-duration-d2), box-shadow var(--seed-duration-d2);
+}
+
+.map-marker .marker-icon,
+.destination-marker i {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--seed-radius-full);
+  background: color-mix(in srgb, var(--seed-color-palette-static-white) 92%, transparent);
+  color: var(--seed-color-fg-neutral);
+  font-size: 14px;
+  font-style: normal;
+  line-height: 1;
+  transform: rotate(45deg);
+}
+
+.map-marker .marker-text { display: none !important; }
+
+.map-marker:hover .marker-bubble,
+.map-marker.active .marker-bubble {
+  box-shadow: 0 5px 13px rgba(35, 39, 37, .3);
+  transform: rotate(-45deg) scale(1.1);
+}
+
+.destination-marker {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  padding: 4px;
+  box-shadow: 0 6px 15px rgba(35, 39, 37, .32);
+}
+
+.destination-marker i {
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+}
+
+@media (max-width: 800px) {
+  .map-marker { width: 44px; height: 46px; }
+  .map-marker .marker-bubble { left: 6px; width: 32px; min-width: 32px; height: 32px; }
+  .map-marker .marker-icon { width: 22px; height: 22px; font-size: 13px; }
+}
