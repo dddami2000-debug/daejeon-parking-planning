@@ -62,21 +62,7 @@
                 <button id="searchButton">⌕ <span>장소 검색</span></button>
                 <button id="currentButton">◎ <span>내 위치</span></button>
               </div>
-              <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도">
-                <div class="map-grid"></div>
-                <div class="district district-a">유성구</div>
-                <div class="district district-b">서구</div>
-                <div class="district district-c">중구</div>
-                <div class="district district-d">동구</div>
-                <div class="river river-main"></div>
-                <div class="river river-branch"></div>
-                <div class="road road-a"></div>
-                <div class="road road-b"></div>
-                <div class="road road-c"></div>
-                <div class="park park-a">한밭수목원</div>
-                <div class="current-location"><span></span><b>나</b></div>
-                <div id="mapMarkers"></div>
-              </div>
+              <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도"></div>
               <div class="map-legend"><span><i class="festival-dot"></i>축제</span><span><i class="landmark-dot"></i>랜드마크</span><span><i class="closing-dot"></i>마감 임박</span></div>
             </div>
 
@@ -154,6 +140,7 @@
     </div>
 
     <div class="toast" id="toast" role="status"></div>
+    <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
     <script src="app.js"></script>
   </body>
 </html>

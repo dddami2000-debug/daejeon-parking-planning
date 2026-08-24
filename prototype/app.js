@@ -1,10 +1,10 @@
 const places = [
-  {id:'zero',type:'festival',name:'대전 0시 축제',date:'D-3',period:'8.21 — 8.28',hours:'14:00 — 00:00',distance:2.4,eta:12,taste:94,emoji:'🎆',color:'#ff7657',tile:'#fff0eb',x:62,y:49,summary:'중앙로를 가득 채우는 음악과 퍼레이드, 야시장까지 즐기는 대전 대표 여름 축제예요.',reason:'공연·축제 취향과 94% 일치해요',gradient:'linear-gradient(135deg,#ff7657,#ed4e7a)'},
-  {id:'science',type:'festival',name:'대전 사이언스 페스티벌',date:'D-12',period:'9.02 — 9.05',hours:'10:00 — 20:00',distance:3.1,eta:16,taste:88,emoji:'🚀',color:'#8d72e1',tile:'#f0edff',x:38,y:37,summary:'과학도시 대전에서 만나는 로봇, 우주, AI 체험 프로그램을 한자리에서 즐겨요.',reason:'가족·체험 취향에 딱 맞아요',gradient:'linear-gradient(135deg,#8d72e1,#5f78e9)'},
-  {id:'wine',type:'festival',name:'대전 국제 와인 EXPO',date:'D-21',period:'9.11 — 9.13',hours:'11:00 — 21:00',distance:4.2,eta:19,taste:84,emoji:'🍇',color:'#a64f72',tile:'#faeaf1',x:30,y:63,summary:'와인과 미식, 음악을 함께 즐기는 감성 가득한 도심 속 축제예요.',reason:'감성·데이트 취향과 잘 맞아요',gradient:'linear-gradient(135deg,#a64f72,#e58580)'},
-  {id:'arboretum',type:'landmark',name:'한밭수목원',date:'오늘 열림',period:'연중 운영',hours:'06:00 — 21:00',distance:1.2,eta:7,taste:91,emoji:'🌿',color:'#55b98a',tile:'#e8f8ef',x:47,y:43,summary:'도심 한가운데서 천천히 걷고 쉬어갈 수 있는 대전의 대표 녹색 공간이에요.',reason:'지금 가장 가깝고 산책하기 좋아요',gradient:'linear-gradient(135deg,#58bd8e,#90d19a)'},
-  {id:'expo',type:'landmark',name:'엑스포과학공원',date:'오늘 열림',period:'연중 운영',hours:'10:00 — 22:00',distance:2.8,eta:13,taste:86,emoji:'🌙',color:'#6294f7',tile:'#eaf1ff',x:42,y:25,summary:'한빛탑과 엑스포다리를 따라 대전의 과학 감성과 야경을 함께 만날 수 있어요.',reason:'야경과 사진을 좋아한다면 추천해요',gradient:'linear-gradient(135deg,#4c8ef2,#77c8e9)'},
-  {id:'history',type:'landmark',name:'대전근현대사전시관',date:'오늘 열림',period:'화—일 운영',hours:'10:00 — 18:00',distance:2.1,eta:11,taste:79,emoji:'🏛️',color:'#d08a45',tile:'#fff3e4',x:57,y:58,summary:'옛 충남도청 건축과 대전의 근현대 이야기를 차분하게 둘러볼 수 있어요.',reason:'역사·힐링 취향에 어울려요',gradient:'linear-gradient(135deg,#c27b3c,#e7b65e)'}
+  {id:'zero',type:'festival',name:'대전 0시 축제',date:'D-3',period:'8.21 — 8.28',hours:'14:00 — 00:00',distance:2.4,eta:12,taste:94,emoji:'🎆',color:'#ff7657',tile:'#fff0eb',lat:36.3298,lng:127.4307,summary:'중앙로를 가득 채우는 음악과 퍼레이드, 야시장까지 즐기는 대전 대표 여름 축제예요.',reason:'공연·축제 취향과 94% 일치해요',gradient:'linear-gradient(135deg,#ff7657,#ed4e7a)'},
+  {id:'science',type:'festival',name:'대전 사이언스 페스티벌',date:'D-12',period:'9.02 — 9.05',hours:'10:00 — 20:00',distance:3.1,eta:16,taste:88,emoji:'🚀',color:'#8d72e1',tile:'#f0edff',lat:36.3746,lng:127.3869,summary:'과학도시 대전에서 만나는 로봇, 우주, AI 체험 프로그램을 한자리에서 즐겨요.',reason:'가족·체험 취향에 딱 맞아요',gradient:'linear-gradient(135deg,#8d72e1,#5f78e9)'},
+  {id:'wine',type:'festival',name:'대전 국제 와인 EXPO',date:'D-21',period:'9.11 — 9.13',hours:'11:00 — 21:00',distance:4.2,eta:19,taste:84,emoji:'🍇',color:'#a64f72',tile:'#faeaf1',lat:36.3741,lng:127.3860,summary:'와인과 미식, 음악을 함께 즐기는 감성 가득한 도심 속 축제예요.',reason:'감성·데이트 취향과 잘 맞아요',gradient:'linear-gradient(135deg,#a64f72,#e58580)'},
+  {id:'arboretum',type:'landmark',name:'한밭수목원',date:'오늘 열림',period:'연중 운영',hours:'06:00 — 21:00',distance:1.2,eta:7,taste:91,emoji:'🌿',color:'#55b98a',tile:'#e8f8ef',lat:36.3676,lng:127.3886,summary:'도심 한가운데서 천천히 걷고 쉬어갈 수 있는 대전의 대표 녹색 공간이에요.',reason:'지금 가장 가깝고 산책하기 좋아요',gradient:'linear-gradient(135deg,#58bd8e,#90d19a)'},
+  {id:'expo',type:'landmark',name:'엑스포과학공원',date:'오늘 열림',period:'연중 운영',hours:'10:00 — 22:00',distance:2.8,eta:13,taste:86,emoji:'🌙',color:'#6294f7',tile:'#eaf1ff',lat:36.3760,lng:127.3887,summary:'한빛탑과 엑스포다리를 따라 대전의 과학 감성과 야경을 함께 만날 수 있어요.',reason:'야경과 사진을 좋아한다면 추천해요',gradient:'linear-gradient(135deg,#4c8ef2,#77c8e9)'},
+  {id:'history',type:'landmark',name:'대전근현대사전시관',date:'오늘 열림',period:'화—일 운영',hours:'10:00 — 18:00',distance:2.1,eta:11,taste:79,emoji:'🏛️',color:'#d08a45',tile:'#fff3e4',lat:36.3264,lng:127.4206,summary:'옛 충남도청 건축과 대전의 근현대 이야기를 차분하게 둘러볼 수 있어요.',reason:'역사·힐링 취향에 어울려요',gradient:'linear-gradient(135deg,#c27b3c,#e7b65e)'}
 ];
 
 const parkingTemplates = [
@@ -29,6 +29,9 @@ let questionIndex = -1;
 let answers = [];
 let excludedParkings = [];
 let pendingParking = null;
+let naverMap = null;
+let placeMarkers = [];
+let currentLocationMarker = null;
 
 function renderFestivals(){
   const festivalPlaces = places.filter(place=>place.type==='festival');
@@ -38,17 +41,57 @@ function renderFestivals(){
 
 function renderMap(){
   const visible = places.filter(place=>activeFilter==='all'||place.type===activeFilter);
-  $('#mapMarkers').innerHTML = visible.map(place=>`<button class="map-marker ${place.id===activePlace.id?'active':''}" data-place="${place.id}" style="left:${place.x}%;top:${place.y}%;--bubble:${place.color}"><span class="marker-bubble"><span class="marker-icon">${place.emoji}</span><span class="marker-text"><b>${place.name}</b><small>${place.date} · ${place.distance}km</small></span></span></button>`).join('');
-  document.querySelectorAll('.map-marker').forEach(marker=>marker.addEventListener('click',()=>openPlace(marker.dataset.place)));
   const near = [...visible].sort((a,b)=>a.distance-b.distance).slice(0,4);
   $('#nearbyCount').textContent=`${near.length}곳`;
   $('#nearbyList').innerHTML=near.map(place=>`<button class="nearby-item" data-place="${place.id}" style="--tile:${place.tile};--accent:${place.color}"><span class="nearby-emoji">${place.emoji}</span><span class="nearby-info"><span>${place.type==='festival'?'진행 중인 축제':'추천 랜드마크'}</span><b>${place.name}</b><p>${place.distance}km · ${place.eta}분 · ${place.date}</p></span></button>`).join('');
   document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place)));
+  if(!naverMap)return;
+  placeMarkers.forEach(marker=>marker.setMap(null));
+  placeMarkers=visible.map(place=>{
+    const marker=new naver.maps.Marker({
+      map:naverMap,
+      position:new naver.maps.LatLng(place.lat,place.lng),
+      title:place.name,
+      zIndex:place.id===activePlace.id?20:10,
+      icon:{
+        content:`<button class="map-marker ${place.id===activePlace.id?'active':''}" style="--bubble:${place.color}" aria-label="${place.name} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${place.emoji}</span><span class="marker-text"><b>${place.name}</b><small>${place.date} · ${place.distance}km</small></span></span></button>`,
+        anchor:new naver.maps.Point(72,64)
+      }
+    });
+    naver.maps.Event.addListener(marker,'click',()=>openPlace(place.id));
+    return marker;
+  });
+}
+
+function initNaverMap(){
+  if(!window.naver?.maps){
+    $('#map').innerHTML='<p class="map-status">지도를 불러오지 못했어요. 등록한 Web 서비스 URL을 확인해 주세요.</p>';
+    renderMap();
+    return;
+  }
+  naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(36.3504,127.3845),zoom:12,minZoom:10,maxZoom:18});
+  renderMap();
+  const bounds=new naver.maps.LatLngBounds();
+  places.forEach(place=>bounds.extend(new naver.maps.LatLng(place.lat,place.lng)));
+  naverMap.fitBounds(bounds,{top:74,right:42,bottom:74,left:42});
+}
+
+function moveToCurrentLocation(){
+  if(!navigator.geolocation){toast('이 브라우저에서는 현재 위치를 사용할 수 없어요.');return;}
+  navigator.geolocation.getCurrentPosition(({coords})=>{
+    if(!naverMap){toast('지도가 준비된 뒤 다시 시도해 주세요.');return;}
+    const position=new naver.maps.LatLng(coords.latitude,coords.longitude);
+    if(currentLocationMarker)currentLocationMarker.setPosition(position);
+    else currentLocationMarker=new naver.maps.Marker({map:naverMap,position,icon:{content:'<span class="current-location-marker" aria-label="현재 위치">나</span>',anchor:new naver.maps.Point(18,18)},zIndex:30});
+    naverMap.panTo(position);
+    toast('현재 위치로 지도를 이동했어요.');
+  },()=>toast('위치 권한을 허용하면 현재 위치를 보여드릴 수 있어요.'),{enableHighAccuracy:true,timeout:7000,maximumAge:60000});
 }
 
 function openPlace(id){
   activePlace=places.find(place=>place.id===id)||places[0];
   renderMap();
+  if(naverMap)naverMap.panTo(new naver.maps.LatLng(activePlace.lat,activePlace.lng));
   $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${activePlace.emoji}'"><div class="place-hero-badges"><span>${activePlace.type==='festival'?'축제':'랜드마크'}</span><span>${activePlace.date}</span></div><h2>${activePlace.name}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${activePlace.period}</b></div><div><span>오늘 운영</span><b>${activePlace.hours}</b></div><div><span>현재 위치</span><b>${activePlace.distance}km · ${activePlace.eta}분</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${activePlace.reason}</b></span></div><p class="place-description">${activePlace.summary}</p><button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button>`;
   showSheet('#placeSheet');
   $('#openPlanner').addEventListener('click',openPlanner);
@@ -152,7 +195,7 @@ function toast(message){
   clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),2400);
 }
 
-renderFestivals();renderMap();
+renderFestivals();initNaverMap();
 $('#visitDate').value=new Date().toISOString().slice(0,10);
 const savedTaste=localStorage.getItem('daejeonMap.personalityResult');
 if(savedTaste)$('#profileLabel').textContent=savedTaste.replace('형','');
@@ -169,6 +212,6 @@ $('#sheetBackdrop').addEventListener('click',closeSheets);
 $('#recalculate').addEventListener('click',()=>{renderParkings();toast('선택한 시간으로 요금을 다시 계산했어요.');});
 $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remove('show'));
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
-$('#currentButton').addEventListener('click',()=>toast('현재 위치를 대전시청 주변으로 맞췄어요.'));
-$('#locationButton').addEventListener('click',()=>toast('프로토타입에서는 대전시청을 현재 위치로 사용해요.'));
+$('#currentButton').addEventListener('click',moveToCurrentLocation);
+$('#locationButton').addEventListener('click',moveToCurrentLocation);
 $('#searchButton').addEventListener('click',()=>toast('장소 검색은 다음 버전에서 API와 연결해요.'));
