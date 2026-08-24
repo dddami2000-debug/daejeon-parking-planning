@@ -57,4 +57,14 @@ python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
 - 기본 내비게이션 선택
 - `만차예요` 클릭 후 다음 후보 자동 승격 및 안내
 
-현재 버전은 외부 API를 연결하기 전 UI/UX 검증용이며 예시 데이터를 사용합니다.
+## 공공데이터 연동
+
+`prototype/api/`의 Vercel Functions가 공공데이터를 서버에서 수집하고 Supabase에 저장합니다. 브라우저에는 공공데이터 키나 Supabase Secret Key를 전달하지 않습니다.
+
+- `GET /api/places`: Supabase에 저장된 축제·랜드마크를 모바일 화면에 전달
+- `GET /api/parking?lat=...&lng=...`: 목적지 근처 주차장과 선택한 시간대의 예상 요금을 전달
+- `GET|POST /api/sync?dataset=festival|landmark|parking|sharenuri`: 인증된 수집 작업
+
+필수 환경 변수 이름은 [`prototype/.env.example`](prototype/.env.example)에 정리했습니다. Vercel에서 Production과 Preview에 모두 등록하고, 동기화용 `CRON_SECRET`도 추가해야 합니다.
+
+축제 API에는 좌표가 포함되지 않습니다. 따라서 축제는 상세 정보와 추천 카드에 우선 노출되며, 지도 버블과 주변 주차장 추천은 좌표가 있는 랜드마크부터 실제 데이터로 동작합니다. 축제 주소의 좌표화(Geocoding)는 다음 단계로 분리했습니다.
