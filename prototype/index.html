@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=11" />
+    <link rel="stylesheet" href="mobile.css?v=11" />
   </head>
   <body>
     <div class="app-shell">
@@ -62,21 +63,7 @@
                 <button id="searchButton">⌕ <span>장소 검색</span></button>
                 <button id="currentButton">◎ <span>내 위치</span></button>
               </div>
-              <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도">
-                <div class="map-grid"></div>
-                <div class="district district-a">유성구</div>
-                <div class="district district-b">서구</div>
-                <div class="district district-c">중구</div>
-                <div class="district district-d">동구</div>
-                <div class="river river-main"></div>
-                <div class="river river-branch"></div>
-                <div class="road road-a"></div>
-                <div class="road road-b"></div>
-                <div class="road road-c"></div>
-                <div class="park park-a">한밭수목원</div>
-                <div class="current-location"><span></span><b>나</b></div>
-                <div id="mapMarkers"></div>
-              </div>
+              <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도"></div>
               <div class="map-legend"><span><i class="festival-dot"></i>축제</span><span><i class="landmark-dot"></i>랜드마크</span><span><i class="closing-dot"></i>마감 임박</span></div>
             </div>
 
@@ -89,10 +76,10 @@
       </main>
 
       <nav class="mobile-nav" aria-label="하단 메뉴">
-        <button class="active"><span>⌂</span>홈</button>
-        <button><span>⌖</span>지도</button>
+        <button class="active" id="mobileHome"><span>⌂</span>홈</button>
+        <button id="mobileMap"><span>⌖</span>지도</button>
         <button id="mobileTaste"><span>✦</span>내 취향</button>
-        <button><span>≡</span>더보기</button>
+        <button id="mobileMore"><span>≡</span>더보기</button>
       </nav>
     </div>
 
@@ -138,6 +125,12 @@
       <p class="data-note">예상 요금은 운영시간과 무료 구간을 반영한 프로토타입 계산 결과예요.</p>
     </section>
 
+    <section class="bottom-sheet parking-info-sheet" id="parkingInfoSheet" aria-label="주차장 정보">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close" data-close-sheet aria-label="닫기">×</button>
+      <div id="parkingInfoContent"></div>
+    </section>
+
     <div class="modal" id="navigationModal" role="dialog" aria-modal="true" aria-labelledby="navTitle">
       <div class="nav-card">
         <button class="modal-close" id="closeNav" aria-label="닫기">×</button>
@@ -154,6 +147,7 @@
     </div>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="app.js"></script>
+    <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
+    <script src="app.js?v=11"></script>
   </body>
 </html>
