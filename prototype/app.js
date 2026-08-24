@@ -7,6 +7,40 @@ const fallbackPlaces = [
   {id:'history',type:'landmark',name:'대전근현대사전시관',date:'오늘 열림',period:'화—일 운영',hours:'10:00 — 18:00',distance:2.1,eta:11,taste:79,emoji:'🏛️',color:'#d08a45',tile:'#fff3e4',lat:36.3264,lng:127.4206,summary:'옛 충남도청 건축과 대전의 근현대 이야기를 차분하게 둘러볼 수 있어요.',reason:'역사·힐링 취향에 어울려요',gradient:'linear-gradient(135deg,#c27b3c,#e7b65e)'}
 ];
 
+const curatedExperiences = [
+  {
+    match:['0시 축제'],venue:'중앙로·은행동 일대',admission:'무료 프로그램 중심',audience:'친구 · 연인 · 가족',
+    tags:['야간 축제','거리 공연','먹거리'],
+    highlights:[
+      {icon:'🎤',title:'도심 한복판 라이브',description:'중앙로 곳곳의 무대와 거리 공연을 따라 걸으며 축제 분위기를 즐겨요.'},
+      {icon:'🎭',title:'퍼레이드 구경',description:'시간대별 행렬과 퍼포먼스를 가까이서 보고 사진도 남겨보세요.'},
+      {icon:'🍢',title:'야시장 한 바퀴',description:'은행동 먹거리와 축제 부스를 함께 둘러보며 늦은 밤까지 즐겨요.'}
+    ],
+    tip:'저녁에는 중앙로 주변이 붐빌 수 있어요. 보고 싶은 공연 시간을 먼저 확인하고 대중교통이나 외곽 주차장을 이용하면 편해요.'
+  },
+  {
+    match:['사이언스','과학축제'],venue:'대전컨벤션센터·엑스포과학공원 일대',admission:'무료·유료 체험 혼합',audience:'가족 · 학생 · 과학 팬',
+    tags:['로봇·AI','우주 체험','가족 나들이'],
+    highlights:[
+      {icon:'🤖',title:'로봇·AI 체험',description:'직접 조작하고 결과를 확인하는 참여형 과학 프로그램을 골라 즐겨요.'},
+      {icon:'🚀',title:'우주 테마 탐험',description:'전시와 체험 부스를 돌며 우주와 미래 기술 이야기를 만나보세요.'},
+      {icon:'🧪',title:'과학 실험 미션',description:'가족이나 친구와 함께 짧게 참여할 수 있는 실험 프로그램에 도전해요.'}
+    ],
+    tip:'인기 체험은 현장 접수가 일찍 마감될 수 있어요. 방문 전 공식 시간표와 사전 예약 여부를 확인해 주세요.'
+  },
+  {
+    match:['와인','Wine'],venue:'대전컨벤션센터 일대',admission:'프로그램별 이용권 확인',audience:'연인 · 친구 · 미식가',
+    tags:['와인 시음','푸드 페어링','문화 공연'],
+    highlights:[
+      {icon:'🍷',title:'국내외 와인 시음',description:'여러 산지와 품종을 비교하며 내 취향의 와인을 발견해 보세요.'},
+      {icon:'🧀',title:'푸드 페어링',description:'와인과 어울리는 음식 부스를 함께 둘러보며 조합을 즐겨요.'},
+      {icon:'🎼',title:'공연과 클래스',description:'문화 공연과 소믈리에 프로그램을 일정에 맞춰 골라보세요.'}
+    ],
+    tip:'시음 프로그램을 이용한다면 차량 운전은 피하고 대중교통을 이용해 주세요. 세부 일정과 이용권은 공식 안내를 확인해 주세요.',
+    officialUrl:'https://djwinefair.com/'
+  }
+];
+
 const fallbackParkingTemplates = [
   {name:'중앙로 공영주차장',type:'공영',distance:0.42,drive:4,walk:6,capacity:118,open:'09:00',close:'22:00',base:500,baseMin:30,add:200,addMin:10,reason:'목적지까지 가장 가까워요'},
   {name:'대흥동 제1노상주차장',type:'노상',distance:0.68,drive:6,walk:9,capacity:46,open:'09:00',close:'19:00',base:300,baseMin:30,add:200,addMin:10,reason:'19시 이후 무료라 저녁 방문에 유리해요'},
@@ -68,6 +102,28 @@ function normalizeApiPlace(place){
   return {...place,...visual,lat:Number(place.lat),lng:Number(place.lng),distance:distance??0,eta:distance===null?0:Math.max(2,Math.round(distance*5)),taste:82,reason:place.type==='festival'?'행사 일정과 내 취향을 함께 고려했어요':'대전에서 가볍게 들르기 좋은 곳이에요'};
 }
 
+function experienceFor(place){
+  const curated=curatedExperiences.find(item=>item.match.some(keyword=>String(place.name).toLowerCase().includes(keyword.toLowerCase())));
+  if(curated)return curated;
+  const isFestival=place.type==='festival';
+  return {
+    venue:place.metadata?.place_name||place.address||(isFestival?'행사장 정보 확인':'대전 시내'),
+    admission:place.metadata?.usage_fee||'이용 정보 확인',
+    audience:isFestival?'친구 · 연인 · 가족':'가벼운 나들이',
+    tags:isFestival?['현장 프로그램','지역 문화','주말 나들이']:['산책','사진','대전 명소'],
+    highlights:isFestival?[
+      {icon:'🎪',title:'현장 프로그램',description:'행사 시간표에서 관심 있는 체험과 공연을 골라 즐겨보세요.'},
+      {icon:'📸',title:'기념 사진',description:'행사장 포토존과 주변 풍경에서 오늘의 장면을 남겨보세요.'},
+      {icon:'🥤',title:'주변 함께 보기',description:'행사장 주변의 먹거리와 대전 명소를 한 코스로 둘러보세요.'}
+    ]:[
+      {icon:'🚶',title:'천천히 산책',description:'주변 동선을 따라 여유롭게 걸으며 공간을 둘러보세요.'},
+      {icon:'📸',title:'사진 남기기',description:'장소의 대표 풍경과 건축을 배경으로 기억을 남겨보세요.'},
+      {icon:'☕',title:'주변 코스',description:'가까운 카페와 명소를 연결해 반나절 코스로 즐겨보세요.'}
+    ],
+    tip:'운영 시간과 현장 프로그램은 바뀔 수 있으니 출발 전에 공식 안내를 한 번 확인해 주세요.'
+  };
+}
+
 async function loadPlaces(){
   try{
     const response=await fetch('/api/places');
@@ -104,7 +160,10 @@ async function loadParkingForActivePlace(){
 
 function renderFestivals(){
   const festivalPlaces = places.filter(place=>place.type==='festival');
-  $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>`<button class="festival-card" data-place="${escapeHtml(place.id)}" style="--card-gradient:${place.gradient}"><span class="festival-visual"></span><span class="festival-shape">${escapeHtml(place.emoji)}</span><span class="festival-content"><span class="festival-badges"><span class="festival-badge hot">${escapeHtml(place.date)}</span><span class="festival-badge">취향 ${place.taste}%</span></span><h3>${escapeHtml(place.name)}</h3><p>${escapeHtml(place.period)} · ${escapeHtml(place.hours)}</p><span class="festival-meta"><span>⌖ ${place.distance||'위치 확인 중'}${place.distance?'km':''}</span><span>${place.eta?`차로 ${place.eta}분`:'장소 정보 확인'}</span></span></span></button>`).join(''):'<p class="map-status">불러온 축제 정보가 아직 없어요.</p>';
+  $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
+    const experience=experienceFor(place);
+    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape">${escapeHtml(place.emoji)}</span><span class="festival-content"><span class="festival-badges"><span class="festival-badge hot">${escapeHtml(place.date)}</span><span class="festival-badge">취향 ${place.taste}%</span></span><span class="festival-eyebrow">WEEKEND PICK</span><h3>${escapeHtml(place.name)}</h3><p>${escapeHtml(place.period)} · ${escapeHtml(place.hours)}</p><span class="festival-tags">${experience.tags.slice(0,2).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</span><span class="festival-footer"><span class="festival-meta">⌖ ${place.distance||'위치 확인 중'}${place.distance?'km':''} · ${place.eta?`차로 ${place.eta}분`:'장소 확인'}</span><span class="festival-card-cta">자세히 <i>→</i></span></span></span></button>`;
+  }).join(''):'<p class="map-status">불러온 축제 정보가 아직 없어요.</p>';
   document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
 
@@ -230,9 +289,12 @@ function openPlace(id){
   }
   if(!hasCoordinates(activePlace))toast('이 축제의 지도 좌표는 확인 중이에요. 상세 정보는 먼저 볼 수 있어요.');
   const placeLabel=activePlace.type==='festival'?'축제':'랜드마크';
-  const locationCopy=hasCoordinates(activePlace)?`${activePlace.distance}km · ${activePlace.eta}분`:'지도 좌표 확인 중';
+  const locationCopy=hasCoordinates(activePlace)?`${activePlace.distance}km · 차로 ${activePlace.eta}분`:'지도 좌표 확인 중';
+  const experience=experienceFor(activePlace);
   const sourceCopy=placeSourceAttribution?`<p class="data-source-note">${escapeHtml(placeSourceAttribution)}</p>`:'';
-  $('#placeSheetContent').innerHTML=`<div class="place-hero" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'"><div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(activePlace.date)}</span></div><h2>${escapeHtml(activePlace.name)}</h2></div><div class="place-info-grid"><div><span>운영 기간</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>오늘 운영</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>현재 위치</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(activePlace.reason)}</b></span></div><section class="place-description"><h3>${placeLabel} 소개</h3><p>${escapeHtml(activePlace.summary)}</p></section>${sourceCopy}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button>`;
+  const officialLink=experience.officialUrl?`<a class="official-link" href="${escapeHtml(experience.officialUrl)}" target="_blank" rel="noopener">공식 일정 확인 <span>↗</span></a>`:'';
+  $('#placeSheet').classList.toggle('festival-detail',activePlace.type==='festival');
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'"><div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(activePlace.date)}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(activePlace.reason)}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   $('#placeSheet').classList.add('show');
