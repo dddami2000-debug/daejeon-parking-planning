@@ -56,7 +56,7 @@ async function fetchPagedDataGov(url, key, source) {
     requestUrl.searchParams.set('numOfRows', '100');
     const payload = dataGovEnvelope(await fetchJson(requestUrl));
     const resultCode = cleanText(payload?.header?.resultCode);
-    if (resultCode && resultCode !== '00') {
+    if (resultCode && !['00', 'C00'].includes(resultCode)) {
       const message = cleanText(payload?.header?.resultMsg).replace(/[^\w가-힣 -]/g, '').slice(0, 120);
       throw new Error(`upstream_result_${resultCode}${message ? `_${message}` : ''}`);
     }

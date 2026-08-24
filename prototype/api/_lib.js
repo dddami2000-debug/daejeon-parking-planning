@@ -96,7 +96,18 @@ async function fetchJson(url, options = {}) {
     headers: { Accept: 'application/json', ...(options.headers || {}) }
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`upstream_http_${response.status}`);
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const payload = JSON.parse(text);
+      const header = payload?.OpenAPI_ServiceResponse?.cmmMsgHeader || payload?.header || payload;
+      detail = [header?.errMsg || header?.resultCode, header?.returnAuthMsg || header?.resultMsg]
+        .filter(Boolean)
+        .map((value) => cleanText(value).replace(/[^\w가-힣 -]/g, '').slice(0, 80))
+        .join('_');
+    } catch { /* The HTTP status is enough when upstream sends no JSON error. */ }
+    throw new Error(`upstream_http_${response.status}${detail ? `_${detail}` : ''}`);
+  }
   try { return JSON.parse(text); } catch { throw new Error('upstream_invalid_json'); }
 }
 
