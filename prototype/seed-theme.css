@@ -34,6 +34,14 @@ button:focus-visible, input:focus-visible {
   box-shadow: var(--seed-shadow-s3);
 }
 
+.app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--seed-color-bg-layer-default);
+}
+
 .app-header {
   height: 56px;
   padding: 0 var(--seed-dimension-x3);
@@ -55,6 +63,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .brand-orbit {
+  position: relative;
   width: 32px;
   height: 32px;
   border-radius: var(--seed-radius-full);
@@ -62,6 +71,16 @@ button:focus-visible, input:focus-visible {
   color: var(--seed-color-palette-static-white);
   box-shadow: none;
   transform: none;
+}
+
+.brand-orbit::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-palette-static-white-alpha-600);
+  transform: translate(-7px, -7px);
 }
 
 .location-pill {
@@ -97,7 +116,7 @@ button:focus-visible, input:focus-visible {
   padding: var(--seed-dimension-x3);
   border: 1px solid var(--seed-color-stroke-neutral-weak);
   border-radius: var(--seed-radius-r5);
-  background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 96%, transparent);
+  background: color-mix(in srgb, var(--seed-color-bg-layer-floating) 98%, transparent);
   box-shadow: var(--seed-shadow-s2);
 }
 
@@ -131,14 +150,39 @@ button:focus-visible, input:focus-visible {
 .festival-card {
   border: 1px solid var(--seed-color-palette-static-white-alpha-500);
   border-radius: var(--seed-radius-r4);
+  color: var(--seed-color-fg-neutral);
   box-shadow: none;
   transition: transform var(--seed-duration-d3), box-shadow var(--seed-duration-d3);
 }
 .festival-card:hover { transform: translateY(-2px); box-shadow: var(--seed-shadow-s2); }
+.festival-visual {
+  background: var(--seed-color-bg-brand-weak) !important;
+}
+.festival-card:nth-child(2) .festival-visual {
+  background: var(--seed-color-bg-informative-weak) !important;
+}
+.festival-card:nth-child(3) .festival-visual {
+  background: var(--seed-color-bg-magic-weak) !important;
+}
+.festival-visual::before, .festival-visual::after {
+  background: var(--seed-color-palette-static-white-alpha-500);
+}
+.festival-content {
+  background: linear-gradient(90deg, var(--seed-color-palette-static-white-alpha-600), transparent 72%);
+}
 .festival-content h3 {
+  color: var(--seed-color-fg-neutral);
   font-family: inherit;
   font-weight: var(--seed-font-weight-bold);
   letter-spacing: -.04em;
+}
+.festival-content p, .festival-meta {
+  color: var(--seed-color-fg-neutral-muted);
+  opacity: 1;
+}
+.festival-shape {
+  border-color: var(--seed-color-palette-static-white-alpha-700);
+  background: var(--seed-color-palette-static-white-alpha-600);
 }
 .festival-badge {
   border-radius: var(--seed-radius-full);
@@ -159,8 +203,8 @@ button:focus-visible, input:focus-visible {
   color: var(--seed-color-fg-neutral-subtle);
 }
 .map-tabs button.active {
-  background: var(--seed-color-bg-neutral-solid);
-  color: var(--seed-color-fg-neutral-inverted);
+  background: var(--seed-color-bg-brand-solid);
+  color: var(--seed-color-palette-static-white);
   box-shadow: none;
 }
 
@@ -187,8 +231,8 @@ button:focus-visible, input:focus-visible {
   font-family: inherit;
 }
 .marker-icon, .parking-map-marker > span {
-  background: var(--seed-color-bg-brand-weak);
-  color: var(--seed-color-fg-brand-contrast);
+  background: var(--seed-color-bg-brand-solid);
+  color: var(--seed-color-palette-static-white);
 }
 .parking-map-marker.parking-dot {
   border-color: var(--seed-color-bg-layer-floating);
@@ -225,6 +269,10 @@ button:focus-visible, input:focus-visible {
 }
 .mobile-nav button { border-radius: var(--seed-radius-r3); color: var(--seed-color-fg-neutral-subtle); }
 .mobile-nav button.active { background: var(--seed-color-bg-brand-weak); color: var(--seed-color-fg-brand-contrast); }
+.mobile-nav button.active {
+  background: var(--seed-color-bg-brand-solid);
+  color: var(--seed-color-palette-static-white);
+}
 
 .modal, .sheet-backdrop { background: var(--seed-color-bg-overlay-muted); }
 .onboarding {
@@ -271,6 +319,12 @@ button:focus-visible, input:focus-visible {
   background: var(--seed-color-bg-layer-floating);
   box-shadow: var(--seed-shadow-s3);
 }
+.place-hero, #placeSheet .place-hero {
+  background: var(--seed-color-bg-brand-solid) !important;
+}
+.place-hero h2, #placeSheet .place-hero h2 {
+  color: var(--seed-color-palette-static-white);
+}
 .sheet-handle, #placeSheet .sheet-handle { background: var(--seed-color-stroke-neutral-muted); }
 
 .place-info-grid div, .parking-stats div, .parking-info-grid div, .time-form {
@@ -301,6 +355,7 @@ button:focus-visible, input:focus-visible {
 }
 .parking-item.best {
   border-color: var(--seed-color-stroke-brand-solid);
+  background: var(--seed-color-bg-brand-weak);
   box-shadow: 0 0 0 1px var(--seed-color-stroke-brand-solid);
 }
 .parking-type, .parking-reason, .parking-info-reason { color: var(--seed-color-fg-brand-contrast); }
@@ -322,7 +377,12 @@ button:focus-visible, input:focus-visible {
 }
 
 @media (min-width: 521px) {
-  body { background: var(--seed-color-bg-layer-basement); }
+  body {
+    background:
+      radial-gradient(circle at 15% 20%, var(--seed-color-bg-brand-weak), transparent 30%),
+      radial-gradient(circle at 85% 80%, var(--seed-color-bg-informative-weak), transparent 30%),
+      var(--seed-color-bg-layer-basement);
+  }
   .app-shell { border-inline: 1px solid var(--seed-color-stroke-neutral-weak); }
 }
 
