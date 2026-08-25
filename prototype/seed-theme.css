@@ -623,9 +623,9 @@ button:focus-visible, input:focus-visible {
   background: var(--seed-color-bg-brand-weak);
   box-shadow: 0 0 0 1px var(--seed-color-stroke-brand-solid);
 }
+.parking-plan-weather { --plan-accent: #b66b17; --plan-weak: #fff3df; }
 .parking-plan-distance { --plan-accent: #2f7e58; --plan-weak: #eaf6ee; }
-.parking-plan-price { --plan-accent: #b66b17; --plan-weak: #fff3df; }
-.parking-plan-space { --plan-accent: #526ec0; --plan-weak: #edf1ff; }
+.parking-plan-price { --plan-accent: #526ec0; --plan-weak: #edf1ff; }
 .parking-plan-head {
   display: flex;
   align-items: center;

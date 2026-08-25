@@ -28,7 +28,7 @@ Manyfast의 **「자료보고 기획해줘」** 프로젝트를 팀 협업용 Gi
 
 **온보딩 → 장소 추천 → 주차 플랜 → 길안내 → 만차 전환**
 
-실시간 주차 잔여면은 데이터 제공이 가능한 경우의 보조 기능으로 취급합니다.
+실시간 주차 잔여면과 총면수는 결측·갱신 품질 문제로 추천 점수에서 제외합니다. 대신 방문 시간의 체감온도가 높을수록 도보 거리의 가중치를 높입니다.
 
 ## 협업 권장 방식
 
@@ -53,7 +53,7 @@ python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
 - 꿈돌이 취향 테스트 또는 건너뛰기
 - 추천 축제 가로 슬라이더
 - 축제·랜드마크 버블 지도와 상세 바텀시트
-- 방문 시간 기준 주차장 1·2·3순위와 예상 요금
+- 방문 시간의 체감온도를 반영한 `날씨 맞춤 · 거리 우선 · 가격 우선` 주차 플랜
 - 기본 내비게이션 선택
 - `만차예요` 클릭 후 다음 후보 자동 승격 및 안내
 
@@ -71,10 +71,18 @@ python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
 `prototype/api/`의 Vercel Functions가 공공데이터를 서버에서 수집하고 Supabase에 저장합니다. 브라우저에는 공공데이터 키나 Supabase Secret Key를 전달하지 않습니다.
 
 - `GET /api/places`: Supabase에 저장된 축제·랜드마크를 모바일 화면에 전달
-- `GET /api/parking?lat=...&lng=...`: 목적지 근처 주차장과 선택한 시간대의 예상 요금을 전달
+- `GET /api/parking?lat=...&lng=...`: 목적지 근처 주차장, 예상 요금, 체감온도 기반 추천 점수를 전달
 - `GET|POST /api/sync?dataset=festival|landmark|parking|sharenuri`: 인증된 수집 작업
 
 필수 환경 변수 이름은 [`prototype/.env.example`](prototype/.env.example)에 정리했습니다. Vercel에서 Production과 Preview에 모두 등록하고, 동기화용 `CRON_SECRET`도 추가해야 합니다.
+
+주차장 추천의 날씨 데이터는 `KMA_WEATHER_API_KEY`가 있으면 기상청 단기예보를 우선 사용합니다. 키가 없거나 기상청 응답이 실패하면 Open-Meteo로 자동 전환하고, 둘 다 사용할 수 없으면 날씨 가중치 없이 추천을 계속합니다.
+
+추천·날씨 로직 테스트:
+
+```bash
+node --test prototype/tests/*.test.js
+```
 
 Vercel Cron은 매일 오전 6시(KST, UTC `0 21 * * *`)에 `/api/sync`를 호출해 축제·랜드마크·공영주차장·공유누리 주차장 데이터를 갱신합니다.
 
