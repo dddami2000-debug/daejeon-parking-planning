@@ -179,6 +179,7 @@ function openAiRequestBody(model, place, official) {
 async function callOpenAiFestivalSearch(place, official) {
   const apiKey = cleanText(process.env.OPENAI_API_KEY);
   if (!apiKey) throw new Error('openai_api_key_missing');
+  let lastRetryableError = null;
   for (const model of openAiModelCandidates()) {
     const response = await fetch(OPENAI_RESPONSES_URL, {
       method: 'POST',
@@ -190,7 +191,10 @@ async function callOpenAiFestivalSearch(place, official) {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      if (isModelAccessError(response.status, payload)) continue;
+      if (isModelAccessError(response.status, payload)) {
+        lastRetryableError = new Error(`openai_model_access_${model}`);
+        continue;
+      }
       const message = cleanText(payload?.error?.message || payload?.message).slice(0, 180);
       throw new Error(`openai_http_${response.status}${message ? `_${message}` : ''}`);
     }
@@ -199,7 +203,8 @@ async function callOpenAiFestivalSearch(place, official) {
     if (!parsed) {
       const responseStatus = cleanText(payload?.status) || 'unknown';
       const incompleteReason = cleanText(payload?.incomplete_details?.reason) || 'none';
-      throw new Error(`openai_invalid_json_status_${responseStatus}_reason_${incompleteReason}_text_${outputText ? 'present' : 'empty'}`);
+      lastRetryableError = new Error(`openai_invalid_json_model_${model}_status_${responseStatus}_reason_${incompleteReason}_text_${outputText ? 'present' : 'empty'}`);
+      continue;
     }
     return {
       content: normalizeOpenAiContent(parsed),
@@ -207,7 +212,7 @@ async function callOpenAiFestivalSearch(place, official) {
       model
     };
   }
-  throw new Error('openai_model_access_unavailable');
+  throw lastRetryableError || new Error('openai_model_access_unavailable');
 }
 
 function existingFestivalContent(place) {
@@ -218,6 +223,7 @@ function shouldEnrich(place, force = false) {
   if (force) return true;
   const enrichment = existingFestivalContent(place);
   if (!enrichment?.enriched_at) return true;
+  if (!cleanText(enrichment.summary) || !Array.isArray(enrichment.programs) || !enrichment.programs.length) return true;
   const modifiedAt = cleanText(place?.metadata?.modified_at);
   return Boolean(modifiedAt) && enrichment.source_modified_at !== modifiedAt;
 }

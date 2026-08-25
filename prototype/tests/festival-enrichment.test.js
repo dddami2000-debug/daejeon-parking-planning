@@ -10,6 +10,7 @@ const {
   responseOutputText,
   sourceUrlsFromResponse
 } = require('../api/_festival-enrichment');
+const { shouldEnrich } = require('../api/enrich-festivals');
 
 test('extracts a concise purpose and core programs from TourAPI detail fields', () => {
   const content = officialFestivalContent(
@@ -107,4 +108,9 @@ test('asks OpenAI to avoid invented program names', () => {
 test('uses an accessible search model default in the example environment', () => {
   const exampleEnv = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '.env.example'), 'utf8');
   assert.match(exampleEnv, /^OPENAI_SEARCH_MODEL=gpt-5-mini$/m);
+});
+
+test('retries stored festival content when its purpose summary is still missing', () => {
+  assert.equal(shouldEnrich({ metadata: { festival_content: { enriched_at: '2026-08-25T00:00:00Z', summary: null, programs: [{ title: '체험' }] } } }), true);
+  assert.equal(shouldEnrich({ metadata: { festival_content: { enriched_at: '2026-08-25T00:00:00Z', summary: '축제 목적', programs: [{ title: '체험' }] } } }), false);
 });
