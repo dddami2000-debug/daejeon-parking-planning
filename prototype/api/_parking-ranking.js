@@ -49,18 +49,24 @@ function scoreParkingCandidate(candidate, weather) {
 function recommendationReason(candidate, weather) {
   const temperature = weather?.available ? Number(weather.apparentTemperature) : Number.NaN;
   const heatSeverity = heatSeverityFor(temperature);
+  const cost = Number.isFinite(candidate.estimatedCost) ? candidate.estimatedCost : null;
+  const costCopy = cost === null
+    ? '요금 정보는 확인이 필요하지만'
+    : cost === 0
+      ? '무료로 이용할 수 있어'
+      : `예상 요금이 ${cost.toLocaleString('ko-KR')}원이라`;
   if (Number.isFinite(temperature) && heatSeverity >= 0.65) {
-    return `체감온도 ${temperature.toFixed(1)}℃ 예상으로 도보 ${candidate.walk}분인 가까운 곳을 우선했어요`;
+    return `체감온도 ${temperature.toFixed(1)}℃에 도보 ${candidate.walk}분이고 ${costCopy} 종합점수가 높아요`;
   }
   if (Number.isFinite(temperature) && heatSeverity > 0) {
-    return `체감온도 ${temperature.toFixed(1)}℃와 도보 거리·예상 요금을 함께 반영했어요`;
+    return `체감온도 ${temperature.toFixed(1)}℃와 도보 ${candidate.walk}분, ${costCopy} 추천 순위에 반영했어요`;
   }
   if (Number.isFinite(temperature)) {
-    return `체감온도 ${temperature.toFixed(1)}℃로 예상돼 거리와 예상 요금을 균형 있게 비교했어요`;
+    return `체감온도 ${temperature.toFixed(1)}℃로 무난해 도보 ${candidate.walk}분과 요금을 균형 있게 비교했어요`;
   }
-  return candidate.estimatedCost === null
-    ? '요금 정보가 불분명해 도보 거리와 데이터 신뢰도를 중심으로 비교했어요'
-    : '도보 거리와 예상 요금을 함께 반영했어요';
+  return cost === null
+    ? `도보 ${candidate.walk}분과 요금 데이터의 불확실성을 함께 반영했어요`
+    : `도보 ${candidate.walk}분이고 ${costCopy} 종합 추천했어요`;
 }
 
 module.exports = {
