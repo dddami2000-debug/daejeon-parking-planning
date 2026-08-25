@@ -226,9 +226,10 @@ function mergeUpdate(place, officialResult, aiResult) {
 
 async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
-  if (!isAuthorizedEnrichment(req)) return sendJson(res, 401, { error: 'unauthorized' });
   const force = cleanText(req.query?.force) === 'true';
   const dryRun = cleanText(req.query?.dryRun) === 'true';
+  const isPreviewDryRun = dryRun && cleanText(process.env.VERCEL_ENV) === 'preview';
+  if (!isPreviewDryRun && !isAuthorizedEnrichment(req)) return sendJson(res, 401, { error: 'unauthorized' });
   const limit = parseLimit(req.query?.limit);
   try {
     const rows = await supabaseRequest('places?select=id,external_id,name,address,start_date,end_date,description,homepage_url,operating_hours,metadata&source=eq.kto_festival&category=eq.festival&order=updated_at.asc&limit=100');
@@ -269,6 +270,11 @@ async function handler(req, res) {
           preview: dryRun ? {
             summary: content.summary,
             programs: content.programs,
+            tags: content.tags,
+            audience: content.audience,
+            venue: content.venue,
+            admission: content.admission,
+            operatingHours: content.operating_hours,
             sourceUrls: content.source_urls
           } : undefined
         });

@@ -577,13 +577,41 @@ function placeLoadingMarkup(){
   return '<div class="place-loading" role="status"><div class="loading-orbit" aria-hidden="true"></div><b>대전의 최신 축제 정보를 확인하고 있어요</b><span>운영 일정과 공식 정보를 불러오는 중이에요.</span><div class="loading-skeleton"><i></i><i></i><i></i></div></div>';
 }
 
+async function withPreviewFestivalEnrichment(loadedPlaces){
+  if(new URLSearchParams(window.location.search).get('enrichmentPreview')!=='true')return loadedPlaces;
+  try{
+    const response=await fetch('/api/enrich-festivals?limit=1&dryRun=true');
+    if(!response.ok)return loadedPlaces;
+    const payload=await response.json();
+    const result=payload.results?.find(item=>item.ok&&item.preview?.summary);
+    if(!result)return loadedPlaces;
+    return loadedPlaces.map(place=>place.id===result.id?{
+      ...place,
+      summary:result.preview.summary,
+      hours:result.preview.operatingHours||place.hours,
+      metadata:{...place.metadata,festival_content:{
+        summary:result.preview.summary,
+        summary_source:result.summarySource,
+        programs:result.preview.programs||[],
+        programs_source:result.programsSource,
+        tags:result.preview.tags||[],
+        audience:result.preview.audience||null,
+        venue:result.preview.venue||null,
+        admission:result.preview.admission||null,
+        source_urls:result.preview.sourceUrls||[],
+        enriched_at:new Date().toISOString()
+      }}
+    }:place);
+  }catch{return loadedPlaces;}
+}
+
 async function loadPlaces(){
   try{
     const response=await fetch('/api/places');
     if(!response.ok)throw new Error('places_unavailable');
     const payload=await response.json();
     if(!Array.isArray(payload.places)||!payload.places.length)throw new Error('empty_places');
-    places=payload.places.filter(place=>place.type==='festival').map(normalizeApiPlace);
+    places=await withPreviewFestivalEnrichment(payload.places.filter(place=>place.type==='festival').map(normalizeApiPlace));
     if(userPosition)updateDistancesFromCurrentLocation(userPosition.lat,userPosition.lng);
     activePlace=places.find(hasCoordinates)||places[0];
     placeSourceAttribution=payload.sourceAttribution||'';
