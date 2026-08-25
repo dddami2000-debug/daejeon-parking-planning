@@ -122,6 +122,8 @@ let demographicAnswers = {gender:null,ageBand:null};
 let excludedParkings = [];
 let pendingParking = null;
 let naverMap = null;
+let placePanorama = null;
+let placePanoramaFallbackTimer = null;
 let placeMarkers = [];
 let parkingMarkers = [];
 let currentLocationMarker = null;
@@ -270,6 +272,7 @@ function applyTasteProfileUI(){
 }
 function hasCoordinates(place){return Number.isFinite(Number(place?.lat))&&Number.isFinite(Number(place?.lng));}
 function hasNaverMapApi(){return Boolean(window.naver?.maps?.Map&&window.naver?.maps?.LatLng&&window.naver?.maps?.Marker);}
+function hasNaverPanoramaApi(){return Boolean(window.naver?.maps?.Panorama&&window.naver?.maps?.LatLng&&window.naver?.maps?.Event);}
 function haversineDistance(lat1,lng1,lat2,lng2){
   const radians=value=>value*Math.PI/180;
   const dLat=radians(lat2-lat1),dLng=radians(lng2-lng1);
@@ -357,6 +360,44 @@ function landmarkEnrichmentFor(place){
   const enrichment=place?.metadata?.landmark_enrichment;
   return enrichment&&typeof enrichment==='object'?enrichment:null;
 }
+function clearPlacePanorama(){
+  if(placePanoramaFallbackTimer){window.clearTimeout(placePanoramaFallbackTimer);placePanoramaFallbackTimer=null;}
+  placePanorama=null;
+}
+function fallbackFromStreetView(container){
+  if(!container?.isConnected)return;
+  const hero=container.closest('.place-hero-rich');
+  hero?.classList.remove('has-streetview');
+  container.remove();
+  clearPlacePanorama();
+}
+function activatePlaceStreetView(){
+  const container=$('#placeStreetView');
+  if(!container||!activePlace||activePlace.type!=='landmark'||!hasCoordinates(activePlace)||!hasNaverPanoramaApi())return;
+  clearPlacePanorama();
+  const hero=container.closest('.place-hero-rich');
+  hero?.classList.remove('has-photo');
+  hero?.classList.add('has-streetview');
+  container.hidden=false;
+  try{
+    placePanorama=new naver.maps.Panorama(container,{
+      position:new naver.maps.LatLng(activePlace.lat,activePlace.lng),
+      pov:{pan:-15,tilt:0,fov:100}
+    });
+    naver.maps.Event.addListener(placePanorama,'pano_status',()=>{
+      const panoId=typeof placePanorama?.getPanoId==='function'?placePanorama.getPanoId():null;
+      if(panoId){
+        container.classList.add('is-ready');
+        if(placePanoramaFallbackTimer){window.clearTimeout(placePanoramaFallbackTimer);placePanoramaFallbackTimer=null;}
+      }
+    });
+    placePanoramaFallbackTimer=window.setTimeout(()=>{
+      const panoId=typeof placePanorama?.getPanoId==='function'?placePanorama.getPanoId():null;
+      if(!panoId)fallbackFromStreetView(container);
+    },6000);
+  }catch(error){fallbackFromStreetView(container);}
+}
+window.activatePlaceStreetView=activatePlaceStreetView;
 function highlightIcon(index){return ['📍','✨','📸'][index%3];}
 function experienceFor(place){
   const curated=curatedExperiences.find(item=>item.match.some(keyword=>String(place.name).toLowerCase().includes(keyword.toLowerCase())));
@@ -690,6 +731,7 @@ function moveToCurrentLocation(){
 }
 
 function openPlace(id){
+  clearPlacePanorama();
   if(naverMap&&!isPlaceFocused){
     const center=naverMap.getCenter();
     previousMapView={lat:center.lat(),lng:center.lng(),zoom:naverMap.getZoom()};
@@ -713,15 +755,18 @@ function openPlace(id){
   const enrichment=landmarkEnrichmentFor(activePlace);
   const imageSourceLink=enrichment?.image_source_url?`<p class="landmark-image-source">대표 사진 출처 <a href="${escapeHtml(enrichment.image_source_url)}" target="_blank" rel="noopener">공식 페이지 ↗</a></p>`:'';
   const hasHeroImage=Boolean(activePlace.imageUrl);
-  const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
+  const canShowStreetView=activePlace.type==='landmark'&&!hasHeroImage&&hasCoordinates(activePlace);
+  const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove();window.activatePlaceStreetView&&window.activatePlaceStreetView()" />`:'';
+  const streetView=activePlace.type==='landmark'&&hasCoordinates(activePlace)?`<div class="place-streetview" id="placeStreetView" aria-label="${escapeHtml(activePlace.name)} 주변 네이버 거리뷰"${canShowStreetView?'':' hidden'}></div>`:'';
   $('#placeSheet').classList.toggle('festival-detail',activePlace.type==='festival');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div>${imageSourceLink}<div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${streetView}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">${canShowStreetView?'NAVER STREET VIEW':'DAEJEON WEEKEND'}</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div>${imageSourceLink}<div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
   setPlaceSheetExpanded(false);
   setPlaceSheetHeights();
   $('#placeSheet').classList.add('show');
+  if(canShowStreetView)activatePlaceStreetView();
   $('#openPlanner').addEventListener('click',openPlanner);
   loadParkingForActivePlace();
 }
@@ -854,6 +899,7 @@ function closeSheets(){
   const wasPlannerOpen=$('#plannerSheet').classList.contains('show');
   const wasParkingInfoOpen=$('#parkingInfoSheet').classList.contains('show');
   resetPlannerSheetDrag();
+  if(wasPlaceOpen)clearPlacePanorama();
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   if(wasPlannerOpen&&isPlaceFocused){$('#placeSheet').classList.add('show');return;}
@@ -862,6 +908,7 @@ function closeSheets(){
 }
 
 function resetMapFocus(){
+  clearPlacePanorama();
   isPlaceFocused=false;
   $('.app-shell').classList.remove('is-place-focused');
   setPlaceSheetExpanded(false);
