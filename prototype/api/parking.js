@@ -37,7 +37,7 @@ function mapParking(row, origin, visitDate, startTime, endTime, weather) {
   const unknownFee = estimatedCost === null;
   const walk = Math.max(1, Math.round(distance * 13));
   const ranking = scoreParkingCandidate({ walk, estimatedCost }, weather);
-  const reason = recommendationReason({ walk, estimatedCost }, weather);
+  const reason = recommendationReason({ walk, estimatedCost, distance }, weather);
   return {
     id: cleanText(row.id),
     name: cleanText(row.name),

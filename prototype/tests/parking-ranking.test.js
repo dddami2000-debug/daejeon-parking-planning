@@ -42,10 +42,11 @@ test('uses a neutral weather weight and uncertainty penalty when data is missing
 
 test('explains a recommendation with the weather, walk and expected cost', () => {
   const reason = recommendationReason(
-    { walk: 5, estimatedCost: 4000 },
+    { walk: 5, distance: 0.35, estimatedCost: 4000 },
     { available: true, apparentTemperature: 34 }
   );
   assert.match(reason, /체감온도 34\.0℃/);
+  assert.match(reason, /350m/);
   assert.match(reason, /도보 5분/);
   assert.match(reason, /4,000원/);
 });
