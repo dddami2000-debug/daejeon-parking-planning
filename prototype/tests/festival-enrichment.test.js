@@ -89,6 +89,11 @@ test('extracts structured JSON even when web-search text wraps it', () => {
   assert.equal(parsed.summary, '축제 소개');
 });
 
+test('uses the first complete JSON object when multiple outputs are joined', () => {
+  const parsed = parseModelJson('{"summary":"첫 요약"}{"summary":"두 번째 요약"}');
+  assert.equal(parsed.summary, '첫 요약');
+});
+
 test('asks OpenAI to avoid invented program names', () => {
   const prompt = festivalSearchPrompt(
     { name: '계룡軍문화축제', address: '충청남도 계룡시', start_date: '2026-10-01', end_date: '2026-10-05' },

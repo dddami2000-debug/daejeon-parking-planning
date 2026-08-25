@@ -93,12 +93,31 @@ function officialFestivalContent(common = {}, intro = {}) {
 function parseModelJson(value) {
   const raw = String(value || '').trim();
   const withoutFence = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-  const objectStart = withoutFence.indexOf('{');
-  const objectEnd = withoutFence.lastIndexOf('}');
-  const candidates = [
-    withoutFence,
-    objectStart >= 0 && objectEnd > objectStart ? withoutFence.slice(objectStart, objectEnd + 1) : ''
-  ];
+  const candidates = [withoutFence];
+  for (let start = 0; start < withoutFence.length; start += 1) {
+    if (withoutFence[start] !== '{') continue;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let end = start; end < withoutFence.length; end += 1) {
+      const character = withoutFence[end];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') inString = false;
+        continue;
+      }
+      if (character === '"') inString = true;
+      else if (character === '{') depth += 1;
+      else if (character === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          candidates.push(withoutFence.slice(start, end + 1));
+          break;
+        }
+      }
+    }
+  }
   for (const candidate of [...new Set(candidates)].filter(Boolean)) {
     try { return JSON.parse(candidate); } catch { /* try the extracted object */ }
   }
