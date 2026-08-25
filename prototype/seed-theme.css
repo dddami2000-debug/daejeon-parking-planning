@@ -2461,6 +2461,39 @@ textarea {
 .time-form button { border-radius: 7px; font-size: 11px; }
 .parking-summary { font-size: 11px; }
 
+.weather-recommendation {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 10px 11px;
+  border: 1px solid #f1d281;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff9e8, #fff3cf);
+  color: #6b541c;
+}
+
+.weather-recommendation[hidden] { display: none; }
+
+.weather-recommendation-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 16px;
+}
+
+.weather-recommendation b,
+.weather-recommendation small {
+  display: block;
+}
+
+.weather-recommendation b { font-size: 10.5px; }
+.weather-recommendation small { margin-top: 2px; color: #8a7135; font-size: 9px; line-height: 1.45; }
+
 .parking-item { border-radius: 10px; }
 .parking-plan-head { border-radius: 8px; }
 .parking-plan-option { border-radius: 6px; font-size: 10px; }
