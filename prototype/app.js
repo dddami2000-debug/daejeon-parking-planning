@@ -44,6 +44,18 @@ const curatedExperiences = [
   }
 ];
 
+const compactPlaceLabels = [
+  {match:['0시 축제'],category:'야간축제',area:'대전광역시 중구 은행동'},
+  {match:['사이언스 페스티벌','과학축제'],category:'과학축제',area:'대전광역시 유성구 도룡동'},
+  {match:['와인 EXPO','와인엑스포'],category:'와인축제',area:'대전광역시 유성구 도룡동'},
+  {match:['한밭수목원'],category:'수목원',area:'대전광역시 서구 만년동'},
+  {match:['엑스포과학공원'],category:'과학공원',area:'대전광역시 유성구 도룡동'},
+  {match:['근현대사전시관'],category:'전시관',area:'대전광역시 중구 선화동'},
+  {match:['대전시청'],category:'공공기관',area:'대전광역시 서구 둔산동'},
+  {match:['충남대학교'],category:'대학교',area:'대전광역시 유성구 궁동'},
+  {match:['성심당'],category:'빵집',area:'대전광역시 중구 은행동'}
+];
+
 const fallbackParkingTemplates = [
   {name:'중앙로 공영주차장',type:'공영',distance:0.42,drive:4,walk:6,capacity:118,open:'09:00',close:'22:00',base:500,baseMin:30,add:200,addMin:10,reason:'목적지까지 가장 가까워요'},
   {name:'대흥동 제1노상주차장',type:'노상',distance:0.68,drive:6,walk:9,capacity:46,open:'09:00',close:'19:00',base:300,baseMin:30,add:200,addMin:10,reason:'19시 이후 무료라 저녁 방문에 유리해요'},
@@ -175,6 +187,34 @@ function experienceFor(place){
   };
 }
 
+function compactLabelFor(place){
+  const name=String(place?.name||'').replace(/\s+/g,'').toLowerCase();
+  return compactPlaceLabels.find(item=>item.match.some(keyword=>name.includes(keyword.replace(/\s+/g,'').toLowerCase())))||null;
+}
+
+function compactPlaceCategory(place){
+  const curated=compactLabelFor(place);
+  if(curated)return curated.category;
+  if(place.type==='festival')return '지역축제';
+  const name=String(place.name||'');
+  if(/빵|베이커리/.test(name))return '빵집';
+  if(/수목원/.test(name))return '수목원';
+  if(/공원/.test(name))return '공원';
+  if(/대학교|대학/.test(name))return '대학교';
+  if(/전시관|박물관/.test(name))return '전시관';
+  if(/시청|구청/.test(name))return '공공기관';
+  return '대전명소';
+}
+
+function compactPlaceArea(place){
+  const curated=compactLabelFor(place);
+  if(curated)return curated.area;
+  const address=String(place.address||place.metadata?.address||place.metadata?.road_address||'').trim();
+  const area=address.match(/(?:대전광역시|대전시|대전)\s+([가-힣]+구)(?:\s+([가-힣0-9]+동))?/);
+  if(area)return `대전광역시 ${area[1]}${area[2]?` ${area[2]}`:''}`;
+  return '대전광역시';
+}
+
 async function loadPlaces(){
   try{
     const response=await fetch('/api/places');
@@ -216,8 +256,9 @@ async function loadParkingForActivePlace(){
 function renderFestivals(){
   const festivalPlaces = places.filter(place=>place.type==='festival');
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
-    const experience=experienceFor(place);
-    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content"><span class="festival-badges"><span class="festival-badge hot">${escapeHtml(festivalDateBadge(place))}</span><span class="festival-badge">취향 ${place.taste}%</span></span><span class="festival-eyebrow">WEEKEND PICK</span><h3>${escapeHtml(place.name)}</h3><p>${escapeHtml(place.period)} · ${escapeHtml(place.hours)}</p><span class="festival-tags">${experience.tags.slice(0,2).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</span><span class="festival-footer"><span class="festival-meta">⌖ ${place.distance||'위치 확인 중'}${place.distance?'km':''} · ${place.eta?`차로 ${place.eta}분`:'장소 확인'}</span><span class="festival-card-cta">자세히 <i>→</i></span></span></span></button>`;
+    const category=compactPlaceCategory(place);
+    const area=compactPlaceArea(place);
+    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${category}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(category)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
   }).join(''):'<p class="map-status">불러온 축제 정보가 아직 없어요.</p>';
   document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
@@ -228,9 +269,9 @@ function renderRankings(){
     .sort((a,b)=>(Number(b.taste)||0)-(Number(a.taste)||0)||(Number(a.distance)||99)-(Number(b.distance)||99))
     .slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
-    const category=place.type==='festival'?festivalDateBadge(place):(place.address||place.period||'대전 명소');
-    const distance=Number(place.distance)>0?`${place.distance}km`:'위치 확인';
-    return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(category)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(place.summary)}</span><em>취향 ${Number(place.taste)||0}% · ${escapeHtml(distance)}</em></span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
+    const category=compactPlaceCategory(place);
+    const area=compactPlaceArea(place);
+    return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${category}, ${area} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(category)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span></span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
   }).join(''):'<p class="ranking-empty">표시할 순위 정보가 아직 없어요.</p>';
   document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
 }

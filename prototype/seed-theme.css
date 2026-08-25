@@ -15,6 +15,7 @@
   --app-bottom: calc(72px + var(--seed-safe-area-bottom));
 }
 
+
 /* Feedback pass: clearer map-first navigation */
 :root { --app-bottom: 0px; }
 .mobile-nav { display: none !important; }
@@ -235,6 +236,7 @@
   .app-shell.recommend-collapsed .current-location-fab,
   .app-shell.recommend-collapsed .map-legend { bottom: 88px !important; }
 }
+
 
 html, body {
   background: var(--seed-color-bg-layer-basement);
@@ -2208,4 +2210,332 @@ button:focus-visible, input:focus-visible {
     border-radius: 46px;
     transform: none;
   }
+}
+
+/* Readability pass: clearer type hierarchy and calmer geometry */
+body,
+button,
+input,
+select,
+textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.section-heading h1,
+.festival-content h3,
+.ranking-heading h2,
+.nearby-title h3,
+.onboarding-card h2,
+.planner-head h2,
+.nav-card h2,
+#placeSheet .place-hero-copy h2,
+.place-intro h3,
+.festival-section-title h3,
+.parking-item h3 {
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+
+.app-header {
+  border-radius: 12px;
+}
+
+.header-search {
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.profile-button,
+.profile-button:hover,
+.profile-button:active {
+  border-radius: 8px;
+}
+
+.profile-button b { font-size: 10.5px; }
+
+.recommend-section {
+  border-radius: 16px 16px 0 0;
+}
+
+.dream-copy {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.section-heading h1,
+.recommend-section.is-collapsed .section-heading h1 {
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.festival-card {
+  border-radius: 11px;
+}
+
+.festival-badge {
+  padding: 5px 7px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  line-height: 1.1;
+}
+
+.festival-eyebrow {
+  margin-top: 9px;
+  font-size: 10px;
+  letter-spacing: .1em;
+}
+
+.festival-content h3,
+.festival-card .festival-content h3 {
+  margin-top: 4px;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.festival-content > p {
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.festival-tags > span,
+.festival-chip-row > span {
+  min-height: 25px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.festival-meta,
+.festival-card-cta {
+  font-size: 11px;
+}
+
+.festival-shape.festival-photo,
+.ranking-photo {
+  border-radius: 8px;
+}
+
+.ranking-heading p,
+.ranking-heading > span {
+  font-size: 11px;
+}
+
+.ranking-heading h2 { font-size: 21px; }
+
+.ranking-tabs {
+  border-radius: 9px;
+}
+
+.ranking-tabs button {
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.ranking-copy small { font-size: 10.5px; }
+.ranking-copy b { font-size: 15px; }
+.ranking-copy > span { font-size: 12.5px; line-height: 1.5; }
+.ranking-copy em { font-size: 11px; }
+.ranking-empty { font-size: 11px; }
+
+.current-location-fab {
+  border-radius: 9px;
+  font-size: 12px;
+}
+
+.place-cluster-marker {
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.place-cluster-marker span { font-size: 9px; }
+
+.search-card,
+.onboarding-card,
+.nav-card {
+  border-radius: 18px;
+}
+
+.search-card > p,
+.test-kicker,
+.question-progress > span,
+.survey-illustration > span {
+  font-size: 10.5px;
+}
+
+.search-card h2 { font-size: 24px; }
+
+.place-search-form {
+  border-radius: 9px;
+}
+
+.place-search-form input { font-size: 14px; }
+
+.place-search-form button,
+.search-quick button {
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.search-result { border-radius: 9px; }
+.search-result-icon { border-radius: 8px; }
+.search-result small { font-size: 9.5px; }
+.search-result b { font-size: 13px; }
+.search-result em { font-size: 10.5px; }
+.search-empty { font-size: 12px; }
+
+.onboarding-card h2 { font-size: 31px; }
+.test-description { font-size: 13px; line-height: 1.7; }
+.answer-button { border-radius: 9px; font-size: 13px; line-height: 1.45; }
+.primary-button { border-radius: 9px; font-size: 13px; }
+
+.bottom-sheet,
+#placeSheet,
+#parkingInfoSheet,
+#placeSheet.show,
+#parkingInfoSheet.show {
+  border-radius: 16px 16px 0 0;
+}
+
+#placeSheet .place-hero-rich { border-radius: 10px; }
+.place-hero-kicker { font-size: 10px; }
+#placeSheet .place-hero-copy h2 { font-size: 25px; }
+.place-hero-copy p { font-size: 12px; line-height: 1.55; }
+.place-intro > span,
+.festival-section-title > span { font-size: 10px; }
+.place-intro h3,
+.festival-section-title h3 { font-size: 18px; }
+.festival-facts span { font-size: 10.5px; }
+.festival-facts b { font-size: 12.5px; }
+
+#placeSheet .recommend-reason,
+.festival-activity-grid article,
+.festival-tip,
+.place-parking-preview {
+  border-radius: 9px;
+}
+
+#placeSheet .recommend-reason span { font-size: 10.5px; }
+#placeSheet .recommend-reason b { font-size: 12px; }
+.festival-activity-grid h4 { font-size: 13px; }
+.festival-activity-grid p,
+.festival-tip p { font-size: 11px; }
+.festival-tip b { font-size: 12px; }
+.festival-actions .primary-button,
+.official-link { border-radius: 9px; font-size: 12px; }
+
+.planner-head p,
+.nearby-title p { font-size: 10px; }
+.planner-head h2 { font-size: 27px; }
+.dream-tip { border-radius: 7px; font-size: 10.5px; }
+.time-form { border-radius: 10px; }
+.time-form label { border-radius: 7px; }
+.time-form label span { font-size: 10px; }
+.time-form input { font-size: 12px; }
+.time-form button { border-radius: 7px; font-size: 11px; }
+.parking-summary { font-size: 11px; }
+
+.parking-item { border-radius: 10px; }
+.parking-plan-head { border-radius: 8px; }
+.parking-plan-option { border-radius: 6px; font-size: 10px; }
+.parking-plan-icon { border-radius: 6px; }
+.parking-plan-head b { font-size: 12px; }
+.parking-plan-head small { font-size: 10px; }
+.parking-type { font-size: 10px; }
+.parking-item h3 { font-size: 15px; }
+.parking-meta,
+.parking-reason,
+.data-note { font-size: 10.5px; line-height: 1.5; }
+.parking-stats div { border-radius: 7px; }
+.parking-stats span { font-size: 9.5px; }
+.parking-stats b { font-size: 12px; }
+.parking-actions button { border-radius: 7px; font-size: 11px; }
+
+.nav-options button { border-radius: 8px; font-size: 11px; }
+.nav-card > p,
+.nav-card .nav-note { font-size: 10.5px; }
+.toast { border-radius: 8px; font-size: 12px; }
+
+@media (max-width: 800px) {
+  .app-header { border-radius: 12px; }
+  .festival-card { height: 176px; }
+  .festival-content { padding: 13px; }
+  .festival-footer { right: 13px; bottom: 10px; left: 13px; }
+  .recommend-section .festival-slider,
+  .recommend-section.is-collapsed .festival-slider { max-height: 176px; }
+}
+
+/* Compact discovery cards: details stay behind the tap */
+.app-shell {
+  --recommend-sheet-preview-height: clamp(208px, 26dvh, 226px);
+}
+
+.recommend-section .festival-slider,
+.recommend-section.is-collapsed .festival-slider {
+  max-height: 140px;
+}
+
+.festival-card { height: 140px; }
+
+@media (max-width: 800px) {
+  .festival-card {
+    height: 140px;
+  }
+}
+
+.festival-content-compact {
+  justify-content: center;
+  padding: 17px;
+  background: linear-gradient(90deg, color-mix(in srgb, white 93%, transparent) 0 56%, transparent 78%);
+}
+
+.festival-content-compact h3,
+.festival-card .festival-content-compact h3 {
+  max-width: 160px;
+  margin: 6px 0 7px;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.compact-place-kind,
+.compact-place-location {
+  display: block;
+  max-width: 160px;
+  overflow: hidden;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-place-kind { color: var(--seed-color-fg-neutral-subtle); }
+
+.festival-shape.festival-photo {
+  top: 13px;
+  right: 13px;
+  bottom: auto;
+  width: 88px;
+  height: 114px;
+}
+
+.ranking-copy small,
+.ranking-copy > span {
+  color: var(--seed-color-fg-neutral-muted);
+}
+
+.ranking-copy small {
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+
+.ranking-copy > span {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
