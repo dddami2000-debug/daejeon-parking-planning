@@ -225,6 +225,7 @@ async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
   if (!isAuthorizedEnrichment(req)) return sendJson(res, 401, { error: 'unauthorized' });
   const force = cleanText(req.query?.force) === 'true';
+  const dryRun = cleanText(req.query?.dryRun) === 'true';
   const limit = parseLimit(req.query?.limit);
   try {
     const rows = await supabaseRequest('places?select=id,external_id,name,address,start_date,end_date,description,homepage_url,operating_hours,metadata&source=eq.kto_festival&category=eq.festival&order=updated_at.asc&limit=100');
@@ -244,11 +245,13 @@ async function handler(req, res) {
         const update = mergeUpdate(place, officialResult, aiResult);
         const content = update.metadata.festival_content;
         if (!content.summary && !content.programs.length) throw new Error(aiError || officialResult.error || 'festival_content_empty');
-        await supabaseRequest(`places?id=eq.${encodeURIComponent(place.id)}`, {
-          method: 'PATCH',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify(update)
-        });
+        if (!dryRun) {
+          await supabaseRequest(`places?id=eq.${encodeURIComponent(place.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify(update)
+          });
+        }
         results.push({
           id: place.id,
           name: place.name,
@@ -259,18 +262,26 @@ async function handler(req, res) {
           tourApiOverview: content.tourapi_available.overview,
           tourApiProgram: content.tourapi_available.program,
           aiUsed: Boolean(aiResult),
-          aiError
+          aiError,
+          preview: dryRun ? {
+            summary: content.summary,
+            programs: content.programs,
+            sourceUrls: content.source_urls
+          } : undefined
         });
       } catch (error) {
         results.push({ id: place.id, name: place.name, ok: false, error: cleanText(error.message).slice(0, 200) });
       }
     }
-    const updated = results.filter((result) => result.ok).length;
+    const validated = results.filter((result) => result.ok).length;
+    const updated = dryRun ? 0 : validated;
     return sendJson(res, 200, {
       ok: true,
+      dryRun,
       requested: candidates.length,
+      validated,
       updated,
-      remaining: Math.max(0, pending.length - updated),
+      remaining: Math.max(0, pending.length - (dryRun ? 0 : updated)),
       results
     });
   } catch (error) {
