@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=62" />
+    <link rel="stylesheet" href="seed-theme.css?v=63" />
     <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
@@ -170,6 +170,17 @@
       </div>
     </div>
 
+    <div class="modal festival-travel-modal" id="festivalTravelModal" role="dialog" aria-modal="true" aria-labelledby="festivalTravelTitle">
+      <div class="nav-card">
+        <button class="modal-close" id="closeFestivalTravel" aria-label="안내 앱 선택 닫기">×</button>
+        <p id="festivalTravelEyebrow">이동 방법 선택</p>
+        <h2 id="festivalTravelTitle">어떤 앱으로 안내할까요?</h2>
+        <p class="festival-travel-destination" id="festivalTravelDestination"></p>
+        <div class="nav-options festival-travel-options" id="festivalTravelOptions"></div>
+        <p class="nav-note" id="festivalTravelNote">선택한 앱에서 경로를 확인할 수 있어요.</p>
+      </div>
+    </div>
+
     <div class="modal search-modal" id="searchModal" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
       <div class="search-card">
         <button class="modal-close" id="closeSearch" aria-label="검색 닫기">×</button>
@@ -192,10 +203,12 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js" integrity="sha384-OL+ylM/iuPLtW5U3XcvLSGhE8JzReKDank5InqlHGWPhb4140/yrBw0bg0y7+C9J" crossorigin="anonymous"></script>
     <script src="region.js?v=1"></script>
     <script src="festival-timing.js?v=1"></script>
     <script src="festival-recommender.js?v=3"></script>
     <script src="map-clustering.js?v=1"></script>
-    <script src="app.js?v=56"></script>
+    <script src="navigation-links.js?v=1"></script>
+    <script src="app.js?v=57"></script>
   </body>
 </html>
