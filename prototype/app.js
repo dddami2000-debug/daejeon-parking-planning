@@ -386,7 +386,13 @@ function activatePlaceStreetView(){
   try{
     const panorama=new naver.maps.Panorama(container,{
       position:new naver.maps.LatLng(activePlace.lat,activePlace.lng),
-      pov:{pan:-15,tilt:0,fov:100}
+      pov:{pan:-15,tilt:0,fov:100},
+      // 랜드마크 카드에서는 거리뷰를 한 장의 배경 사진처럼만 보여 준다.
+      zoomControl:false,
+      aroundControl:false,
+      flightSpot:false,
+      minZoom:0,
+      maxZoom:0
     });
     placePanorama=panorama;
     naver.maps.Event.addListener(panorama,'pano_status',(status)=>{

@@ -933,6 +933,10 @@ button:focus-visible, input:focus-visible {
   width: 100%;
   height: 100%;
   background: #20352b;
+  /* 파노라마를 조작 가능한 뷰어가 아닌 고정된 한 장면으로 사용한다. */
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
 }
 
 #placeSheet .place-streetview[hidden] {
