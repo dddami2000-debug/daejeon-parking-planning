@@ -1,81 +1,79 @@
-# 대전 주차 추천 서비스
+# 대전갈까? 🅿️
 
-Manyfast의 **「자료보고 기획해줘」** 프로젝트를 팀 협업용 GitHub 저장소 형태로 정리한 문서입니다.
+> 대전의 축제·랜드마크를 발견하고, 주변 공공 주차장까지 한 번에 계획하는 모바일 웹 서비스
 
-## 제품 한 줄 정의
-대전의 축제·랜드마크 방문자가 취향과 현재 위치에 맞는 장소를 발견하고, 예상 주차비와 만차 대안까지 포함한 주차 계획을 세워 바로 출발하도록 돕는 모바일 웹 서비스입니다.
+[서비스 열기](https://daejeon-parking-planning.vercel.app)
 
-## 핵심 사용자 흐름
-1. 심리테스트 또는 건너뛰기
-2. 취향·거리·행사기간 기반 장소 탐색
-3. 장소 상세 확인
-4. 방문 날짜·시간 입력
-5. 주차장 1·2·3순위 및 예상 요금 비교
-6. 외부 내비게이션 길안내
-7. 만차 시 다음 순위 주차장으로 전환
+## 문제
 
-## 문서 구조
+대전의 축제와 관광명소를 방문할 때 공영·노상·공공기관 주차장 정보가 여러 곳에 흩어져 있습니다. 방문자는 행사장까지의 거리, 운영시간, 예상 주차비를 직접 비교해야 하고, 현장에서 1순위 주차장이 만차이면 다시 검색해야 합니다.
 
-- [`docs/PRD.md`](docs/PRD.md) — 제품 목표, 사용자 문제, 해결책, KPI, 리스크
-- [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — Requirement 5개
-- [`docs/FEATURES.md`](docs/FEATURES.md) — Feature 7개
-- [`docs/SPECS.md`](docs/SPECS.md) — 상세 Spec 7개
-- [`docs/USER_FLOW.md`](docs/USER_FLOW.md) — 전체 사용자 흐름과 Mermaid 다이어그램
-- [`data/project-summary.json`](data/project-summary.json) — 기획 구조 요약 JSON
+## 해결
 
-## MVP 우선순위
-해커톤 24시간 MVP 기준으로 핵심 P0 흐름을 먼저 완성합니다.
+`대전갈까?`는 축제와 랜드마크를 지도에서 발견한 뒤, 방문 시간에 맞는 주차장 후보를 추천하고 바로 길안내로 연결합니다. 주차장이 만차라면 다음 순위 후보로 빠르게 전환할 수 있습니다.
 
-**온보딩 → 장소 추천 → 주차 플랜 → 길안내 → 만차 전환**
+## 핵심 기능
 
-실시간 주차 잔여면은 데이터 제공이 가능한 경우의 보조 기능으로 취급합니다.
+- 꿈돌이 취향 테스트 또는 건너뛰기를 통한 맞춤 장소 추천
+- 대전 축제·랜드마크 버블을 표시하는 네이버 지도 기반 모바일 화면
+- 축제·랜드마크 선택 시 운영 기간, 운영시간, 거리, 소개를 보여주는 상세 바텀시트
+- 목적지 주변 공영·노상 주차장의 1·2·3순위 추천 및 예상 주차비 계산
+- 지도 위 추천 주차장과 주변 주차장 표시, 개별 주차장 정보 확인
+- 1순위 만차 시 다음 후보 주차장으로 전환하는 흐름
+- 네이버지도·카카오맵·티맵 등 외부 내비게이션 길안내 연결
 
-## 협업 권장 방식
+## 데이터와 기술
 
-- `main`: 합의된 기획 및 동작
-- 기능별 브랜치: `feature/onboarding`, `feature/place-discovery`, `feature/parking-plan`, `feature/navigation`
-- 기획 변경은 Pull Request에서 문서와 구현을 함께 리뷰
-- API Key, OpenAI Key 등 비밀값은 Git에 커밋하지 않고 `.env`로 관리
+| 구분 | 사용 데이터·기술 | 용도 |
+| --- | --- | --- |
+| 축제 | 한국관광공사 TourAPI 지역축제 정보 | 진행 중·예정 축제의 일정과 장소 제공 |
+| 랜드마크 | 대전광역시 문화관광(관광지) API | 대전 관광명소의 위치와 소개 제공 |
+| 주차장 | 대전광역시 실시간 주차장 정보 API | 공영·노상 주차장 위치·요금·운영 정보 제공 |
+| 지도 | Naver Maps JavaScript API | 지도, 장소·주차장 마커 표시 |
+| 백엔드 | Vercel Serverless Functions | 공공데이터 수집 및 API 제공 |
+| 데이터베이스 | Supabase | 축제·랜드마크·주차장 정제 데이터 저장 |
 
-## 현재 기획 상태
-Manyfast 기준 Requirement / Feature / Spec은 모두 아직 `todo` 상태입니다.
+공유누리 공공기관 주차장은 API 승인·데이터 품질을 확인 중이며, 안정화 후 주차장 추천 데이터에 포함할 예정입니다.
 
-## Prototype v1
+## 데이터 처리 방식
 
-첫 번째 실행형 프로토타입은 [`prototype/`](prototype/)에 있습니다.
+공공데이터는 브라우저가 아니라 Vercel Functions에서 수집해 Supabase에 저장합니다. 따라서 공공데이터 인증키와 Supabase Secret Key가 클라이언트에 노출되지 않습니다.
+
+- `GET /api/places` — 축제·랜드마크 조회
+- `GET /api/parking?lat=...&lng=...` — 목적지 주변 주차장 및 예상 요금 조회
+- `GET|POST /api/sync?dataset=festival|landmark|parking|sharenuri` — 데이터 수집·동기화
+
+축제 데이터에 좌표가 없을 때는 주소를 좌표화해 지도 표시를 보완합니다. 데이터 수집 실패가 발생해도 다른 데이터셋 동기화는 계속 진행되도록 구성했습니다.
+
+## 실행 방법
+
+첫 실행 전 Vercel 프로젝트의 환경 변수를 로컬로 받아옵니다. 실제 키는 Git에 커밋하지 않습니다.
 
 ```bash
-python3 -m http.server 4174 --bind 127.0.0.1 --directory prototype
+cd prototype
+vercel env pull .env.local
+vercel dev
 ```
 
-브라우저에서 `http://127.0.0.1:4174`를 열면 다음 흐름을 테스트할 수 있습니다.
+브라우저에서 Vercel CLI가 안내하는 로컬 주소를 열면 서버리스 API까지 포함해 확인할 수 있습니다.
 
-- 꿈돌이 취향 테스트 또는 건너뛰기
-- 추천 축제 가로 슬라이더
-- 축제·랜드마크 버블 지도와 상세 바텀시트
-- 방문 시간 기준 주차장 1·2·3순위와 예상 요금
-- 기본 내비게이션 선택
-- `만차예요` 클릭 후 다음 후보 자동 승격 및 안내
+필수 환경 변수 이름은 [`prototype/.env.example`](prototype/.env.example)에 정리되어 있습니다. Production과 Preview 환경에 모두 등록하며, 수집 작업은 `CRON_SECRET`으로 보호합니다.
 
-### SEED Design UI
+## UI
 
-프로토타입 UI는 `@seed-design/css` 2.4.0의 공식 토큰을 사용합니다.
+프로토타입은 `@seed-design/css` 2.4.0의 공식 토큰을 사용하며, 프로젝트별 화면 조정은 [`prototype/seed-theme.css`](prototype/seed-theme.css)에서 관리합니다.
 
-- 공식 토큰 CSS: `prototype/index.html`
-- 프로젝트 테마 매핑: `prototype/seed-theme.css`
-- 적용 범위: 색상, 타이포그래피, 간격, 모서리, 버튼, 필터, 카드, 바텀시트, 하단 내비게이션
-- 기존 네이버지도와 공공데이터 로직은 변경하지 않음
+## 문서
 
-## 공공데이터 연동
+- [`docs/PRD.md`](docs/PRD.md) — 제품 목표, 사용자 문제, 해결책, KPI, 리스크
+- [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — 요구사항
+- [`docs/FEATURES.md`](docs/FEATURES.md) — 핵심 기능
+- [`docs/SPECS.md`](docs/SPECS.md) — 상세 기능 명세
+- [`docs/USER_FLOW.md`](docs/USER_FLOW.md) — 사용자 흐름
+- [`docs/api-specs/`](docs/api-specs/) — 수집 API 명세
 
-`prototype/api/`의 Vercel Functions가 공공데이터를 서버에서 수집하고 Supabase에 저장합니다. 브라우저에는 공공데이터 키나 Supabase Secret Key를 전달하지 않습니다.
+## 24시간 MVP 범위
 
-- `GET /api/places`: Supabase에 저장된 축제·랜드마크를 모바일 화면에 전달
-- `GET /api/parking?lat=...&lng=...`: 목적지 근처 주차장과 선택한 시간대의 예상 요금을 전달
-- `GET|POST /api/sync?dataset=festival|landmark|parking|sharenuri`: 인증된 수집 작업
+**온보딩 → 장소 발견 → 상세 정보 → 주차 플랜 → 길안내 → 만차 전환**
 
-필수 환경 변수 이름은 [`prototype/.env.example`](prototype/.env.example)에 정리했습니다. Vercel에서 Production과 Preview에 모두 등록하고, 동기화용 `CRON_SECRET`도 추가해야 합니다.
-
-Vercel Cron은 매일 오전 6시(KST, UTC `0 21 * * *`)에 `/api/sync`를 호출해 축제·랜드마크·공영주차장·공유누리 주차장 데이터를 갱신합니다.
-
-축제 API에는 좌표가 포함되지 않습니다. 따라서 축제는 상세 정보와 추천 카드에 우선 노출되며, 지도 버블과 주변 주차장 추천은 좌표가 있는 랜드마크부터 실제 데이터로 동작합니다. 축제 주소의 좌표화(Geocoding)는 다음 단계로 분리했습니다.
+실시간 잔여 주차면은 모든 공영·노상 주차장에서 제공되지 않으므로, MVP에서는 보조 정보로 취급합니다.
