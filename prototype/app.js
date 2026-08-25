@@ -113,6 +113,10 @@ let visitConditions = {companions:null,activity:null,mobility:null};
 let demographicAnswers = {gender:null,ageBand:null};
 let excludedParkings = [];
 let pendingParking = null;
+let pendingFestivalDestination = null;
+let festivalTravelMode = null;
+let festivalTravelLastTrigger = null;
+let navigationConfigPromise = null;
 let naverMap = null;
 let placeMarkers = [];
 let parkingMarkers = [];
@@ -1078,7 +1082,7 @@ function placeRainNotice(place){
 }
 function placeHoursNotice(place){
   const hours=String(place.hours||'').trim();
-  return hours&&!/확인/.test(hours)?hours:'공식 데이터에 운영 시간이 제공되지 않았어요. 출발 전에 공식 홈페이지에서 확인해 주세요.';
+  return hours&&!/확인/.test(hours)?hours:'공식 데이터에 운영 시간이 제공되지 않았어요. 출발 전에 공식 행사 안내에서 확인해 주세요.';
 }
 
 function openPlace(id){
@@ -1103,15 +1107,14 @@ function openPlace(id){
   const locationCopy=hasCoordinates(activePlace)?`${activePlace.distance}km · 차로 ${activePlace.eta}분`:'지도 좌표 확인 중';
   const experience=experienceFor(activePlace);
   const sourceCopy=`<p class="data-source-note">${escapeHtml(festivalContentAttribution(activePlace))} · ${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</p>`;
-  const officialUrl=activePlace.homepageUrl||experience.officialUrl||null;
-  const officialLink=officialUrl?`<a class="official-link" href="${escapeHtml(officialUrl)}" target="_blank" rel="noopener">공식 홈페이지 <span>↗</span></a>`:'<span class="official-link unavailable" aria-disabled="true">공식 홈페이지 정보 없음</span>';
   const status=placeOperationStatus(activePlace);
   const programs=experience.highlights.slice(0,3);
   const programsMarkup=programs.length?`<ol class="place-program-list">${programs.map(item=>`<li><span>${escapeHtml(item.icon)}</span><div><b>${escapeHtml(item.title)}</b>${item.description?`<small>${escapeHtml(item.description)}</small>`:''}</div></li>`).join('')}</ol>`:'<p class="missing-data-copy">공식 데이터와 검색 결과에서 확인된 세부 프로그램이 없어요.</p>';
   const hasHeroImage=Boolean(activePlace.imageUrl);
   const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.add('festival-detail');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div><div class="festival-chip-row">${experience.tags.slice(0,3).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><h3>방문 전에 확인하세요</h3></section><div class="festival-facts"><div><span>행사 일정</span><b>${escapeHtml(activePlace.period||'일정 확인 필요')}</b></div><div><span>현재 상태</span><b>${escapeHtml(status.label)}</b></div><div><span>운영 시간</span><b>${escapeHtml(placeHoursNotice(activePlace))}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장·예약</span><b>${escapeHtml(experience.admission)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><section class="place-programs"><div class="place-section-heading"><h3>핵심 프로그램</h3><span>${escapeHtml(festivalProgramSourceLabel(activePlace))}</span></div>${programsMarkup}</section><div class="recommend-reason"><i>✓</i><span><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="visit-verification"><div><span>우천·취소</span><b>${escapeHtml(placeRainNotice(activePlace))}</b></div><div><span>정보 기준</span><b>${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</b></div></section><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  const travelDisabled=hasCoordinates(activePlace)?'':' disabled aria-disabled="true"';
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div><div class="festival-chip-row">${experience.tags.slice(0,3).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><h3>방문 전에 확인하세요</h3></section><div class="festival-facts"><div><span>행사 일정</span><b>${escapeHtml(activePlace.period||'일정 확인 필요')}</b></div><div><span>현재 상태</span><b>${escapeHtml(status.label)}</b></div><div><span>운영 시간</span><b>${escapeHtml(placeHoursNotice(activePlace))}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장·예약</span><b>${escapeHtml(experience.admission)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><section class="place-programs"><div class="place-section-heading"><h3>핵심 프로그램</h3><span>${escapeHtml(festivalProgramSourceLabel(activePlace))}</span></div>${programsMarkup}</section><div class="recommend-reason"><i>✓</i><span><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="visit-verification"><div><span>우천·취소</span><b>${escapeHtml(placeRainNotice(activePlace))}</b></div><div><span>정보 기준</span><b>${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</b></div></section><div class="festival-actions"><button class="festival-travel-button transit" id="openTransitGuide" type="button"${travelDisabled}><span><small>버스 · 지하철</small><b>대중교통 안내</b></span><em aria-hidden="true">→</em></button><button class="festival-travel-button navigation" id="openNavigationGuide" type="button"${travelDisabled}><span><small>자동차 길찾기</small><b>내비게이션 안내</b></span><em aria-hidden="true">→</em></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
@@ -1119,7 +1122,8 @@ function openPlace(id){
   setPlaceSheetHeights();
   $('#placeSheet').classList.add('show');
   bindFavoriteButtons($('#placeSheetContent'));
-  $('#openPlanner').addEventListener('click',openPlanner);
+  $('#openTransitGuide').addEventListener('click',event=>openFestivalTravel('transit',event.currentTarget));
+  $('#openNavigationGuide').addEventListener('click',event=>openFestivalTravel('navigation',event.currentTarget));
   loadParkingForActivePlace();
 }
 
@@ -1456,6 +1460,148 @@ function selectNavigation(parkingName){
   $('#navigationModal').classList.add('show');
 }
 
+function festivalDestination(place=activePlace){
+  return window.NavigationLinks?.normalizeDestination({name:place?.name,lat:place?.lat,lng:place?.lng})||null;
+}
+
+function navigationConfig(){
+  if(!navigationConfigPromise){
+    navigationConfigPromise=fetch('/api/navigation-config',{headers:{Accept:'application/json'}})
+      .then(response=>response.ok?response.json():Promise.reject(new Error(`navigation_config_${response.status}`)))
+      .then(config=>({
+        kakaoJavaScriptKey:String(config?.kakaoJavaScriptKey||'').trim()||null,
+        tmapAvailable:Boolean(config?.tmapAvailable)
+      }))
+      .catch(()=>({kakaoJavaScriptKey:null,tmapAvailable:false}));
+  }
+  return navigationConfigPromise;
+}
+
+function festivalTravelProviders(mode){
+  if(mode==='transit')return [
+    {id:'naver-map',label:'네이버지도',iconUrl:'assets/navigation/naver-map-app-icon.png',tone:'naver'},
+    {id:'kakao-map',label:'카카오맵',iconUrl:'assets/navigation/kakao-map-app-icon.png',tone:'kakao-map'}
+  ];
+  return [
+    {id:'tmap',label:'티맵',iconUrl:'assets/navigation/tmap-app-icon.png',tone:'tmap'},
+    {id:'naver-map',label:'네이버지도',iconUrl:'assets/navigation/naver-map-app-icon.png',tone:'naver'},
+    {id:'kakao-navi',label:'카카오내비',iconUrl:'assets/navigation/kakao-navi-app-icon.png',tone:'kakao-navi'}
+  ];
+}
+
+function renderFestivalTravelOptions(config=null){
+  const providers=festivalTravelProviders(festivalTravelMode);
+  $('#festivalTravelOptions').innerHTML=providers.map(provider=>{
+    const unavailable=festivalTravelMode==='navigation'&&config&&(
+      (provider.id==='tmap'&&!config.tmapAvailable)
+      ||(provider.id==='kakao-navi'&&!config.kakaoJavaScriptKey)
+    );
+    const reason=provider.id==='tmap'?'티맵 API 키 설정 필요':'카카오 JavaScript 키 설정 필요';
+    const icon=provider.iconUrl
+      ?`<i class="${provider.tone} app-icon"><img src="${escapeHtml(provider.iconUrl)}" alt="" /></i>`
+      :`<i class="${provider.tone}">${provider.icon}</i>`;
+    return `<button type="button" data-festival-provider="${provider.id}"${unavailable?` disabled aria-disabled="true" title="${reason}"`:''}>${icon}<span>${provider.label}</span>${unavailable?'<small>설정 필요</small>':''}</button>`;
+  }).join('');
+}
+
+function closeFestivalTravel(){
+  $('#festivalTravelModal').classList.remove('show');
+  const trigger=festivalTravelLastTrigger;
+  festivalTravelLastTrigger=null;
+  window.setTimeout(()=>trigger?.focus(),0);
+}
+
+function openFestivalTravel(mode,trigger){
+  const destination=festivalDestination();
+  if(!destination){toast('이 축제의 정확한 위치가 없어 길안내를 시작할 수 없어요.');return;}
+  festivalTravelMode=mode;
+  pendingFestivalDestination=destination;
+  festivalTravelLastTrigger=trigger||document.activeElement;
+  $('#festivalTravelEyebrow').textContent=mode==='transit'?'대중교통 앱 선택':'내비게이션 앱 선택';
+  $('#festivalTravelTitle').textContent=mode==='transit'?'어떤 지도로 갈까요?':'어떤 내비로 갈까요?';
+  $('#festivalTravelDestination').textContent=destination.name;
+  $('#festivalTravelNote').textContent=mode==='transit'
+    ?'현재 위치 권한을 허용하면 출발지까지 함께 전달해요.'
+    :'선택한 앱에서 바로 자동차 길안내를 시작해요.';
+  renderFestivalTravelOptions();
+  $('#festivalTravelModal').classList.add('show');
+  $('#closeFestivalTravel').focus();
+  if(mode==='navigation')navigationConfig().then(config=>{
+    if($('#festivalTravelModal').classList.contains('show')&&festivalTravelMode==='navigation')renderFestivalTravelOptions(config);
+  });
+}
+
+function guidanceCurrentPosition(){
+  if(window.NavigationLinks?.normalizeOrigin(userPosition))return Promise.resolve(userPosition);
+  if(!navigator.geolocation)return Promise.resolve(null);
+  return new Promise(resolve=>navigator.geolocation.getCurrentPosition(position=>{
+    userPosition={lat:position.coords.latitude,lng:position.coords.longitude};
+    resolve(window.NavigationLinks?.normalizeOrigin(userPosition)||null);
+  },()=>resolve(null),{enableHighAccuracy:true,timeout:6000,maximumAge:60000}));
+}
+
+function launchWithFallback(primaryUrl,fallbackUrl,delay=1600){
+  if(!primaryUrl){if(fallbackUrl)window.location.assign(fallbackUrl);return;}
+  let pageHidden=false;
+  const visibilityHandler=()=>{if(document.visibilityState==='hidden')pageHidden=true;};
+  document.addEventListener('visibilitychange',visibilityHandler);
+  window.setTimeout(()=>{
+    document.removeEventListener('visibilitychange',visibilityHandler);
+    if(!pageHidden&&fallbackUrl)window.location.assign(fallbackUrl);
+  },delay);
+  window.location.assign(primaryUrl);
+}
+
+async function launchFestivalTravel(provider){
+  const links=window.NavigationLinks;
+  const destination=pendingFestivalDestination;
+  const mode=festivalTravelMode;
+  if(!links||!destination){toast('길안내 링크를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');return;}
+  const platform=links.platformFromUserAgent(navigator.userAgent);
+  const origin=mode==='transit'?await guidanceCurrentPosition():null;
+
+  if(provider==='naver-map'){
+    const naverUrl=links.buildNaverUrl(mode,destination,origin,window.location.origin);
+    closeFestivalTravel();
+    if(platform==='android')return window.location.assign(links.buildNaverAndroidIntent(naverUrl));
+    if(platform==='ios')return launchWithFallback(naverUrl,'https://itunes.apple.com/app/id311867728?mt=8');
+    return window.location.assign(links.buildNaverWebUrl(destination));
+  }
+
+  if(provider==='kakao-map'){
+    const webUrl=links.buildKakaoMapWebUrl(destination,origin);
+    closeFestivalTravel();
+    if(!origin){
+      toast('현재 위치를 확인하지 못했어요. 카카오맵에서 출발지를 설정해 주세요.');
+      return window.location.assign(webUrl);
+    }
+    if(platform==='desktop')return window.location.assign(webUrl);
+    return launchWithFallback(
+      links.buildKakaoMapAppUrl(destination,origin),
+      links.buildKakaoMapMobileUrl(destination,origin)
+    );
+  }
+
+  if(provider==='tmap'){
+    const config=await navigationConfig();
+    if(!config.tmapAvailable){toast('티맵 연결 설정이 아직 완료되지 않았어요.');return;}
+    closeFestivalTravel();
+    return window.location.assign(links.buildTmapRedirectUrl(destination));
+  }
+
+  if(provider==='kakao-navi'){
+    const config=await navigationConfig();
+    if(!config.kakaoJavaScriptKey||!window.Kakao?.Navi){toast('카카오내비 연결 설정이 아직 완료되지 않았어요.');return;}
+    try{
+      if(!window.Kakao.isInitialized())window.Kakao.init(config.kakaoJavaScriptKey);
+      closeFestivalTravel();
+      window.Kakao.Navi.start({name:destination.name,x:destination.lng,y:destination.lat,coordType:'wgs84'});
+    }catch{
+      toast('카카오내비를 여는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.');
+    }
+  }
+}
+
 function setSurveyProgress(step){
   $('#questionStep').textContent=`${step} / ${totalSurveySteps}`;
   $('#progressBar').style.width=`${step/totalSurveySteps*100}%`;
@@ -1688,6 +1834,18 @@ $('#sheetBackdrop').addEventListener('click',closeSheets);
 $('#recalculate').addEventListener('click',()=>{parkingWeather=null;renderParkings();loadParkingForActivePlace();toast('선택한 시간으로 요금을 다시 계산했어요.');});
 $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remove('show'));
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
+$('#closeFestivalTravel').addEventListener('click',closeFestivalTravel);
+$('#festivalTravelModal').addEventListener('click',event=>{if(event.target===$('#festivalTravelModal'))closeFestivalTravel();});
+$('#festivalTravelOptions').addEventListener('click',async event=>{
+  const button=event.target.closest('[data-festival-provider]');
+  if(!button||button.disabled)return;
+  document.querySelectorAll('[data-festival-provider]').forEach(option=>{option.disabled=true;});
+  await launchFestivalTravel(button.dataset.festivalProvider);
+  if($('#festivalTravelModal').classList.contains('show')){
+    const config=festivalTravelMode==='navigation'?await navigationConfig():null;
+    renderFestivalTravelOptions(config);
+  }
+});
 $('#currentButton').addEventListener('click',moveToCurrentLocation);
 $('#favoriteMapButton').addEventListener('click',toggleFavoriteMapFilter);
 document.querySelectorAll('[data-map-topic]').forEach(button=>button.addEventListener('click',()=>toggleMapTopicFilter(button.dataset.mapTopic)));
@@ -1703,7 +1861,11 @@ document.addEventListener('visibilitychange',()=>{
   if(Date.now()-recommendationLastRefreshedAt>=RECOMMENDATION_REFRESH_INTERVAL_MS)refreshFestivalRecommendations();
 });
 festivalMotionPreference.addEventListener?.('change',event=>event.matches?stopFestivalAutoplay():scheduleFestivalAutoplay());
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&isPlaceFocused){event.preventDefault();resetMapFocus();}});
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  if($('#festivalTravelModal').classList.contains('show')){event.preventDefault();closeFestivalTravel();return;}
+  if(isPlaceFocused){event.preventDefault();resetMapFocus();}
+});
 $('#searchButton').addEventListener('click',openSearch);
 $('#closeSearch').addEventListener('click',()=>$('#searchModal').classList.remove('show'));
 $('#searchModal').addEventListener('click',event=>{if(event.target===$('#searchModal'))$('#searchModal').classList.remove('show');});

@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=62/);
-  assert.match(indexSource, /app\.js\?v=56/);
+  assert.match(indexSource, /seed-theme\.css\?v=63/);
+  assert.match(indexSource, /app\.js\?v=57/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=56/);
+  assert.match(indexSource, /app\.js\?v=57/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -145,4 +145,28 @@ test('keeps map filters uniform and festival favorite controls compact', () => {
   assert.match(themeSource, /\.map-favorite-filter,\s*\.map-topic-filter\s*\{[\s\S]*height:\s*38px[\s\S]*font-size:\s*13px/);
   assert.match(themeSource, /\.festival-favorite-button\s*\{[\s\S]*width:\s*32px[\s\S]*height:\s*32px[\s\S]*font-size:\s*18px/);
   assert.match(themeSource, /\.place-hero-favorite\s*\{[\s\S]*width:\s*38px[\s\S]*height:\s*38px[\s\S]*font-size:\s*21px/);
+});
+
+test('replaces festival detail parking and homepage CTAs with travel guidance apps', () => {
+  const detailBlock = appSource.match(/function openPlace\(id\)[\s\S]*?\n}\n\nfunction setPlaceSheetHeights/)?.[0] || '';
+  assert.match(detailBlock, /대중교통 안내/);
+  assert.match(detailBlock, /내비게이션 안내/);
+  assert.doesNotMatch(detailBlock, /🚌|🚘/);
+  assert.doesNotMatch(detailBlock, /공식 홈페이지|주차 플랜 보기/);
+  assert.match(indexSource, /id="festivalTravelModal"/);
+  assert.doesNotMatch(indexSource, /id="festivalTravelIcon"/);
+  assert.match(indexSource, /navigation-links\.js/);
+  assert.match(appSource, /naver-map/);
+  assert.match(appSource, /kakao-map/);
+  assert.match(appSource, /kakao-navi/);
+  assert.match(appSource, /tmap/);
+  for (const iconFile of [
+    'tmap-app-icon.png',
+    'naver-map-app-icon.png',
+    'kakao-map-app-icon.png',
+    'kakao-navi-app-icon.png'
+  ]) {
+    assert.match(appSource, new RegExp(`assets/navigation/${iconFile.replace('.', '\\.')}`));
+    assert.equal(fs.existsSync(path.join(prototypeRoot, 'assets/navigation', iconFile)), true);
+  }
 });
