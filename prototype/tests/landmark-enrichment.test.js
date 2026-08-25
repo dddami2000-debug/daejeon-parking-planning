@@ -81,9 +81,9 @@ test('prompt contains the public dataset context and prohibits guessing', () => 
   assert.match(prompt, /도심 수목원/);
 });
 
-test('does not endlessly re-enrich a landmark only because no official image was found', () => {
+test('does not endlessly re-enrich a completed landmark without an image or summary', () => {
   assert.equal(shouldEnrich({
-    description: '황톳길 산책 명소',
+    description: null,
     image_url: null,
     metadata: { landmark_enrichment: { enriched_at: '2026-08-25T00:00:00.000Z' } }
   }, false), false);

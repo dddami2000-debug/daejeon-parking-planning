@@ -33,7 +33,7 @@ function shouldEnrich(place, force) {
   // Official images are not available for every public landmark. Once its
   // text enrichment has completed, a missing image must not make the item
   // eligible forever; otherwise an automatic run continually re-processes it.
-  return !enrichment?.enriched_at || !cleanText(place.description);
+  return !enrichment?.enriched_at;
 }
 
 async function callOpenAiLandmarkSearch(place) {
@@ -140,7 +140,8 @@ async function handler(req, res) {
   const force = cleanText(req.query?.force) === 'true';
   const limit = parseLimit(req.query?.limit);
   try {
-    const rows = await supabaseRequest('places?select=id,name,address,description,homepage_url,image_url,operating_hours,metadata&source=eq.daejeon_tourspot&category=eq.landmark&order=updated_at.asc&limit=100');
+    const placeQuery = 'places?select=id,name,address,description,homepage_url,image_url,operating_hours,metadata&source=eq.daejeon_tourspot&category=eq.landmark&order=updated_at.asc&limit=500';
+    const rows = await supabaseRequest(placeQuery);
     const candidates = (Array.isArray(rows) ? rows : []).filter((place) => shouldEnrich(place, force)).slice(0, limit);
     const results = [];
     for (const place of candidates) {
@@ -157,11 +158,14 @@ async function handler(req, res) {
         results.push({ id: place.id, name: place.name, ok: false, error: cleanText(error.message).slice(0, 200) });
       }
     }
+    // Read once more after PATCH calls. The earlier `rows` snapshot still has
+    // the old metadata, which made the UI report a stale remaining count.
+    const currentRows = await supabaseRequest(placeQuery);
     return sendJson(res, 200, {
       ok: true,
       requested: candidates.length,
       updated: results.filter((result) => result.ok).length,
-      remaining: Math.max(0, (Array.isArray(rows) ? rows : []).filter((place) => shouldEnrich(place, force)).length - candidates.length),
+      remaining: (Array.isArray(currentRows) ? currentRows : []).filter((place) => shouldEnrich(place, force)).length,
       results
     });
   } catch (error) {
