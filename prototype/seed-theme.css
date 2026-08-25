@@ -1343,7 +1343,9 @@ button:focus-visible, input:focus-visible {
 .place-program-list { display: grid; gap: 0; margin: 10px 0 0; padding: 0; list-style: none; }
 .place-program-list li { display: flex; min-height: 42px; align-items: center; gap: 10px; border-top: 1px solid var(--seed-color-stroke-neutral-weak); }
 .place-program-list li span { font-size: 17px; }
-.place-program-list li b { font-size: 12px; }
+.place-program-list li div { display: grid; gap: 3px; min-width: 0; padding: 8px 0; }
+.place-program-list li b { font-size: 12px; line-height: 1.4; }
+.place-program-list li small { color: var(--seed-color-fg-neutral-muted); font-size: 10px; line-height: 1.45; }
 .missing-data-copy { margin: 12px 0 0; color: var(--seed-color-fg-neutral-muted); font-size: 11px; line-height: 1.5; }
 .visit-verification { display: grid; gap: 12px; background: var(--seed-color-bg-neutral-weak); }
 .visit-verification div { display: grid; gap: 4px; }

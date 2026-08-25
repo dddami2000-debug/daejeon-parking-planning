@@ -489,6 +489,20 @@ function updateDistancesFromCurrentLocation(lat,lng){
 }
 
 function experienceFor(place){
+  const content=place.metadata?.festival_content;
+  if(content?.enriched_at){
+    const icons=['①','②','③'];
+    const programs=Array.isArray(content.programs)?content.programs:[];
+    return {
+      venue:content.venue||place.metadata?.place_name||place.address||'행사장 정보 확인',
+      admission:content.admission||place.metadata?.usage_fee||'공식 데이터에 요금 정보가 없어요',
+      audience:content.audience||'친구 · 연인 · 가족',
+      tags:Array.isArray(content.tags)&&content.tags.length?content.tags:['공식 일정 확인'],
+      highlights:programs.slice(0,3).map((item,index)=>({icon:icons[index],title:String(item?.title||''),description:String(item?.description||'')})).filter(item=>item.title),
+      tip:null,
+      contentSource:content
+    };
+  }
   const curated=curatedExperiences.find(item=>item.match.some(keyword=>String(place.name).toLowerCase().includes(keyword.toLowerCase())));
   if(curated)return curated;
   return {
@@ -525,12 +539,27 @@ function compactPlaceArea(place){
 }
 
 function placeValueLine(place){
+  const source=String(place?.summary||'').replace(/\s+/g,' ').trim();
+  if(source&&!['대전과 근교에서 즐길 수 있는 지역 축제예요.','축제 상세 정보를 준비하고 있어요.'].includes(source))return source.replace(/[.!?。]+$/,'');
   const name=String(place?.name||'').replace(/\s+/g,'').toLowerCase();
   const curated=curatedPlaceValueLines.find(item=>item.match.some(keyword=>name.includes(keyword.replace(/\s+/g,'').toLowerCase())));
   if(curated)return curated.copy;
-  const source=String(place?.summary||'').replace(/\s+/g,' ').trim();
   if(source)return source.replace(/[.!?。]+$/,'');
   return '평범한 하루를 여행의 한 장면으로 바꿔 줄 지역 축제';
+}
+
+function festivalProgramSourceLabel(place){
+  const source=place.metadata?.festival_content?.programs_source;
+  if(source==='tourapi')return '공식 API';
+  if(source==='openai')return 'AI 요약';
+  return '최대 3개';
+}
+
+function festivalContentAttribution(place){
+  const content=place.metadata?.festival_content;
+  if(!content?.enriched_at)return placeSourceAttribution||'공식 출처 확인 필요';
+  if(content.summary_source==='openai'||content.programs_source==='openai')return 'TourAPI 우선 · 부족한 내용은 OpenAI 요약';
+  return '한국관광공사 TourAPI 상세정보';
 }
 
 function dataUpdatedLabel(value){
@@ -940,16 +969,16 @@ function openPlace(id){
   const placeLabel='축제';
   const locationCopy=hasCoordinates(activePlace)?`${activePlace.distance}km · 차로 ${activePlace.eta}분`:'지도 좌표 확인 중';
   const experience=experienceFor(activePlace);
-  const sourceCopy=`<p class="data-source-note">${escapeHtml(placeSourceAttribution||'공식 출처 확인 필요')} · ${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</p>`;
+  const sourceCopy=`<p class="data-source-note">${escapeHtml(festivalContentAttribution(activePlace))} · ${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</p>`;
   const officialUrl=activePlace.homepageUrl||experience.officialUrl||null;
   const officialLink=officialUrl?`<a class="official-link" href="${escapeHtml(officialUrl)}" target="_blank" rel="noopener">공식 홈페이지 <span>↗</span></a>`:'<span class="official-link unavailable" aria-disabled="true">공식 홈페이지 정보 없음</span>';
   const status=placeOperationStatus(activePlace);
   const programs=experience.highlights.slice(0,3);
-  const programsMarkup=programs.length?`<ol class="place-program-list">${programs.map(item=>`<li><span>${escapeHtml(item.icon)}</span><b>${escapeHtml(item.title)}</b></li>`).join('')}</ol>`:'<p class="missing-data-copy">공식 데이터에 세부 프로그램이 제공되지 않았어요.</p>';
+  const programsMarkup=programs.length?`<ol class="place-program-list">${programs.map(item=>`<li><span>${escapeHtml(item.icon)}</span><div><b>${escapeHtml(item.title)}</b>${item.description?`<small>${escapeHtml(item.description)}</small>`:''}</div></li>`).join('')}</ol>`:'<p class="missing-data-copy">공식 데이터와 검색 결과에서 확인된 세부 프로그램이 없어요.</p>';
   const hasHeroImage=Boolean(activePlace.imageUrl);
   const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.add('festival-detail');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div><div class="festival-chip-row">${experience.tags.slice(0,3).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><h3>방문 전에 확인하세요</h3></section><div class="festival-facts"><div><span>행사 일정</span><b>${escapeHtml(activePlace.period||'일정 확인 필요')}</b></div><div><span>현재 상태</span><b>${escapeHtml(status.label)}</b></div><div><span>운영 시간</span><b>${escapeHtml(placeHoursNotice(activePlace))}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장·예약</span><b>${escapeHtml(experience.admission)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><section class="place-programs"><div class="place-section-heading"><h3>핵심 프로그램</h3><span>최대 3개</span></div>${programsMarkup}</section><div class="recommend-reason"><i>✓</i><span><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="visit-verification"><div><span>우천·취소</span><b>${escapeHtml(placeRainNotice(activePlace))}</b></div><div><span>정보 기준</span><b>${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</b></div></section><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div><div class="festival-chip-row">${experience.tags.slice(0,3).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><h3>방문 전에 확인하세요</h3></section><div class="festival-facts"><div><span>행사 일정</span><b>${escapeHtml(activePlace.period||'일정 확인 필요')}</b></div><div><span>현재 상태</span><b>${escapeHtml(status.label)}</b></div><div><span>운영 시간</span><b>${escapeHtml(placeHoursNotice(activePlace))}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장·예약</span><b>${escapeHtml(experience.admission)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><section class="place-programs"><div class="place-section-heading"><h3>핵심 프로그램</h3><span>${escapeHtml(festivalProgramSourceLabel(activePlace))}</span></div>${programsMarkup}</section><div class="recommend-reason"><i>✓</i><span><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="visit-verification"><div><span>우천·취소</span><b>${escapeHtml(placeRainNotice(activePlace))}</b></div><div><span>정보 기준</span><b>${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</b></div></section><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;

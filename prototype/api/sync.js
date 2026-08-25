@@ -193,34 +193,46 @@ async function geocodeAddress(query, credentials) {
   return coordinates.latitude !== null ? coordinates : null;
 }
 
-async function existingFestivalCoordinates() {
+async function existingFestivalRecords() {
   try {
-    const rows = await supabaseRequest(`places?select=external_id,latitude,longitude&source=eq.${FESTIVAL_SOURCE}`);
-    return new Map(asArray(rows).map((row) => [
-      cleanText(row.external_id),
-      normalizeKoreaCoordinates(row.latitude, row.longitude)
-    ]));
+    const rows = await supabaseRequest(`places?select=external_id,latitude,longitude,description,homepage_url,operating_hours,metadata&source=eq.${FESTIVAL_SOURCE}`);
+    return new Map(asArray(rows).map((row) => [cleanText(row.external_id), row]));
   } catch {
     return new Map();
   }
 }
 
+function preserveFestivalContent(record, saved) {
+  const festivalContent = saved?.metadata?.festival_content;
+  if (!festivalContent?.enriched_at) return record;
+  return {
+    ...record,
+    description: cleanText(saved.description) || record.description,
+    homepage_url: cleanText(saved.homepage_url) || record.homepage_url,
+    operating_hours: saved.operating_hours || record.operating_hours,
+    metadata: { ...record.metadata, festival_content: festivalContent }
+  };
+}
+
 async function enrichFestivalCoordinates(records) {
   const credentials = naverGeocodingCredentials();
-  const savedCoordinates = await existingFestivalCoordinates();
+  const savedRecords = await existingFestivalRecords();
 
   if (!credentials) {
     return records.map((record) => {
-      const saved = savedCoordinates.get(record.external_id);
-      return saved && saved.latitude !== null
-        ? { ...record, latitude: saved.latitude, longitude: saved.longitude }
-        : record;
+      const saved = savedRecords.get(record.external_id);
+      const savedCoordinates = normalizeKoreaCoordinates(saved?.latitude, saved?.longitude);
+      const merged = preserveFestivalContent(record, saved);
+      return savedCoordinates.latitude !== null
+        ? { ...merged, latitude: savedCoordinates.latitude, longitude: savedCoordinates.longitude }
+        : merged;
     });
   }
 
   const enriched = [];
   for (const record of records) {
-    const saved = savedCoordinates.get(record.external_id);
+    const saved = savedRecords.get(record.external_id);
+    const savedCoordinates = normalizeKoreaCoordinates(saved?.latitude, saved?.longitude);
     const candidates = [
       cleanText(record.address),
       [cleanText(record.metadata?.place_name), cleanText(record.address)].filter(Boolean).join(' '),
@@ -235,9 +247,10 @@ async function enrichFestivalCoordinates(records) {
         // A single ambiguous festival address must not stop the whole daily sync.
       }
     }
-    if (!coordinates && saved && saved.latitude !== null) coordinates = saved;
+    if (!coordinates && savedCoordinates.latitude !== null) coordinates = savedCoordinates;
+    const merged = preserveFestivalContent(record, saved);
     enriched.push({
-      ...record,
+      ...merged,
       latitude: coordinates?.latitude ?? null,
       longitude: coordinates?.longitude ?? null
     });

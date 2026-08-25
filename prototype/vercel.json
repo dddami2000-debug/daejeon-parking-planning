@@ -3,12 +3,19 @@
   "functions": {
     "api/sync.js": {
       "maxDuration": 60
+    },
+    "api/enrich-festivals.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/sync",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/enrich-festivals?limit=4",
+      "schedule": "10 21 * * *"
     }
   ]
 }

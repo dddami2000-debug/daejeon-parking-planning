@@ -16,3 +16,9 @@ test('festival coordinates accept valid locations across Korea', () => {
   assert.match(syncSource, /normalizeKoreaCoordinates\(item\.mapy, item\.mapx\)/);
   assert.match(syncSource, /normalizeKoreaCoordinates\(address\?\.y, address\?\.x\)/);
 });
+
+test('daily sync preserves enriched festival descriptions and programs', () => {
+  assert.match(syncSource, /festival_content/);
+  assert.match(syncSource, /preserveFestivalContent/);
+  assert.match(syncSource, /description:\s*cleanText\(saved\.description\)/);
+});
