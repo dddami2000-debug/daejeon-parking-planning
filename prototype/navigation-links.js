@@ -106,6 +106,13 @@
     return `/api/tmap-navigation?${params.toString()}`;
   }
 
+  function initializeKakaoNavi(kakao, javaScriptKey) {
+    const key = String(javaScriptKey || '').trim();
+    if (!key || !kakao || typeof kakao.init !== 'function' || typeof kakao.isInitialized !== 'function') return false;
+    if (!kakao.isInitialized()) kakao.init(key);
+    return typeof kakao.Navi?.start === 'function';
+  }
+
   function platformFromUserAgent(userAgent) {
     const value = String(userAgent || '').toLowerCase();
     if (/android/.test(value)) return 'android';
@@ -121,6 +128,7 @@
     buildNaverUrl,
     buildNaverWebUrl,
     buildTmapRedirectUrl,
+    initializeKakaoNavi,
     normalizeDestination,
     normalizeOrigin,
     platformFromUserAgent

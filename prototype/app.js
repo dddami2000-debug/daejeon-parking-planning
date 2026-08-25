@@ -1591,9 +1591,12 @@ async function launchFestivalTravel(provider){
 
   if(provider==='kakao-navi'){
     const config=await navigationConfig();
-    if(!config.kakaoJavaScriptKey||!window.Kakao?.Navi){toast('카카오내비 연결 설정이 아직 완료되지 않았어요.');return;}
+    if(!config.kakaoJavaScriptKey||!window.Kakao){toast('카카오내비 연결 설정이 아직 완료되지 않았어요.');return;}
     try{
-      if(!window.Kakao.isInitialized())window.Kakao.init(config.kakaoJavaScriptKey);
+      if(!links.initializeKakaoNavi(window.Kakao,config.kakaoJavaScriptKey)){
+        toast('카카오내비 기능을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
       closeFestivalTravel();
       window.Kakao.Navi.start({name:destination.name,x:destination.lng,y:destination.lat,coordType:'wgs84'});
     }catch{
