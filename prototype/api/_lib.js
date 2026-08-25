@@ -250,6 +250,14 @@ function isAuthorizedCron(req) {
   return authorization === `Bearer ${secret}`;
 }
 
+function isAuthorizedLandmarkEnrichment(req) {
+  if (isAuthorizedCron(req)) return true;
+  const secret = cleanText(process.env.ENRICH_ADMIN_TOKEN);
+  if (!secret) return false;
+  const authorization = cleanText(req.headers.authorization);
+  return authorization === `Bearer ${secret}`;
+}
+
 module.exports = {
   asArray,
   cleanText,
@@ -261,6 +269,7 @@ module.exports = {
   formatTime,
   haversineKm,
   isAuthorizedCron,
+  isAuthorizedLandmarkEnrichment,
   isDaejeonCoordinate,
   methodNotAllowed,
   normalizeCoordinates,

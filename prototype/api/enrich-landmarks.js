@@ -1,6 +1,6 @@
 const {
   cleanText,
-  isAuthorizedCron,
+  isAuthorizedLandmarkEnrichment,
   methodNotAllowed,
   sendJson,
   supabaseRequest
@@ -130,7 +130,7 @@ function mergeUpdate(place, searchResult) {
 
 async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
-  if (!isAuthorizedCron(req)) return sendJson(res, 401, { error: 'unauthorized' });
+  if (!isAuthorizedLandmarkEnrichment(req)) return sendJson(res, 401, { error: 'unauthorized' });
 
   const force = cleanText(req.query?.force) === 'true';
   const limit = parseLimit(req.query?.limit);
