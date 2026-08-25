@@ -9,14 +9,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=18" />
+    <link rel="stylesheet" href="seed-theme.css?v=27" />
   </head>
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <button class="brand" id="brandButton" aria-label="홈으로 이동">
-          <span class="brand-orbit">콕</span>
-          <span>대전콕</span>
+        <button class="header-search" id="searchButton" type="button" aria-label="대전 장소 검색 열기">
+          <span class="header-search-icon" aria-hidden="true"></span>
+          <span>대전 장소 검색</span>
         </button>
         <button class="profile-button" id="retestButton" aria-label="취향 다시 검사하기">
           <span>✦</span><b id="profileLabel">취향 다시 찾기</b>
@@ -25,39 +25,38 @@
 
       <main>
         <section class="recommend-section" aria-labelledby="recommendTitle">
+          <div class="recommend-sheet-grabber" id="recommendSheetGrabber">
+            <button class="recommend-sheet-handle" id="recommendSheetHandle" type="button" aria-label="추천 순위까지 펼치기" aria-expanded="false"></button>
+          </div>
           <div class="section-heading">
             <div>
               <div class="dream-copy"><span class="mini-dream">★</span> 꿈돌이가 골라봤어요</div>
               <h1 id="recommendTitle">오늘, 여기 어때요?</h1>
             </div>
-            <button class="recommend-toggle" id="toggleRecommendations" aria-expanded="true" aria-label="추천 접기"><span>⌄</span></button>
           </div>
           <div class="festival-slider" id="festivalSlider"></div>
+          <section class="recommend-rankings" aria-labelledby="rankingTitle">
+            <div class="ranking-heading">
+              <div>
+                <p>DAEJEON POPULAR</p>
+                <h2 id="rankingTitle">대전 인기 순위</h2>
+              </div>
+              <span>취향 점수 기준</span>
+            </div>
+            <div class="ranking-tabs" role="tablist" aria-label="인기 순위 종류">
+              <button class="active" type="button" data-ranking-filter="festival" role="tab" aria-selected="true">축제 인기</button>
+              <button type="button" data-ranking-filter="landmark" role="tab" aria-selected="false">명소 인기</button>
+            </div>
+            <div class="ranking-list" id="rankingList"></div>
+          </section>
         </section>
 
         <section class="explore-section">
-          <div class="explore-head">
-            <div>
-              <p>DAEJEON NOW</p>
-              <h2>지도에서 콕 집어봐요</h2>
-            </div>
-            <div class="map-tabs" role="tablist" aria-label="장소 유형">
-              <button class="active" data-filter="all" role="tab">전체</button>
-              <button data-filter="festival" role="tab">축제</button>
-              <button data-filter="landmark" role="tab">랜드마크</button>
-            </div>
-          </div>
-
           <div class="map-layout">
             <div class="map-card">
-              <div class="map-toolbar">
-                <button id="searchButton">⌕ <span>대전 장소 검색</span></button>
-              </div>
               <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도"></div>
               <div class="daejeon-focus-mask" aria-hidden="true"></div>
-              <div class="daejeon-focus-pill" aria-hidden="true"><i></i>대전 집중 보기</div>
               <button class="current-location-fab" id="currentButton" aria-label="현재 위치로 이동"><span>◎</span>현재 위치</button>
-              <div class="map-legend"><span><i class="festival-dot"></i>축제</span><span><i class="landmark-dot"></i>랜드마크</span><span><i class="closing-dot"></i>마감 임박</span></div>
             </div>
 
             <aside class="nearby-panel">
@@ -67,8 +66,6 @@
           </div>
         </section>
       </main>
-
-    </div>
 
     <div class="modal onboarding show" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
       <div class="onboarding-card">
@@ -112,11 +109,12 @@
     </section>
 
     <section class="bottom-sheet planner-sheet" id="plannerSheet" aria-label="주차 플랜">
-      <div class="sheet-handle"></div>
-      <button class="sheet-close" data-close-sheet aria-label="닫기">×</button>
+      <div class="planner-sheet-grabber" id="plannerSheetGrabber">
+        <button class="sheet-handle" id="plannerSheetHandle" type="button" aria-label="주차 플랜 닫기"></button>
+      </div>
       <div class="planner-head">
-        <div><p>TOP 3 PARKING</p><h2 id="plannerTitle">추천 주차장 순위</h2></div>
-        <div class="dream-tip"><span>★</span> 종합 추천</div>
+        <div><p>3-WAY PARKING PLAN</p><h2 id="plannerTitle">주차 플랜</h2></div>
+        <div class="dream-tip"><span>★</span> 3가지 기준</div>
       </div>
       <div class="time-form">
         <label><span>방문 날짜</span><input id="visitDate" type="date" /></label>
@@ -124,9 +122,9 @@
         <label><span>출차</span><input id="endTime" type="time" value="22:00" /></label>
         <button id="recalculate">다시 계산</button>
       </div>
-      <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>체감온도 확인 중</b></div>
+      <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>거리 · 가격 · 여유</b></div>
       <div class="parking-list" id="parkingList"></div>
-      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이에요. 실시간 이용면수와 총면수는 추천 조건에 포함하지 않아요.</p>
+      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이며, ‘여유’는 실시간 혼잡도가 아닌 주차면 규모 기준이에요.</p>
     </section>
 
     <section class="bottom-sheet parking-info-sheet" id="parkingInfoSheet" aria-label="주차장 정보">
@@ -134,6 +132,8 @@
       <button class="sheet-close" data-close-sheet aria-label="닫기">×</button>
       <div id="parkingInfoContent"></div>
     </section>
+
+    </div>
 
     <div class="modal" id="navigationModal" role="dialog" aria-modal="true" aria-labelledby="navTitle">
       <div class="nav-card">
@@ -171,6 +171,6 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="app.js?v=24"></script>
+    <script src="app.js?v=29"></script>
   </body>
 </html>
