@@ -24,7 +24,16 @@ test('returns festivals only with their real region labels', async () => {
         id: 'festival-1', source: 'kto_festival', category: 'festival',
         name: '계룡軍문화축제', address: '충청남도 계룡시 신도안면 정장리 16',
         latitude: 36.3067, longitude: 127.2371, start_date: '2026-09-01', end_date: '2026-09-05',
-        metadata: {}, updated_at: '2026-08-25T00:00:00Z'
+        description: '군 문화를 체험하고 민군 화합의 가치를 나누는 축제예요.',
+        metadata: {
+          festival_content: {
+            summary: '군 문화를 체험하고 민군 화합의 가치를 나누는 축제예요.',
+            programs: [{ title: '군 문화 체험', description: '장비와 문화를 가까이서 만나요.' }],
+            programs_source: 'openai',
+            enriched_at: '2026-08-25T00:00:00Z'
+          }
+        },
+        updated_at: '2026-08-25T00:00:00Z'
       },
       {
         id: 'landmark-1', source: 'daejeon_tourspot', category: 'landmark',
@@ -49,6 +58,8 @@ test('returns festivals only with their real region labels', async () => {
   assert.equal(capture.body().places.length, 1);
   assert.equal(capture.body().places[0].name, '계룡軍문화축제');
   assert.equal(capture.body().places[0].region, '충청남도 계룡시');
+  assert.equal(capture.body().places[0].summary, '군 문화를 체험하고 민군 화합의 가치를 나누는 축제예요.');
+  assert.equal(capture.body().places[0].metadata.festival_content.programs[0].title, '군 문화 체험');
   assert.equal(capture.body().sourceAttribution, '출처: 한국관광공사 TourAPI');
 });
 

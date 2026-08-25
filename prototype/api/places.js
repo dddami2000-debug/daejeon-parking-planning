@@ -45,7 +45,9 @@ function mapPlace(place) {
     date: dateLabel(place),
     period: periodLabel(place),
     hours: cleanText(place.operating_hours?.raw) || '행사 시간 확인',
-    summary: cleanText(place.description) || '대전과 근교에서 즐길 수 있는 지역 축제예요.',
+    summary: cleanText(place.description)
+      || cleanText(place.metadata?.festival_content?.summary)
+      || '축제 상세 정보를 준비하고 있어요.',
     imageUrl: cleanText(place.image_url) || cleanText(place.metadata?.image_url) || null,
     homepageUrl: cleanText(place.homepage_url) || null,
     metadata: place.metadata || {},
