@@ -1,13 +1,13 @@
 const fallbackPlaces = [
-  {id:'zero',type:'festival',name:'대전 0시 축제',date:'축제',startDate:'2026-08-21',endDate:'2026-08-28',period:'8.21 — 8.28',hours:'14:00 — 00:00',distance:2.4,eta:12,taste:94,emoji:'🎆',color:'#ff7657',tile:'#fff0eb',lat:36.3298,lng:127.4307,summary:'중앙로를 가득 채우는 음악과 퍼레이드, 야시장까지 즐기는 대전 대표 여름 축제예요.',reason:'공연·축제 취향과 94% 일치해요',gradient:'linear-gradient(135deg,#ff7657,#ed4e7a)'},
-  {id:'science',type:'festival',name:'대전 사이언스 페스티벌',date:'축제',startDate:'2026-09-02',endDate:'2026-09-05',period:'9.02 — 9.05',hours:'10:00 — 20:00',distance:3.1,eta:16,taste:88,emoji:'🚀',color:'#8d72e1',tile:'#f0edff',lat:36.3746,lng:127.3869,summary:'과학도시 대전에서 만나는 로봇, 우주, AI 체험 프로그램을 한자리에서 즐겨요.',reason:'가족·체험 취향에 딱 맞아요',gradient:'linear-gradient(135deg,#8d72e1,#5f78e9)'},
-  {id:'wine',type:'festival',name:'대전 국제 와인 EXPO',date:'축제',startDate:'2026-09-11',endDate:'2026-09-13',period:'9.11 — 9.13',hours:'11:00 — 21:00',distance:4.2,eta:19,taste:84,emoji:'🍇',color:'#a64f72',tile:'#faeaf1',lat:36.3741,lng:127.3860,summary:'와인과 미식, 음악을 함께 즐기는 감성 가득한 도심 속 축제예요.',reason:'감성·데이트 취향과 잘 맞아요',gradient:'linear-gradient(135deg,#a64f72,#e58580)'},
-  {id:'arboretum',type:'landmark',name:'한밭수목원',date:'오늘 열림',period:'연중 운영',hours:'06:00 — 21:00',distance:1.2,eta:7,taste:91,emoji:'🌿',color:'#55b98a',tile:'#e8f8ef',lat:36.3676,lng:127.3886,summary:'도심 한가운데서 천천히 걷고 쉬어갈 수 있는 대전의 대표 녹색 공간이에요.',reason:'지금 가장 가깝고 산책하기 좋아요',gradient:'linear-gradient(135deg,#58bd8e,#90d19a)'},
-  {id:'expo',type:'landmark',name:'엑스포과학공원',date:'오늘 열림',period:'연중 운영',hours:'10:00 — 22:00',distance:2.8,eta:13,taste:86,emoji:'🌙',color:'#6294f7',tile:'#eaf1ff',lat:36.3760,lng:127.3887,summary:'한빛탑과 엑스포다리를 따라 대전의 과학 감성과 야경을 함께 만날 수 있어요.',reason:'야경과 사진을 좋아한다면 추천해요',gradient:'linear-gradient(135deg,#4c8ef2,#77c8e9)'},
-  {id:'history',type:'landmark',name:'대전근현대사전시관',date:'오늘 열림',period:'화—일 운영',hours:'10:00 — 18:00',distance:2.1,eta:11,taste:79,emoji:'🏛️',color:'#d08a45',tile:'#fff3e4',lat:36.3264,lng:127.4206,summary:'옛 충남도청 건축과 대전의 근현대 이야기를 차분하게 둘러볼 수 있어요.',reason:'역사·힐링 취향에 어울려요',gradient:'linear-gradient(135deg,#c27b3c,#e7b65e)'},
-  {id:'cityhall',type:'landmark',name:'대전시청',address:'대전 서구 둔산로 100',date:'오늘 추천',period:'상시 방문',hours:'주변 시설별 확인',distance:0,eta:0,taste:78,emoji:'🏢',color:'#5c83c6',tile:'#edf3ff',lat:36.3504,lng:127.3845,summary:'한밭수목원과 둔산동 상권을 함께 둘러보기 좋은 대전 도심의 기준점이에요.',reason:'둔산동 주변을 찾을 때 편리해요',gradient:'linear-gradient(135deg,#5c83c6,#82abd9)'},
-  {id:'cnu',type:'landmark',name:'충남대학교',address:'대전 유성구 대학로 99',date:'오늘 추천',period:'상시 방문',hours:'시설별 확인',distance:0,eta:0,taste:80,emoji:'🎓',color:'#3f8a68',tile:'#e8f6ee',lat:36.3668,lng:127.3447,summary:'궁동과 유성의 식당, 카페, 산책 코스를 함께 찾기 좋은 대학가예요.',reason:'유성·궁동 나들이의 출발점으로 좋아요',gradient:'linear-gradient(135deg,#3f8a68,#7ab98f)'},
-  {id:'sungsimdang',type:'landmark',name:'성심당 본점',address:'대전 중구 대종로480번길 15',date:'오늘 추천',period:'연중 운영',hours:'매장 운영시간 확인',distance:0,eta:0,taste:92,emoji:'🥐',color:'#bd6f3f',tile:'#fff1e8',lat:36.3277,lng:127.4274,summary:'대전역과 은행동을 함께 둘러보며 대표 빵과 도심 분위기를 즐길 수 있어요.',reason:'대전다운 먹거리 코스로 추천해요',gradient:'linear-gradient(135deg,#bd6f3f,#e3a06f)'}
+  {id:'zero',type:'festival',name:'대전 0시 축제',date:'축제',startDate:'2026-08-21',endDate:'2026-08-28',period:'8.21 — 8.28',hours:'14:00 — 00:00',distance:2.4,eta:12,emoji:'🎆',color:'#ff7657',tile:'#fff0eb',lat:36.3298,lng:127.4307,summary:'중앙로를 가득 채우는 음악과 퍼레이드, 야시장까지 즐기는 대전 대표 여름 축제예요.',gradient:'linear-gradient(135deg,#ff7657,#ed4e7a)'},
+  {id:'science',type:'festival',name:'대전 사이언스 페스티벌',date:'축제',startDate:'2026-09-02',endDate:'2026-09-05',period:'9.02 — 9.05',hours:'10:00 — 20:00',distance:3.1,eta:16,emoji:'🚀',color:'#8d72e1',tile:'#f0edff',lat:36.3746,lng:127.3869,summary:'과학도시 대전에서 만나는 로봇, 우주, AI 체험 프로그램을 한자리에서 즐겨요.',gradient:'linear-gradient(135deg,#8d72e1,#5f78e9)'},
+  {id:'wine',type:'festival',name:'대전 국제 와인 EXPO',date:'축제',startDate:'2026-09-11',endDate:'2026-09-13',period:'9.11 — 9.13',hours:'11:00 — 21:00',distance:4.2,eta:19,emoji:'🍇',color:'#a64f72',tile:'#faeaf1',lat:36.3741,lng:127.3860,summary:'와인과 미식, 음악을 함께 즐기는 감성 가득한 도심 속 축제예요.',gradient:'linear-gradient(135deg,#a64f72,#e58580)'},
+  {id:'arboretum',type:'landmark',name:'한밭수목원',date:'오늘 열림',period:'연중 운영',hours:'06:00 — 21:00',distance:1.2,eta:7,emoji:'🌿',color:'#55b98a',tile:'#e8f8ef',lat:36.3676,lng:127.3886,summary:'도심 한가운데서 천천히 걷고 쉬어갈 수 있는 대전의 대표 녹색 공간이에요.',gradient:'linear-gradient(135deg,#58bd8e,#90d19a)'},
+  {id:'expo',type:'landmark',name:'엑스포과학공원',date:'오늘 열림',period:'연중 운영',hours:'10:00 — 22:00',distance:2.8,eta:13,emoji:'🌙',color:'#6294f7',tile:'#eaf1ff',lat:36.3760,lng:127.3887,summary:'한빛탑과 엑스포다리를 따라 대전의 과학 감성과 야경을 함께 만날 수 있어요.',gradient:'linear-gradient(135deg,#4c8ef2,#77c8e9)'},
+  {id:'history',type:'landmark',name:'대전근현대사전시관',date:'오늘 열림',period:'화—일 운영',hours:'10:00 — 18:00',distance:2.1,eta:11,emoji:'🏛️',color:'#d08a45',tile:'#fff3e4',lat:36.3264,lng:127.4206,summary:'옛 충남도청 건축과 대전의 근현대 이야기를 차분하게 둘러볼 수 있어요.',gradient:'linear-gradient(135deg,#c27b3c,#e7b65e)'},
+  {id:'cityhall',type:'landmark',name:'대전시청',address:'대전 서구 둔산로 100',date:'오늘 추천',period:'상시 방문',hours:'주변 시설별 확인',distance:0,eta:0,emoji:'🏢',color:'#5c83c6',tile:'#edf3ff',lat:36.3504,lng:127.3845,summary:'한밭수목원과 둔산동 상권을 함께 둘러보기 좋은 대전 도심의 기준점이에요.',gradient:'linear-gradient(135deg,#5c83c6,#82abd9)'},
+  {id:'cnu',type:'landmark',name:'충남대학교',address:'대전 유성구 대학로 99',date:'오늘 추천',period:'상시 방문',hours:'시설별 확인',distance:0,eta:0,emoji:'🎓',color:'#3f8a68',tile:'#e8f6ee',lat:36.3668,lng:127.3447,summary:'궁동과 유성의 식당, 카페, 산책 코스를 함께 찾기 좋은 대학가예요.',gradient:'linear-gradient(135deg,#3f8a68,#7ab98f)'},
+  {id:'sungsimdang',type:'landmark',name:'성심당 본점',address:'대전 중구 대종로480번길 15',date:'오늘 추천',period:'연중 운영',hours:'매장 운영시간 확인',distance:0,eta:0,emoji:'🥐',color:'#bd6f3f',tile:'#fff1e8',lat:36.3277,lng:127.4274,summary:'대전역과 은행동을 함께 둘러보며 대표 빵과 도심 분위기를 즐길 수 있어요.',gradient:'linear-gradient(135deg,#bd6f3f,#e3a06f)'}
 ];
 
 const curatedExperiences = [
@@ -58,9 +58,38 @@ const questions = [
   {q:'친구와 갑자기 3시간이 비었어요. 어디로 갈까요?',answers:[['사람 많은 축제에서 신나게 놀기','공연·축제형'],['예쁜 공간에서 사진 남기기','감성·데이트형'],['새로운 체험을 함께 해보기','가족·체험형'],['조용한 곳을 천천히 걷기','역사·힐링형']]},
   {q:'나들이에서 절대 포기할 수 없는 한 가지는?',answers:[['현장 분위기와 음악','공연·축제형'],['예쁜 풍경과 맛있는 음식','감성·데이트형'],['함께 즐길 재미있는 프로그램','가족·체험형'],['붐비지 않는 여유','역사·힐링형']]},
   {q:'사진첩에 가장 많이 남아 있는 장면은?',answers:[['공연과 사람들의 열기','공연·축제형'],['노을, 야경, 감성 카페','감성·데이트형'],['웃고 있는 가족과 친구','가족·체험형'],['건축, 자연, 오래된 골목','역사·힐링형']]},
-  {q:'오늘의 에너지는 어느 쪽에 가까워요?',answers:[['뭐든 좋아! 신나게 놀 준비 완료','공연·축제형'],['설레는 분위기를 느끼고 싶어','감성·데이트형'],['새롭고 재미있는 걸 해보고 싶어','가족·체험형'],['조용히 충전하고 싶어','역사·힐링형']]},
-  {q:'여행을 마치고 가장 듣고 싶은 말은?',answers:[['오늘 진짜 뜨거웠다!','공연·축제형'],['여기 분위기 정말 좋았다','감성·데이트형'],['우리 다음에 또 같이 오자','가족·체험형'],['오랜만에 제대로 쉬었다','역사·힐링형']]}
+  {q:'오늘의 에너지는 어느 쪽에 가까워요?',answers:[['뭐든 좋아! 신나게 놀 준비 완료','공연·축제형'],['설레는 분위기를 느끼고 싶어','감성·데이트형'],['새롭고 재미있는 걸 해보고 싶어','가족·체험형'],['조용히 충전하고 싶어','역사·힐링형']]}
 ];
+
+const tasteTypes = ['공연·축제형','감성·데이트형','가족·체험형','역사·힐링형'];
+const ageBands = ['10대','20대','30대','40대','50대','60대 이상'];
+const totalSurveySteps = questions.length+2;
+const genderLabels = {male:'남성',female:'여성'};
+const tasteMeta = {
+  '공연·축제형':{short:'공연·축제',description:'현장의 열기와 음악, 사람들과 함께 즐기는 순간에서 에너지를 얻어요.',tags:['#라이브','#야간축제','#활기찬현장']},
+  '감성·데이트형':{short:'감성·데이트',description:'예쁜 풍경과 맛있는 음식, 오래 남길 사진이 있는 나들이를 좋아해요.',tags:['#포토스팟','#미식','#분위기']},
+  '가족·체험형':{short:'가족·체험',description:'직접 해보고 배우며, 함께 온 사람과 추억을 만드는 프로그램을 선호해요.',tags:['#체험프로그램','#가족나들이','#새로운경험']},
+  '역사·힐링형':{short:'역사·힐링',description:'붐비지 않는 공간에서 자연과 건축, 이야기를 천천히 만나는 것을 좋아해요.',tags:['#산책','#문화공간','#조용한휴식']}
+};
+const curatedTasteAffinities = {
+  zero:{'공연·축제형':98,'감성·데이트형':70,'가족·체험형':68,'역사·힐링형':28},
+  science:{'공연·축제형':72,'감성·데이트형':58,'가족·체험형':98,'역사·힐링형':52},
+  wine:{'공연·축제형':72,'감성·데이트형':97,'가족·체험형':42,'역사·힐링형':55},
+  arboretum:{'공연·축제형':25,'감성·데이트형':82,'가족·체험형':65,'역사·힐링형':98},
+  expo:{'공연·축제형':55,'감성·데이트형':88,'가족·체험형':85,'역사·힐링형':65},
+  history:{'공연·축제형':22,'감성·데이트형':70,'가족·체험형':58,'역사·힐링형':97}
+};
+const tasteKeywords = {
+  '공연·축제형':['공연','음악','콘서트','퍼레이드','야시장','댄스','불꽃','무대','페스티벌','축제'],
+  '감성·데이트형':['야경','노을','사진','포토','감성','데이트','와인','미식','카페','꽃','빛','전망'],
+  '가족·체험형':['체험','가족','어린이','과학','로봇','우주','교육','놀이','키즈','만들기','ai'],
+  '역사·힐링형':['역사','문화재','자연','산책','공원','수목원','전시','박물관','힐링','건축','생태']
+};
+const curatedAgeSuitability = {
+  zero:{'10대':95,'20대':95,'30대':95,'40대':95,'50대':95,'60대 이상':95},
+  science:{'10대':100,'20대':90,'30대':90,'40대':90,'50대':88,'60대 이상':85},
+  wine:{'10대':30,'20대':95,'30대':95,'40대':95,'50대':95,'60대 이상':95}
+};
 
 let places = [...fallbackPlaces];
 let parkingTemplates = fallbackParkingTemplates.map((parking,index)=>({...parking,id:`demo-parking-${index}`}));
@@ -69,6 +98,7 @@ let activePlace = places[0];
 let activeFilter = 'all';
 let questionIndex = -1;
 let answers = [];
+let demographicAnswers = {gender:null,ageBand:null};
 let excludedParkings = [];
 let pendingParking = null;
 let naverMap = null;
@@ -84,8 +114,133 @@ let parkingSourceAttribution = '';
 const parkingCache = new Map();
 let placeSheetDrag = null;
 let suppressPlaceSheetGestureClick = false;
+let tasteProfile = readTasteProfile();
 
 function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
+function emptyTasteScores(){return Object.fromEntries(tasteTypes.map(type=>[type,0]));}
+function validTasteScores(scores){
+  if(!scores||tasteTypes.some(type=>!Number.isFinite(Number(scores[type]))))return false;
+  return Math.abs(tasteTypes.reduce((sum,type)=>sum+Number(scores[type]),0)-100)<=1;
+}
+function validTasteAffinities(scores){
+  return Boolean(scores)&&tasteTypes.every(type=>Number.isFinite(Number(scores[type]))&&Number(scores[type])>=0&&Number(scores[type])<=100);
+}
+function readTasteProfile(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('daejeonMap.personalityProfile'));
+    if(tasteTypes.includes(saved?.primary)&&validTasteScores(saved.scores))return saved;
+  }catch{ /* 이전 버전의 저장값은 아래에서 변환한다. */ }
+  const legacy=localStorage.getItem('daejeonMap.personalityResult');
+  if(!tasteTypes.includes(legacy))return null;
+  const scores=emptyTasteScores();scores[legacy]=100;
+  return {version:1,primary:legacy,scores,counts:null};
+}
+function calculateTasteProfile(selectedAnswers,demographics={}){
+  const counts=emptyTasteScores();
+  selectedAnswers.forEach(type=>{if(type in counts)counts[type]++;});
+  const total=Math.max(1,selectedAnswers.length);
+  const scores=Object.fromEntries(tasteTypes.map(type=>[type,Math.round(counts[type]/total*100)]));
+  const highest=Math.max(...tasteTypes.map(type=>counts[type]));
+  const tied=tasteTypes.filter(type=>counts[type]===highest);
+  const finalPreference=selectedAnswers[selectedAnswers.length-1];
+  const primary=tied.includes(finalPreference)?finalPreference:tied[0];
+  return {
+    version:3,
+    primary,
+    scores,
+    counts,
+    demographics:{
+      gender:Object.hasOwn(genderLabels,demographics.gender)?demographics.gender:null,
+      ageBand:ageBands.includes(demographics.ageBand)?demographics.ageBand:null
+    },
+    completedAt:new Date().toISOString()
+  };
+}
+function tasteAffinitiesFor(place){
+  if(curatedTasteAffinities[place.id])return curatedTasteAffinities[place.id];
+  if(validTasteAffinities(place.metadata?.taste_affinities))return place.metadata.taste_affinities;
+  const base=place.type==='festival'
+    ? {'공연·축제형':62,'감성·데이트형':58,'가족·체험형':58,'역사·힐링형':48}
+    : {'공연·축제형':40,'감성·데이트형':60,'가족·체험형':58,'역사·힐링형':65};
+  const text=[place.name,place.summary,place.description,place.metadata?.place_name,JSON.stringify(place.metadata||{})].join(' ').toLowerCase();
+  tasteTypes.forEach(type=>{
+    const matches=tasteKeywords[type].filter(keyword=>text.includes(keyword)).length;
+    base[type]=Math.min(98,base[type]+matches*9);
+  });
+  return base;
+}
+function tasteMatchFor(place,profile=tasteProfile){
+  if(!profile||!validTasteScores(profile.scores))return null;
+  const affinities=tasteAffinitiesFor(place);
+  return Math.round(tasteTypes.reduce((score,type)=>score+(profile.scores[type]/100)*affinities[type],0));
+}
+function todayInKorea(){return Date.parse(`${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})}T00:00:00+09:00`);}
+function festivalTimingScore(place){
+  if(place.type!=='festival')return 70;
+  const start=place.startDate&&Date.parse(`${place.startDate}T00:00:00+09:00`);
+  const end=place.endDate&&Date.parse(`${place.endDate}T23:59:59+09:00`);
+  if(!Number.isFinite(start)||!Number.isFinite(end))return 60;
+  const today=todayInKorea();
+  if(today>end)return 0;
+  if(today>=start)return 100;
+  const days=Math.ceil((start-today)/86400000);
+  return days<=7?90:days<=30?75:60;
+}
+function distanceRecommendationScore(place){
+  const distance=Number(place.distance);
+  if(!Number.isFinite(distance)||distance<0)return 50;
+  return Math.max(0,Math.round(100-Math.min(distance,20)*5));
+}
+function audienceTextFor(place){
+  return [place.name,place.summary,place.description,experienceFor(place).audience,JSON.stringify(place.metadata||{})].join(' ').toLowerCase();
+}
+function ageSuitabilityFor(place,profile=tasteProfile){
+  const ageBand=profile?.demographics?.ageBand;
+  if(!ageBands.includes(ageBand))return null;
+  if(curatedAgeSuitability[place.id])return curatedAgeSuitability[place.id][ageBand];
+  const text=audienceTextFor(place);
+  if(['성인 전용','19세 이상','주류','와인 시음','맥주','칵테일'].some(keyword=>text.includes(keyword)))return ageBand==='10대'?30:95;
+  if(['어린이','청소년','학생','키즈'].some(keyword=>text.includes(keyword)))return ageBand==='10대'?100:85;
+  return null;
+}
+function genderSuitabilityFor(place,profile=tasteProfile){
+  const gender=profile?.demographics?.gender;
+  if(!Object.hasOwn(genderLabels,gender))return null;
+  const text=audienceTextFor(place);
+  const femaleTarget=['여성 전용','여성 대상','여성만'].some(keyword=>text.includes(keyword));
+  const maleTarget=['남성 전용','남성 대상','남성만'].some(keyword=>text.includes(keyword));
+  if(!femaleTarget&&!maleTarget)return null;
+  return (femaleTarget&&gender==='female')||(maleTarget&&gender==='male')?100:30;
+}
+function recommendationScoreFor(place){
+  const signals=[
+    [tasteMatchFor(place),60],
+    [distanceRecommendationScore(place),18],
+    [festivalTimingScore(place),12],
+    [ageSuitabilityFor(place),8],
+    [genderSuitabilityFor(place),2]
+  ].filter(([score])=>Number.isFinite(score));
+  const weightTotal=signals.reduce((sum,[,weight])=>sum+weight,0);
+  return weightTotal?Math.round(signals.reduce((sum,[score,weight])=>sum+score*weight,0)/weightTotal):0;
+}
+function recommendationReasonFor(place){
+  const match=tasteMatchFor(place);
+  const total=recommendationScoreFor(place);
+  if(match===null)return `거리와 행사 일정을 반영한 종합 추천 ${total}점이에요.`;
+  const extra=[];
+  if(Number.isFinite(ageSuitabilityFor(place)))extra.push('연령대 적합도');
+  if(Number.isFinite(genderSuitabilityFor(place)))extra.push('행사 공식 대상 정보');
+  const extraCopy=extra.length?`, ${extra.join('·')}`:'';
+  return `${tasteMeta[tasteProfile.primary].short} 취향과 ${match}% 일치해요. 거리·일정${extraCopy}을 반영한 종합 추천 ${total}점이에요.`;
+}
+function applyTasteProfileUI(){
+  if(!tasteProfile)return;
+  const label=tasteMeta[tasteProfile.primary].short;
+  $('#profileLabel').textContent=label;
+  $('#retestButton').setAttribute('title',`${tasteProfile.primary} · 다시 검사하기`);
+  $('#recommendTitle').textContent=`${label} 맞춤 추천`;
+  $('.dream-copy').innerHTML='<span class="mini-dream">★</span> 테스트 결과로 골라봤어요';
+}
 function hasCoordinates(place){return Number.isFinite(Number(place?.lat))&&Number.isFinite(Number(place?.lng));}
 function hasNaverMapApi(){return Boolean(window.naver?.maps?.Map&&window.naver?.maps?.LatLng&&window.naver?.maps?.Marker);}
 function haversineDistance(lat1,lng1,lat2,lng2){
@@ -128,7 +283,7 @@ function distanceFromOverview(lat,lng){
 function normalizeApiPlace(place){
   const visual=placeVisual(place.type,place.name);
   const distance=hasCoordinates(place)?distanceFromOverview(Number(place.lat),Number(place.lng)):null;
-  return {...place,...visual,imageUrl:place.imageUrl||place.metadata?.image_url||null,lat:Number(place.lat),lng:Number(place.lng),distance:distance??0,eta:distance===null?0:Math.max(2,Math.round(distance*5)),taste:82,reason:place.type==='festival'?'행사 일정과 내 취향을 함께 고려했어요':'대전에서 가볍게 들르기 좋은 곳이에요'};
+  return {...place,...visual,imageUrl:place.imageUrl||place.metadata?.image_url||null,lat:Number(place.lat),lng:Number(place.lng),distance:distance??0,eta:distance===null?0:Math.max(2,Math.round(distance*5))};
 }
 
 function updateDistancesFromCurrentLocation(lat,lng){
@@ -203,10 +358,15 @@ async function loadParkingForActivePlace(){
 }
 
 function renderFestivals(){
-  const festivalPlaces = places.filter(place=>place.type==='festival');
+  const festivalPlaces = places
+    .filter(place=>place.type==='festival'&&festivalTimingScore(place)>0)
+    .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||a.distance-b.distance);
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
     const experience=experienceFor(place);
-    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape">${escapeHtml(place.emoji)}</span><span class="festival-content"><span class="festival-badges"><span class="festival-badge hot">${escapeHtml(festivalDateBadge(place))}</span><span class="festival-badge">취향 ${place.taste}%</span></span><span class="festival-eyebrow">WEEKEND PICK</span><h3>${escapeHtml(place.name)}</h3><p>${escapeHtml(place.period)} · ${escapeHtml(place.hours)}</p><span class="festival-tags">${experience.tags.slice(0,2).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</span><span class="festival-footer"><span class="festival-meta">⌖ ${place.distance||'위치 확인 중'}${place.distance?'km':''} · ${place.eta?`차로 ${place.eta}분`:'장소 확인'}</span><span class="festival-card-cta">자세히 <i>→</i></span></span></span></button>`;
+    const match=tasteMatchFor(place);
+    const total=recommendationScoreFor(place);
+    const matchBadge=match===null?`추천 ${total}점`:`취향 ${match}% · 추천 ${total}점`;
+    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape">${escapeHtml(place.emoji)}</span><span class="festival-content"><span class="festival-badges"><span class="festival-badge hot">${escapeHtml(festivalDateBadge(place))}</span><span class="festival-badge">${escapeHtml(matchBadge)}</span></span><span class="festival-eyebrow">WEEKEND PICK</span><h3>${escapeHtml(place.name)}</h3><p>${escapeHtml(place.period)} · ${escapeHtml(place.hours)}</p><span class="festival-tags">${experience.tags.slice(0,2).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</span><span class="festival-footer"><span class="festival-meta">⌖ ${place.distance||'위치 확인 중'}${place.distance?'km':''} · ${place.eta?`차로 ${place.eta}분`:'장소 확인'}</span><span class="festival-card-cta">자세히 <i>→</i></span></span></span></button>`;
   }).join(''):'<p class="map-status">불러온 축제 정보가 아직 없어요.</p>';
   document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
@@ -365,7 +525,7 @@ function openPlace(id){
   const sourceCopy=placeSourceAttribution?`<p class="data-source-note">${escapeHtml(placeSourceAttribution)}</p>`:'';
   const officialLink=experience.officialUrl?`<a class="official-link" href="${escapeHtml(experience.officialUrl)}" target="_blank" rel="noopener">공식 일정 확인 <span>↗</span></a>`:'';
   $('#placeSheet').classList.toggle('festival-detail',activePlace.type==='festival');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'"><div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(activePlace.reason)}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'"><div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
@@ -582,24 +742,61 @@ function selectNavigation(parkingName){
   $('#navigationModal').classList.add('show');
 }
 
-function startTest(){questionIndex=0;answers=[];renderQuestion()}
+function setSurveyProgress(step){
+  $('#questionStep').textContent=`${step} / ${totalSurveySteps}`;
+  $('#progressBar').style.width=`${step/totalSurveySteps*100}%`;
+}
+function startTest(){
+  $('.onboarding-card').classList.remove('showing-result');
+  questionIndex=0;
+  answers=[];
+  demographicAnswers={gender:null,ageBand:null};
+  renderQuestion();
+}
 function renderQuestion(){
   const question=questions[questionIndex];
-  $('#questionStep').textContent=`${questionIndex+1} / ${questions.length}`;
-  $('#progressBar').style.width=`${((questionIndex+1)/questions.length)*100}%`;
+  setSurveyProgress(questionIndex+1);
   $('#questionArea').innerHTML=`<p class="test-kicker">나들이 취향 질문 ${questionIndex+1}</p><h2>${question.q}</h2><div class="answer-list">${question.answers.map(([text,type])=>`<button class="answer-button" data-type="${type}">${text}</button>`).join('')}</div>`;
-  document.querySelectorAll('.answer-button').forEach(button=>button.addEventListener('click',()=>{answers.push(button.dataset.type);questionIndex++;questionIndex<questions.length?renderQuestion():showResult();}));
+  document.querySelectorAll('.answer-button').forEach(button=>button.addEventListener('click',()=>{
+    answers.push(button.dataset.type);
+    questionIndex++;
+    questionIndex<questions.length?renderQuestion():renderGenderQuestion();
+  }));
+}
+function renderGenderQuestion(){
+  setSurveyProgress(questions.length+1);
+  $('#questionArea').innerHTML=`<p class="test-kicker">맞춤 추천 기본 정보</p><h2>성별을 알려주세요</h2><p class="test-description">행사에서 공식 대상을 안내한 경우에만 가볍게 반영해요.</p><div class="demographic-choice-grid gender-choice-grid"><button class="demographic-button" data-gender="male"><span>남성</span></button><button class="demographic-button" data-gender="female"><span>여성</span></button><button class="demographic-button demographic-skip" data-gender=""><span>응답하지 않음</span></button></div><p class="local-data-note">선택 정보는 이 브라우저에만 저장되며 서버로 전송되지 않아요.</p>`;
+  document.querySelectorAll('[data-gender]').forEach(button=>button.addEventListener('click',()=>{
+    demographicAnswers.gender=button.dataset.gender||null;
+    renderAgeQuestion();
+  }));
+}
+function renderAgeQuestion(){
+  setSurveyProgress(totalSurveySteps);
+  const ageButtons=ageBands.map(ageBand=>`<button class="demographic-button" data-age="${escapeHtml(ageBand)}"><span>${escapeHtml(ageBand)}</span></button>`).join('');
+  $('#questionArea').innerHTML=`<p class="test-kicker">맞춤 추천 기본 정보</p><h2>연령대를 알려주세요</h2><p class="test-description">성인 프로그램과 공식 추천 대상을 확인하는 데 사용해요.</p><div class="demographic-choice-grid age-choice-grid">${ageButtons}<button class="demographic-button demographic-skip" data-age=""><span>응답하지 않음</span></button></div><p class="local-data-note">선택 정보는 이 브라우저에만 저장되며 서버로 전송되지 않아요.</p>`;
+  document.querySelectorAll('[data-age]').forEach(button=>button.addEventListener('click',()=>{
+    demographicAnswers.ageBand=button.dataset.age||null;
+    showResult();
+  }));
 }
 
 function showResult(){
-  const counts=answers.reduce((acc,type)=>(acc[type]=(acc[type]||0)+1,acc),{});
-  const primary=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'감성·데이트형';
+  tasteProfile=calculateTasteProfile(answers,demographicAnswers);
+  const {primary,scores}=tasteProfile;
+  const meta=tasteMeta[primary];
+  localStorage.setItem('daejeonMap.personalityProfile',JSON.stringify(tasteProfile));
   localStorage.setItem('daejeonMap.personalityResult',primary);
   localStorage.setItem('daejeonMap.onboardingCompleted','true');
-  $('#retestButton').setAttribute('title',`${primary} · 다시 검사하기`);
+  applyTasteProfileUI();
+  renderFestivals();
+  $('.onboarding-card').classList.add('showing-result');
   $('#questionStep').textContent='RESULT';
   $('#progressBar').style.width='100%';
-  $('#questionArea').innerHTML=`<p class="test-kicker">꿈돌이의 취향 분석 완료</p><h2>당신은<br />‘${primary}’이에요!</h2><div class="result-tags"><span>#대전나들이</span><span>#취향저격</span><span>#오늘어디갈까</span></div><p class="test-description">분위기와 특별한 경험을 놓치지 않는 타입이에요.<br />취향과 가까운 장소부터 보여드릴게요.</p><button class="primary-button" id="finishTest">추천 장소 보러가기 <span>→</span></button>`;
+  const scoreRows=tasteTypes.map(type=>`<div class="taste-score-row ${type===primary?'primary':''}"><span>${escapeHtml(tasteMeta[type].short)}</span><i><b style="width:${scores[type]}%"></b></i><strong>${scores[type]}%</strong></div>`).join('');
+  const demographicLabels=[tasteProfile.demographics.ageBand,genderLabels[tasteProfile.demographics.gender]].filter(Boolean);
+  const demographicSummary=demographicLabels.length?`<p class="demographic-summary"><span>추천에 반영</span><b>${demographicLabels.map(escapeHtml).join(' · ')}</b></p>`:'<p class="demographic-summary"><span>기본 정보</span><b>응답하지 않음</b></p>';
+  $('#questionArea').innerHTML=`<p class="test-kicker">꿈돌이의 취향 분석 완료</p><h2>당신은<br />‘${escapeHtml(primary)}’이에요!</h2><div class="result-tags">${meta.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><p class="test-description">${escapeHtml(meta.description)}<br />취향·거리·일정과 선택 정보를 함께 계산할게요.</p>${demographicSummary}<div class="taste-score-list" aria-label="네 가지 나들이 취향 비율">${scoreRows}</div><button class="primary-button" id="finishTest">맞춤 추천 보러가기 <span>→</span></button>`;
   $('#finishTest').addEventListener('click',()=>closeOnboarding(true));
 }
 
@@ -651,14 +848,12 @@ function toast(message){
   clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),2400);
 }
 
-renderFestivals();initNaverMap();loadPlaces();
+applyTasteProfileUI();renderFestivals();initNaverMap();loadPlaces();
 $('#visitDate').value=new Date().toISOString().slice(0,10);
-const savedTaste=localStorage.getItem('daejeonMap.personalityResult');
-if(savedTaste)$('#retestButton').setAttribute('title',`${savedTaste} · 다시 검사하기`);
 if(localStorage.getItem('daejeonMap.onboardingCompleted')==='true')$('#onboardingModal').classList.remove('show');
 $('#startTest').addEventListener('click',startTest);
 $('#skipTest').addEventListener('click',()=>closeOnboarding(false));
-$('#retestButton').addEventListener('click',()=>{localStorage.removeItem('daejeonMap.onboardingCompleted');localStorage.removeItem('daejeonMap.personalityResult');location.reload();});
+$('#retestButton').addEventListener('click',()=>{localStorage.removeItem('daejeonMap.onboardingCompleted');localStorage.removeItem('daejeonMap.personalityProfile');localStorage.removeItem('daejeonMap.personalityResult');location.reload();});
 $('#toggleRecommendations').addEventListener('click',()=>setRecommendationsCollapsed(!$('.recommend-section').classList.contains('is-collapsed')));
 document.querySelectorAll('.map-tabs button').forEach(button=>button.addEventListener('click',()=>{if(isPlaceFocused)resetMapFocus();document.querySelectorAll('.map-tabs button').forEach(item=>item.classList.remove('active'));button.classList.add('active');activeFilter=button.dataset.filter;renderMap();}));
 document.querySelectorAll('[data-close-sheet]').forEach(button=>button.addEventListener('click',closeSheets));
