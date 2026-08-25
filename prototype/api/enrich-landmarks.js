@@ -44,7 +44,9 @@ async function callOpenAiLandmarkSearch(place) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: cleanText(process.env.OPENAI_SEARCH_MODEL) || 'gpt-5.6',
+      // `gpt-5.6` is the Sol alias. Luna is the cost-efficient model enabled
+      // for this project and supports both web search and structured output.
+      model: cleanText(process.env.OPENAI_SEARCH_MODEL) || 'gpt-5.6-luna',
       reasoning: { effort: 'low' },
       store: false,
       max_output_tokens: 900,
