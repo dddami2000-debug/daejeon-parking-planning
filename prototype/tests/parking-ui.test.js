@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=65/);
-  assert.match(indexSource, /app\.js\?v=61/);
+  assert.match(indexSource, /seed-theme\.css\?v=66/);
+  assert.match(indexSource, /app\.js\?v=62/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=61/);
+  assert.match(indexSource, /app\.js\?v=62/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -192,6 +192,12 @@ test('treats public parking hours as paid hours instead of closing hours', () =>
   assert.match(appSource, /paid<=0\)return isPublicParking\(parking\)\?0:null/);
   assert.match(appSource, /24시간 이용 · 유료/);
   assert.match(appSource, /이용·유료 시간/);
+});
+
+test('does not render ranked or other parking pins on the map', () => {
+  assert.doesNotMatch(appSource, /parkingMarkers|parkingPosition\(/);
+  assert.doesNotMatch(appSource, /parking-map-marker|parking-rank-dot|parking-dot/);
+  assert.doesNotMatch(themeSource, /parking-map-marker|parking-rank-dot/);
 });
 
 test('shows but does not navigate regional parking mock data', () => {

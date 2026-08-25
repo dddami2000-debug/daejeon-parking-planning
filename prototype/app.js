@@ -120,7 +120,6 @@ let festivalTravelLastTrigger = null;
 let navigationConfigPromise = null;
 let naverMap = null;
 let placeMarkers = [];
-let parkingMarkers = [];
 let currentLocationMarker = null;
 let userPosition = null;
 let isPlaceFocused = false;
@@ -910,24 +909,11 @@ function renderMap(){
   renderNearbyPanel(visible);
   if(!naverMap)return;
   placeMarkers.forEach(marker=>marker.setMap(null));
-  parkingMarkers.forEach(marker=>marker.setMap(null));
-  parkingMarkers=[];
   if(isPlaceFocused){
     if(!hasCoordinates(activePlace))return;
     const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
     const activeFavorite=isFestivalFavorite(activePlace.id);
     placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker place-pin-festival${activeFavorite?' favorite-place-pin':''}" style="--pin:${activePlace.color}" aria-label="선택한 축제${activeFavorite?', 즐겨찾기':''}"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span>${activeFavorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</span>`,anchor:new naver.maps.Point(32,66)}})];
-    const recommendedParkings=currentParkingList();
-    const otherParkings=allParkingCandidates().filter(parking=>!recommendedParkings.some(recommended=>recommended.name===parking.name));
-    parkingMarkers=recommendedParkings.map((parking,index)=>{
-      const position=parkingPosition(index,parking);
-      const parkingId=encodeURIComponent(parking.id||parking.name);
-      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker parking-rank-dot rank-${index+1}" aria-label="${escapeHtml(parking.rankLabel)} ${escapeHtml(parking.name)}" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'),${index+1})"><span>${index+1}</span></button>`,anchor:new naver.maps.Point(18,18)}});
-    });
-    parkingMarkers.push(...otherParkings.map((parking,index)=>{
-      const parkingId=encodeURIComponent(parking.id||parking.name);
-      return new naver.maps.Marker({map:naverMap,position:parkingPosition(index+3,parking),title:parking.name,zIndex:10-index,icon:{content:`<button class="parking-map-marker parking-dot" aria-label="${escapeHtml(parking.name)} 주차장 정보" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'))"><span>●</span></button>`,anchor:new naver.maps.Point(13,13)}});
-    }));
     return;
   }
   const zoom=naverMap.getZoom();
@@ -972,14 +958,6 @@ function renderNearbyPanel(visible){
   $('#nearbyCount').textContent=`${near.length}곳`;
   $('#nearbyList').innerHTML=near.map(place=>`<button class="nearby-item" data-place="${escapeHtml(place.id)}" style="--tile:${place.tile};--accent:${place.color}"><span class="nearby-emoji">${escapeHtml(place.emoji)}</span><span class="nearby-info"><span>${escapeHtml(compactPlaceArea(place))}</span><b>${escapeHtml(place.name)}</b><p>${place.distance}km · ${place.eta}분 · ${escapeHtml(festivalDateBadge(place))}</p></span></button>`).join('');
   document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place)));
-}
-
-function parkingPosition(index,selectedParking){
-  const parking=selectedParking||allParkingCandidates()[index];
-  if(hasCoordinates(parking))return new naver.maps.LatLng(parking.lat,parking.lng);
-  const offsets=[[0.0020,0.0028],[-0.0016,0.0032],[0.0026,-0.0026],[-0.0050,-0.0048],[0.0050,0.0048],[-0.0050,0.0048],[0.0050,-0.0048]];
-  const [latOffset,lngOffset]=offsets[index%offsets.length];
-  return new naver.maps.LatLng(activePlace.lat+latOffset,activePlace.lng+lngOffset);
 }
 
 function isVisibleOverlay(element){
