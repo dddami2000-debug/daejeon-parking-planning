@@ -248,6 +248,7 @@ function mergeUpdate(place, officialResult, aiResult) {
     },
     tourapi_error: officialResult.error || null,
     providers,
+    ai_model: aiResult?.model || null,
     enriched_at: new Date().toISOString()
   };
   return {
