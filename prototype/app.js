@@ -413,9 +413,12 @@ function renderFestivals(){
     .filter(place=>place.type==='festival'&&festivalTimingScore(place)>0)
     .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||a.distance-b.distance);
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
+    const match=tasteMatchFor(place);
+    const total=recommendationScoreFor(place);
+    const matchBadge=match===null?`추천 ${total}점`:`취향 ${match}% · 추천 ${total}점`;
     const category=compactPlaceCategory(place);
     const area=compactPlaceArea(place);
-    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${category}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(category)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
+    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${category}, ${matchBadge}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(category)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-score">${escapeHtml(matchBadge)}</span><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
   }).join(''):'<p class="map-status">불러온 축제 정보가 아직 없어요.</p>';
   document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
@@ -423,12 +426,16 @@ function renderFestivals(){
 function renderRankings(){
   const ranked=places
     .filter(place=>place.type===rankingFilter)
+    .filter(place=>festivalTimingScore(place)>0)
     .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99))
     .slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const category=compactPlaceCategory(place);
     const area=compactPlaceArea(place);
-    return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${category}, ${area} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(category)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span></span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
+    const match=tasteMatchFor(place);
+    const total=recommendationScoreFor(place);
+    const scoreCopy=match===null?`추천 ${total}점`:`취향 ${match}% · 추천 ${total}점`;
+    return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${category}, ${scoreCopy}, ${area} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(`${category} · ${scoreCopy}`)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span></span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
   }).join(''):'<p class="ranking-empty">표시할 순위 정보가 아직 없어요.</p>';
   document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
 }

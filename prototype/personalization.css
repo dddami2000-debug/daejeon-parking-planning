@@ -89,6 +89,19 @@
 }
 .demographic-summary b { color: #43574c; }
 
+.compact-place-score {
+  display: block;
+  max-width: 160px;
+  overflow: hidden;
+  margin-bottom: 3px;
+  color: #2f8458;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .onboarding-card.showing-result {
   max-height: calc(100dvh - 36px);
   overflow-y: auto;
