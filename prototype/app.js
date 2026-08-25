@@ -409,6 +409,10 @@ function compactPlaceCategory(place){
   return '지역축제';
 }
 
+function festivalCountdownLabel(place){
+  return window.FestivalTiming?.festivalCountdownLabel(place)||'일정 확인';
+}
+
 function compactPlaceArea(place){
   const curated=compactLabelFor(place);
   if(curated)return curated.area;
@@ -510,10 +514,10 @@ function renderFestivals(){
   $('#festivalDateTrigger').classList.toggle('has-value',Boolean(festivalDateFilter.start||festivalDateFilter.end));
   $('#placeDataStatus').innerHTML=placeDataNotice();
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
-    const category=compactPlaceCategory(place);
+    const countdown=festivalCountdownLabel(place);
     const area=compactPlaceArea(place);
     const valueLine=placeValueLine(place);
-    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${category}, ${valueLine}, ${recommendationFitLabel(place)}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(category)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-value">${escapeHtml(valueLine)}</span><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
+    return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${countdown}, ${valueLine}, ${recommendationFitLabel(place)}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(countdown)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-value">${escapeHtml(valueLine)}</span><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
   }).join(''):`<div class="festival-filter-empty"><b>선택한 날짜에 열리는 축제가 없어요.</b><span>기간을 넓히거나 ‘전체’를 눌러보세요.</span></div>`;
   document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
