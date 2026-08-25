@@ -577,6 +577,15 @@ button:focus-visible, input:focus-visible {
   background: var(--seed-color-bg-layer-default);
 }
 .time-form input { color: var(--seed-color-fg-neutral); font-family: inherit; }
+.parking-summary { align-items: center; }
+.parking-summary b {
+  padding: 5px 8px;
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand-contrast);
+  font-size: 9px;
+}
+.parking-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .recommend-reason, .place-parking-preview {
   border-color: var(--seed-color-stroke-brand-weak);
@@ -598,12 +607,12 @@ button:focus-visible, input:focus-visible {
   background: var(--seed-color-bg-brand-weak);
   box-shadow: 0 0 0 1px var(--seed-color-stroke-brand-solid);
 }
-.parking-plan-distance { --plan-accent: #2f7e58; --plan-weak: #eaf6ee; }
-.parking-plan-price { --plan-accent: #b66b17; --plan-weak: #fff3df; }
-.parking-plan-space { --plan-accent: #526ec0; --plan-weak: #edf1ff; }
+.parking-plan-rank-1 { --plan-accent: #f0445a; --plan-weak: #fff0f3; }
+.parking-plan-rank-2 { --plan-accent: #3478f6; --plan-weak: #eef5ff; }
+.parking-plan-rank-3 { --plan-accent: #9158dc; --plan-weak: #f5f0ff; }
 .parking-plan-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 9px;
   margin: -3px 34px 11px 0;
   padding: 8px;
@@ -614,28 +623,16 @@ button:focus-visible, input:focus-visible {
   display: grid;
   flex: none;
   place-items: center;
-  min-width: 34px;
-  height: 26px;
-  padding: 0 7px;
+  min-width: 53px;
+  min-height: 28px;
+  padding: 0 9px;
   border-radius: var(--seed-radius-full);
   background: var(--plan-accent);
   color: var(--seed-color-palette-static-white);
   font-size: 9px;
   font-weight: var(--seed-font-weight-bold);
 }
-.parking-plan-icon {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--seed-radius-r2);
-  background: var(--seed-color-bg-layer-floating);
-  color: var(--plan-accent);
-  font-size: 14px;
-  font-weight: var(--seed-font-weight-bold);
-}
-.parking-plan-head > span:last-child { min-width: 0; }
+.parking-plan-reason { min-width: 0; }
 .parking-plan-head b {
   display: block;
   color: var(--plan-accent);
@@ -644,11 +641,10 @@ button:focus-visible, input:focus-visible {
 .parking-plan-head small {
   display: block;
   margin-top: 2px;
-  overflow: hidden;
   color: var(--seed-color-fg-neutral-muted);
   font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.45;
+  white-space: normal;
 }
 .parking-stats .criterion-stat { background: var(--plan-weak); }
 .parking-stats .criterion-stat b { color: var(--plan-accent); }
@@ -663,8 +659,10 @@ button:focus-visible, input:focus-visible {
 .full-button { background: var(--seed-color-bg-critical-weak); color: var(--seed-color-fg-critical-contrast); }
 .parking-info-plan { background: var(--seed-color-bg-neutral-weak); color: var(--seed-color-fg-neutral); }
 .parking-map-marker:not(.parking-dot) > span {
-  width: 28px;
+  width: auto;
+  min-width: 42px;
   height: 19px;
+  padding: 0 5px;
   font-family: inherit;
   font-size: 8px;
 }
@@ -2465,43 +2463,9 @@ textarea {
 .time-form button { border-radius: 7px; font-size: 11px; }
 .parking-summary { font-size: 11px; }
 
-.weather-recommendation {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 12px;
-  padding: 10px 11px;
-  border: 1px solid #f1d281;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #fff9e8, #fff3cf);
-  color: #6b541c;
-}
-
-.weather-recommendation[hidden] { display: none; }
-
-.weather-recommendation-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: #fff;
-  font-size: 16px;
-}
-
-.weather-recommendation b,
-.weather-recommendation small {
-  display: block;
-}
-
-.weather-recommendation b { font-size: 10.5px; }
-.weather-recommendation small { margin-top: 2px; color: #8a7135; font-size: 9px; line-height: 1.45; }
-
 .parking-item { border-radius: 10px; }
 .parking-plan-head { border-radius: 8px; }
 .parking-plan-option { border-radius: 6px; font-size: 10px; }
-.parking-plan-icon { border-radius: 6px; }
 .parking-plan-head b { font-size: 12px; }
 .parking-plan-head small { font-size: 10px; }
 .parking-type { font-size: 10px; }

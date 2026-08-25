@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=41" />
+    <link rel="stylesheet" href="seed-theme.css?v=42" />
     <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
@@ -126,8 +126,8 @@
         <button class="sheet-handle" id="plannerSheetHandle" type="button" aria-label="주차 플랜 닫기"></button>
       </div>
       <div class="planner-head">
-        <div><p>3-WAY PARKING PLAN</p><h2 id="plannerTitle">주차 플랜</h2></div>
-        <div class="dream-tip" id="parkingWeatherBadge"><span>★</span> 3가지 기준</div>
+        <div><p>TOP 3 PARKING</p><h2 id="plannerTitle">추천 주차장 순위</h2></div>
+        <div class="dream-tip"><span>★</span> 종합 추천</div>
       </div>
       <div class="time-form">
         <label><span>방문 날짜</span><input id="visitDate" type="date" /></label>
@@ -135,10 +135,9 @@
         <label><span>출차</span><input id="endTime" type="time" value="22:00" /></label>
         <button id="recalculate">다시 계산</button>
       </div>
-      <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>거리 · 가격 · 여유</b></div>
-      <aside class="weather-recommendation" id="weatherRecommendation" hidden></aside>
+      <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>체감온도 확인 중</b></div>
       <div class="parking-list" id="parkingList"></div>
-      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이며, ‘여유’는 실시간 혼잡도가 아닌 주차면 규모 기준이에요.</p>
+      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이에요. 실시간 이용면수와 총면수는 추천 조건에 포함하지 않아요.</p>
     </section>
 
     <section class="bottom-sheet parking-info-sheet" id="parkingInfoSheet" aria-label="주차장 정보">
@@ -184,6 +183,6 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="app.js?v=40"></script>
+    <script src="app.js?v=41"></script>
   </body>
 </html>
