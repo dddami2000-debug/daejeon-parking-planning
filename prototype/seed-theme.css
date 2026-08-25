@@ -210,7 +210,7 @@
 .search-results { display: grid; gap: 7px; }
 .search-result {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   padding: 10px;
@@ -219,12 +219,21 @@
   background: var(--seed-color-bg-layer-default);
   text-align: left;
 }
-.search-result-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--seed-radius-r3); background: var(--seed-color-bg-brand-weak); font-size: 20px; }
 .search-result small { display: block; color: var(--seed-color-fg-brand); font-size: 8px; font-weight: var(--seed-font-weight-bold); }
+.search-result-meta { display: flex !important; align-items: center; gap: 4px; color: var(--seed-color-fg-neutral-muted) !important; white-space: nowrap; }
+.search-result-meta i { color: var(--seed-color-fg-neutral-subtle); font-style: normal; }
+.search-result-status.is-ongoing { color: #d45320; }
+.search-result-status.is-upcoming { color: #23854d; }
+.search-result-status.is-ended { color: var(--seed-color-fg-neutral-muted); }
+.search-result-countdown { color: var(--seed-color-fg-neutral); }
+.search-result-area { color: var(--seed-color-fg-neutral-muted); }
 .search-result b { display: block; margin: 2px 0; color: var(--seed-color-fg-neutral); font-size: 11px; }
 .search-result em { display: block; overflow: hidden; color: var(--seed-color-fg-neutral-muted); font-size: 8px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
-.search-result > i { color: var(--seed-color-fg-neutral-subtle); font-size: 16px; font-style: normal; }
 .search-empty { margin: 24px 0; color: var(--seed-color-fg-neutral-muted); font-size: 10px; text-align: center; }
+
+@media (max-width: 768px) {
+  .place-search-form input { font-size: 16px; }
+}
 
 @media (max-width: 800px) {
   .profile-button { min-height: 40px; }
@@ -2744,7 +2753,7 @@ textarea {
   border-radius: 9px;
 }
 
-.place-search-form input { font-size: 14px; }
+.place-search-form input { font-size: 16px; }
 
 .place-search-form button,
 .search-quick button {
@@ -2753,7 +2762,6 @@ textarea {
 }
 
 .search-result { border-radius: 9px; }
-.search-result-icon { border-radius: 8px; }
 .search-result small { font-size: 9.5px; }
 .search-result b { font-size: 13px; }
 .search-result em { font-size: 10.5px; }
@@ -4375,4 +4383,13 @@ textarea {
   margin-top: 5px;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.ranking-copy .ranking-schedule {
+  display: inline;
+  margin: 0;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.3;
 }

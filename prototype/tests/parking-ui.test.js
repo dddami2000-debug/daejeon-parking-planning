@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=86/);
-  assert.match(indexSource, /app\.js\?v=85/);
+  assert.match(indexSource, /seed-theme\.css\?v=92/);
+  assert.match(indexSource, /app\.js\?v=90/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=85/);
+  assert.match(indexSource, /app\.js\?v=90/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -220,6 +220,40 @@ test('labels deadline rankings with start and end countdowns before an event beg
   assert.match(appSource, /if\(day>0\)return `시작까지 D-\$\{day\}`/);
   assert.match(appSource, /if\(countdown\.startsWith\('종료까지 '\)\)return `진행 중 · \$\{deadline\}`/);
   assert.match(appSource, /return remaining===0\?'오늘 종료':`진행 중 · 종료까지 D-\$\{remaining\}`/);
+});
+
+test('shows the start and end dates in deadline rankings', () => {
+  assert.match(appSource, /function festivalScheduleLabel\(place\)/);
+  assert.match(appSource, /return `\$\{start\} ~ \$\{end\}`/);
+  assert.match(appSource, /const scheduleLabel=isDeadline\?festivalScheduleLabel\(place\):''/);
+  assert.match(appSource, /class="ranking-deadline"[\s\S]*?\| \$\{escapeHtml\(scheduleLabel\)\}/);
+  assert.match(appSource, /class="ranking-schedule"/);
+  assert.match(appSource, /<b>\$\{escapeHtml\(place\.name\)\}<\/b><span>\$\{escapeHtml\(area\)\}<\/span>\$\{deadline\}/);
+  assert.match(themeSource, /\.ranking-copy \.ranking-schedule \{[\s\S]*?display: inline;[\s\S]*?font-size: 10px;/);
+});
+
+test('keeps search results text-only without decorative festival emojis', () => {
+  const searchBlock=appSource.match(/function renderSearchResults\(query=''\)[\s\S]*?\n}\n\nfunction openSearch/)?.[0]||'';
+  assert.doesNotMatch(searchBlock, /search-result-icon|place\.emoji|<i>→<\/i>/);
+  assert.match(appSource, /function searchResultMetaMarkup\(place\)/);
+  assert.match(searchBlock, /\$\{searchResultMetaMarkup\(place\)\}/);
+  assert.match(themeSource, /\.search-result \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/);
+  assert.doesNotMatch(themeSource, /\.search-result-icon|\.search-result > i/);
+});
+
+test('uses distinct colors for search result status, countdown, and location', () => {
+  assert.match(appSource, /search-result-status is-\$\{tone\}/);
+  assert.match(appSource, /search-result-countdown/);
+  assert.match(appSource, /search-result-area/);
+  assert.match(themeSource, /\.search-result-status\.is-ongoing \{ color: #d45320; \}/);
+  assert.match(themeSource, /\.search-result-status\.is-upcoming \{ color: #23854d; \}/);
+  assert.match(themeSource, /\.search-result-countdown \{ color: var\(--seed-color-fg-neutral\); \}/);
+  assert.match(themeSource, /\.search-result-area \{ color: var\(--seed-color-fg-neutral-muted\); \}/);
+});
+
+test('prevents mobile Safari from zooming when the festival search input receives focus', () => {
+  assert.match(themeSource, /@media \(max-width: 768px\) \{[\s\S]*?\.place-search-form input \{ font-size: 16px; \}/);
+  assert.match(themeSource, /\.place-search-form input \{ font-size: 16px; \}/);
 });
 
 test('keeps long recommendation-card titles to two lines without pushing metadata away', () => {

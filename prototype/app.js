@@ -511,6 +511,14 @@ function festivalDeadlineCardLabel(place){
   if(countdown.startsWith('종료까지 '))return `진행 중 · ${deadline}`;
   return deadline;
 }
+function festivalScheduleLabel(place){
+  const start=shortKoreanDate(place?.startDate);
+  const end=shortKoreanDate(place?.endDate);
+  if(start&&end)return `${start} ~ ${end}`;
+  if(start)return start;
+  if(end)return end;
+  return '일정 확인';
+}
 function distanceRecommendationScore(place){
   const distance=Number(place.distance);
   if(!Number.isFinite(distance)||distance<0)return 50;
@@ -600,6 +608,28 @@ function festivalDateBadge(place){
     return remaining===0?'오늘 종료':`진행 중 · 종료까지 D-${remaining}`;
   }
   return '종료된 축제';
+}
+function searchResultMetaMarkup(place){
+  const timing=festivalDateBadge(place);
+  const area=compactPlaceArea(place);
+  let status='일정';
+  let countdown=timing;
+  let tone='neutral';
+  if(timing.startsWith('진행 중 · ')){
+    status='진행 중';
+    countdown=timing.replace('진행 중 · ','');
+    tone='ongoing';
+  }else if(timing.startsWith('시작까지 ')){
+    status='시작 전';
+    tone='upcoming';
+  }else if(timing==='오늘 종료'){
+    status='진행 중';
+    tone='ongoing';
+  }else if(timing==='종료된 축제'){
+    status='종료됨';
+    tone='ended';
+  }
+  return `<small class="search-result-meta"><span class="search-result-status is-${tone}">${escapeHtml(status)}</span><i aria-hidden="true">·</i><span class="search-result-countdown">${escapeHtml(countdown)}</span><i aria-hidden="true">·</i><span class="search-result-area">${escapeHtml(area)}</span></small>`;
 }
 function markerVisual(place){
   const fallback=`<span class="marker-fallback">${escapeHtml(place.emoji)}</span>`;
@@ -901,9 +931,10 @@ function renderRankings(){
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const area=compactPlaceArea(place);
     const deadlineLabel=isDeadline?festivalDeadlineCardLabel(place):'';
+    const scheduleLabel=isDeadline?festivalScheduleLabel(place):'';
     const favoriteCountdown=festivalCardCountdown(place).label;
-    const deadline=isDeadline?`<em>${escapeHtml(deadlineLabel)}</em>`:isFavorites?`<em>${escapeHtml(favoriteCountdown)}</em>`:'';
-    return `<article class="ranking-item-shell"><button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${area}${isDeadline?`, ${deadlineLabel}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>${favoriteButtonMarkup(place,'ranking-favorite')}</article>`;
+    const deadline=isDeadline?`<em><span class="ranking-deadline">${escapeHtml(deadlineLabel)}</span><span class="ranking-schedule"> | ${escapeHtml(scheduleLabel)}</span></em>`:isFavorites?`<em>${escapeHtml(favoriteCountdown)}</em>`:'';
+    return `<article class="ranking-item-shell"><button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${area}${isDeadline?`, ${scheduleLabel}, ${deadlineLabel}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>${favoriteButtonMarkup(place,'ranking-favorite')}</article>`;
   }).join(''):isFavorites?'<p class="ranking-empty"><b>아직 즐겨찾기한 축제가 없어요.</b><span>카드의 별표를 누르면 여기에 모아볼 수 있어요.</span></p>':'<p class="ranking-empty">선택한 날짜에 순위를 표시할 축제가 없어요.</p>';
   document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
   bindFavoriteButtons($('#rankingList'));
@@ -2271,7 +2302,7 @@ function searchablePlaces(query=''){
 
 function renderSearchResults(query=''){
   const results=searchablePlaces(query);
-  $('#searchResults').innerHTML=results.length?results.map(place=>`<button class="search-result" data-search-place="${escapeHtml(place.id)}"><span class="search-result-icon">${escapeHtml(place.emoji)}</span><span><small>${escapeHtml(`${festivalDateBadge(place)} · ${compactPlaceArea(place)}`)}</small><b>${escapeHtml(place.name)}</b><em>${escapeHtml(place.address||experienceFor(place).venue||place.summary)}</em></span><i>→</i></button>`).join(''):`<p class="search-empty">검색 결과가 없어요. 다른 축제 이름이나 지역을 입력해 보세요.</p>`;
+  $('#searchResults').innerHTML=results.length?results.map(place=>`<button class="search-result" data-search-place="${escapeHtml(place.id)}"><span>${searchResultMetaMarkup(place)}<b>${escapeHtml(place.name)}</b><em>${escapeHtml(place.address||experienceFor(place).venue||place.summary)}</em></span></button>`).join(''):`<p class="search-empty">검색 결과가 없어요. 다른 축제 이름이나 지역을 입력해 보세요.</p>`;
   document.querySelectorAll('[data-search-place]').forEach(button=>button.addEventListener('click',()=>{
     $('#searchModal').classList.remove('show');
     openPlace(button.dataset.searchPlace);
