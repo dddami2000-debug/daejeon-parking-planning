@@ -3772,3 +3772,56 @@ textarea {
     transform: none;
   }
 }
+
+/* Photo-first festival pins and clearly larger overlap clusters. */
+.map-marker.place-pin-festival {
+  width: 64px;
+  height: 68px;
+}
+
+.map-marker.place-pin-festival .marker-bubble {
+  top: 2px;
+  left: 5px;
+  width: 54px;
+  min-width: 54px;
+  height: 54px;
+  padding: 0;
+  border-width: 4px;
+}
+
+.map-marker.place-pin-festival .marker-icon {
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+}
+
+.map-marker.place-pin-festival .marker-icon img {
+  inset: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+}
+
+.map-marker.place-pin-festival .marker-favorite-badge {
+  top: -2px;
+  right: 0;
+  width: 21px;
+  height: 21px;
+}
+
+.place-cluster-marker,
+.place-cluster-marker.favorite-place-cluster {
+  width: 78px;
+  min-width: 78px;
+  height: 78px;
+  min-height: 78px;
+  border-width: 3px;
+  border-radius: 50%;
+}
+
+.place-cluster-marker span {
+  font-size: 10px;
+}
+
+.place-cluster-marker b {
+  font-size: 24px;
+}
