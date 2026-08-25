@@ -49,6 +49,7 @@ function mapParking(row, origin, visitDate, startTime, endTime, weather) {
     distance: Number(distance.toFixed(2)),
     drive: Math.max(2, Math.round(distance * 5)),
     walk,
+    capacity: toInteger(row.total_spaces),
     open: cleanText(schedule.open) || '운영시간 확인',
     close: cleanText(schedule.close) || '',
     operatingHours: hours,
@@ -82,7 +83,7 @@ module.exports = async function handler(req, res) {
   try {
     const origin = { lat, lng };
     const [rows, weather] = await Promise.all([
-      supabaseRequest('parking_lots?select=id,source,name,parking_type,address,latitude,longitude,operating_hours,fee_rules,restrictions,metadata'),
+      supabaseRequest('parking_lots?select=id,source,name,parking_type,address,latitude,longitude,total_spaces,operating_hours,fee_rules,restrictions,metadata'),
       getWeatherContext({
         lat,
         lng,
