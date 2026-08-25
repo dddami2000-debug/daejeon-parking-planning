@@ -607,9 +607,9 @@ button:focus-visible, input:focus-visible {
   background: var(--seed-color-bg-brand-weak);
   box-shadow: 0 0 0 1px var(--seed-color-stroke-brand-solid);
 }
-.parking-plan-rank-1 { --plan-accent: #9a6a00; --plan-weak: #fff3cf; }
-.parking-plan-rank-2 { --plan-accent: #2f7e58; --plan-weak: #eaf6ee; }
-.parking-plan-rank-3 { --plan-accent: #526ec0; --plan-weak: #edf1ff; }
+.parking-plan-rank-1 { --plan-accent: #f0445a; --plan-weak: #fff0f3; }
+.parking-plan-rank-2 { --plan-accent: #3478f6; --plan-weak: #eef5ff; }
+.parking-plan-rank-3 { --plan-accent: #9158dc; --plan-weak: #f5f0ff; }
 .parking-plan-head {
   display: flex;
   align-items: flex-start;
@@ -907,6 +907,21 @@ button:focus-visible, input:focus-visible {
   border-radius: var(--seed-radius-r5);
   align-items: flex-end;
   background: var(--hero);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+#placeSheet .place-hero-rich.has-photo {
+  background: #20352b;
+}
+
+#placeSheet .place-hero-photo {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 #placeSheet .place-hero-rich::before {
@@ -915,7 +930,7 @@ button:focus-visible, input:focus-visible {
   inset: 0;
   z-index: 1;
   background: linear-gradient(0deg, rgba(18, 20, 22, .62), rgba(18, 20, 22, .02) 72%);
-  pointer-events: none;
+  z-index: 1;
 }
 
 #placeSheet .place-hero-rich::after {
@@ -924,6 +939,15 @@ button:focus-visible, input:focus-visible {
   font-size: 76px;
   opacity: .82;
   filter: drop-shadow(0 8px 15px rgba(0,0,0,.12));
+  z-index: 2;
+}
+
+#placeSheet .place-hero-rich.has-photo::after {
+  opacity: .24;
+}
+
+#placeSheet .place-hero-rich .place-hero-badges {
+  z-index: 3;
 }
 
 #placeSheet .place-hero-rich.has-photo::after {
@@ -949,7 +973,7 @@ button:focus-visible, input:focus-visible {
 
 .place-hero-copy {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   max-width: 305px;
   color: var(--seed-color-palette-static-white);
 }
@@ -1695,7 +1719,7 @@ button:focus-visible, input:focus-visible {
 /* Naver Map-inspired two-stop recommendation sheet */
 .app-shell {
   --recommend-sheet-preview-height: clamp(244px, 31dvh, 260px);
-  --recommend-sheet-expanded-height: min(84dvh, 700px);
+  --recommend-sheet-expanded-height: min(70dvh, 590px);
   --recommend-sheet-peek: 34px;
 }
 
@@ -2123,16 +2147,20 @@ button:focus-visible, input:focus-visible {
 }
 
 #plannerSheet.show.is-dragging,
-#plannerSheet.show.is-dismissing {
+#plannerSheet.show.is-dismissing,
+#parkingInfoSheet.show.is-dragging,
+#parkingInfoSheet.show.is-dismissing {
   transform: translateY(var(--planner-drag-y, 0));
 }
 
-#plannerSheet.is-dragging {
+#plannerSheet.is-dragging,
+#parkingInfoSheet.is-dragging {
   overflow-y: hidden;
   transition: none !important;
 }
 
-#plannerSheet.is-dismissing {
+#plannerSheet.is-dismissing,
+#parkingInfoSheet.is-dismissing {
   transition: transform .22s ease-out !important;
 }
 
@@ -2460,7 +2488,6 @@ textarea {
 .parking-item { border-radius: 10px; }
 .parking-plan-head { border-radius: 8px; }
 .parking-plan-option { border-radius: 6px; font-size: 10px; }
-.parking-plan-icon { border-radius: 6px; }
 .parking-plan-head b { font-size: 12px; }
 .parking-plan-head small { font-size: 10px; }
 .parking-type { font-size: 10px; }
@@ -2489,7 +2516,7 @@ textarea {
 
 /* Compact discovery cards: details stay behind the tap */
 .app-shell {
-  --recommend-sheet-preview-height: clamp(208px, 26dvh, 226px);
+  --recommend-sheet-preview-height: clamp(238px, 29dvh, 248px);
 }
 
 .recommend-section .festival-slider,
@@ -2534,6 +2561,19 @@ textarea {
 
 .compact-place-kind { color: var(--seed-color-fg-neutral-subtle); }
 
+.compact-place-value {
+  display: block;
+  max-width: 150px;
+  margin-bottom: 5px;
+  overflow: hidden;
+  color: var(--seed-color-fg-neutral);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .festival-shape.festival-photo {
   top: 13px;
   right: 13px;
@@ -2559,4 +2599,643 @@ textarea {
   line-height: 1.35;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* Travel-date filtering and festival ranking */
+.app-shell {
+  --recommend-sheet-preview-height: clamp(238px, 29dvh, 248px);
+}
+
+.festival-date-filter {
+  margin: 0 1px 10px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 10px;
+  background: var(--seed-color-bg-neutral-weak);
+}
+
+.recommend-section:not(.is-expanded) .festival-date-filter {
+  display: none;
+}
+
+.festival-date-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.festival-date-filter-head strong {
+  color: var(--seed-color-fg-neutral);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.festival-date-filter-head span {
+  overflow: hidden;
+  color: var(--seed-color-fg-brand);
+  font-size: 10.5px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.festival-date-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.festival-date-fields label {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 8px;
+  background: var(--seed-color-bg-layer-floating);
+}
+
+.festival-date-fields label span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.festival-date-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--seed-color-fg-neutral);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.festival-date-fields > i {
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 11px;
+  font-style: normal;
+  text-align: center;
+}
+
+.festival-date-fields > button {
+  align-self: stretch;
+  min-width: 42px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--seed-color-bg-layer-floating);
+  color: var(--seed-color-fg-brand);
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.festival-filter-empty {
+  display: grid;
+  flex: 0 0 100%;
+  height: 140px;
+  place-content: center;
+  gap: 5px;
+  padding: 18px;
+  border: 1px dashed var(--seed-color-stroke-neutral-weak);
+  border-radius: 11px;
+  color: var(--seed-color-fg-neutral);
+  text-align: center;
+}
+
+.festival-filter-empty b { font-size: 13px; }
+.festival-filter-empty span { color: var(--seed-color-fg-neutral-muted); font-size: 11px; }
+
+.ranking-copy em {
+  display: block;
+  margin-top: 5px;
+  color: var(--seed-color-fg-brand);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+@media (max-width: 420px) {
+  .app-shell { --recommend-sheet-preview-height: clamp(238px, 29dvh, 248px); }
+  .festival-date-filter { padding-right: 8px; padding-left: 8px; }
+  .festival-date-fields { gap: 4px; }
+  .festival-date-fields label { padding-right: 6px; padding-left: 6px; }
+  .festival-date-fields input { font-size: 10px; }
+  .festival-date-fields > button { min-width: 38px; padding: 0 6px; }
+}
+
+/* Circular, collision-safe map clusters */
+.place-cluster-marker {
+  display: grid;
+  width: 62px;
+  min-width: 62px;
+  height: 62px;
+  min-height: 62px;
+  place-content: center;
+  gap: 1px;
+  padding: 0;
+  border: 3px solid rgba(255, 255, 255, .88);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cluster-color, #314b40) 72%, transparent);
+  color: var(--seed-color-palette-static-white);
+  box-shadow: 0 6px 16px rgba(24, 43, 34, .18);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  font-family: inherit;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.place-cluster-marker:hover,
+.place-cluster-marker:focus-visible {
+  transform: scale(1.06);
+  background: color-mix(in srgb, var(--cluster-color, #314b40) 80%, transparent);
+  box-shadow: 0 8px 20px rgba(24, 43, 34, .24);
+}
+
+.place-cluster-marker span {
+  order: 1;
+  color: rgba(255, 255, 255, .86);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.place-cluster-marker span:empty { display: none; }
+
+.place-cluster-marker b {
+  order: 2;
+  display: block;
+  width: auto;
+  height: auto;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+@media (max-width: 420px) {
+  .place-cluster-marker {
+    width: 58px;
+    min-width: 58px;
+    height: 58px;
+    min-height: 58px;
+    border-width: 2.5px;
+  }
+  .place-cluster-marker span { font-size: 8.5px; }
+  .place-cluster-marker b { font-size: 19px; }
+}
+
+/* Focused-place parking recommendations: compact numeric markers */
+.parking-map-marker.parking-rank-dot {
+  display: grid;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #2f66c8;
+  color: var(--seed-color-palette-static-white, #fff);
+  box-shadow: 0 0 0 1.5px rgba(18, 29, 25, .55), 0 5px 13px rgba(18, 29, 25, .34);
+  font-family: inherit;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.parking-map-marker.parking-rank-dot:hover,
+.parking-map-marker.parking-rank-dot:focus-visible {
+  transform: scale(1.06);
+  filter: saturate(1.08) brightness(.96);
+}
+
+.parking-map-marker.parking-rank-dot.rank-1 {
+  background: #f0445a;
+}
+
+.parking-map-marker.parking-rank-dot.rank-2 {
+  background: #3478f6;
+}
+
+.parking-map-marker.parking-rank-dot.rank-3 {
+  background: #9158dc;
+}
+
+.parking-map-marker.parking-rank-dot > span {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(18, 29, 25, .24);
+}
+
+/* Keep festival and landmark pins distinct from Naver Map terrain colors. */
+.map-marker.place-pin-festival .marker-bubble,
+.map-marker.place-pin-landmark .marker-bubble {
+  border-color: #fff;
+  box-shadow: 0 0 0 1.5px rgba(18, 29, 25, .62), 0 6px 14px rgba(18, 29, 25, .34);
+}
+
+.map-marker.place-pin-festival .marker-bubble {
+  background: #ff4f64;
+}
+
+.map-marker.place-pin-landmark .marker-bubble {
+  background: #7454e8;
+}
+
+.map-marker.place-pin-festival .marker-icon,
+.map-marker.place-pin-landmark .marker-icon {
+  background: #fff;
+}
+
+.place-cluster-marker {
+  border-color: #fff;
+  background: color-mix(in srgb, var(--cluster-color, #25465e) 80%, transparent);
+  box-shadow: 0 0 0 1.5px rgba(18, 29, 25, .56), 0 7px 17px rgba(18, 29, 25, .3);
+}
+
+.place-cluster-marker:hover,
+.place-cluster-marker:focus-visible {
+  background: color-mix(in srgb, var(--cluster-color, #25465e) 88%, transparent);
+}
+
+/* The detail sheet stays focused on essential visit information. */
+#placeSheet .festival-enjoy {
+  display: none !important;
+}
+
+/* Full place details use the phone height without crowding the notch. */
+#placeSheet.is-expanded #placeSheetContent {
+  display: flex;
+  min-height: calc(100% - 30px);
+  padding-top: clamp(20px, 2.5dvh, 28px);
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Motion polish based on emilkowalski/skills. */
+:root {
+  --app-ease-out: cubic-bezier(.23, 1, .32, 1);
+  --app-ease-in-out: cubic-bezier(.77, 0, .175, 1);
+  --app-ease-drawer: cubic-bezier(.32, .72, 0, 1);
+  --app-duration-press: 140ms;
+  --app-duration-sheet: 280ms;
+}
+
+.recommend-section,
+.recommend-section.is-collapsed,
+.recommend-section.is-expanded {
+  will-change: transform;
+  transition:
+    transform var(--app-duration-sheet) var(--app-ease-drawer),
+    opacity 180ms var(--app-ease-out),
+    visibility 0s linear var(--app-duration-sheet) !important;
+}
+
+.recommend-section.is-dragging,
+.recommend-section.is-collapsed.is-dragging,
+.recommend-section.is-expanded.is-dragging {
+  transition: none !important;
+}
+
+.bottom-sheet,
+#placeSheet,
+#parkingInfoSheet {
+  will-change: transform;
+  transition:
+    transform var(--app-duration-sheet) var(--app-ease-drawer),
+    opacity 180ms var(--app-ease-out),
+    visibility 0s linear var(--app-duration-sheet);
+}
+
+#placeSheet {
+  transition:
+    transform var(--app-duration-sheet) var(--app-ease-drawer),
+    height var(--app-duration-sheet) var(--app-ease-drawer),
+    max-height var(--app-duration-sheet) var(--app-ease-drawer),
+    opacity 180ms var(--app-ease-out),
+    visibility 0s linear var(--app-duration-sheet);
+}
+
+.bottom-sheet.show,
+#placeSheet.show,
+#parkingInfoSheet.show {
+  transition-delay: 0s;
+}
+
+#plannerSheet.is-dismissing,
+#parkingInfoSheet.is-dismissing {
+  transition: transform 220ms var(--app-ease-out) !important;
+}
+
+.modal.show .search-card,
+.modal.show .nav-card,
+.modal.show .onboarding-card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    transform 240ms var(--app-ease-out),
+    opacity 180ms var(--app-ease-out);
+}
+
+@starting-style {
+  .modal.show .search-card,
+  .modal.show .nav-card,
+  .modal.show .onboarding-card {
+    opacity: 0;
+    transform: translateY(10px) scale(.97);
+  }
+}
+
+:is(
+  .header-search,
+  .profile-button,
+  .current-location-fab,
+  .festival-card,
+  .ranking-tabs button,
+  .ranking-item,
+  .search-quick button,
+  .search-result,
+  .primary-button,
+  .answer-button,
+  .demographic-button,
+  .time-form button,
+  .parking-actions button,
+  .parking-info-actions button,
+  .nav-options button,
+  .official-link
+) {
+  transition:
+    transform var(--app-duration-press) var(--app-ease-out),
+    background-color var(--app-duration-press) ease,
+    box-shadow var(--app-duration-press) ease;
+}
+
+:is(
+  .header-search,
+  .profile-button,
+  .current-location-fab,
+  .festival-card,
+  .ranking-tabs button,
+  .ranking-item,
+  .search-quick button,
+  .search-result,
+  .primary-button,
+  .answer-button,
+  .demographic-button,
+  .time-form button,
+  .parking-actions button,
+  .parking-info-actions button,
+  .nav-options button,
+  .official-link
+):active {
+  transform: scale(.97);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .festival-card:hover,
+  .current-location-fab:hover {
+    transform: none;
+  }
+
+  .parking-map-marker.parking-rank-dot:hover {
+    filter: none;
+    transform: none;
+  }
+
+  .place-cluster-marker:hover {
+    background: color-mix(in srgb, var(--cluster-color, #25465e) 80%, transparent);
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recommend-section,
+  .recommend-section.is-collapsed,
+  .recommend-section.is-expanded,
+  .bottom-sheet,
+  #placeSheet,
+  #parkingInfoSheet {
+    transition-property: opacity, visibility !important;
+    transition-duration: 120ms, 0s !important;
+    transition-timing-function: ease, linear !important;
+  }
+
+  .modal.show .search-card,
+  .modal.show .nav-card,
+  .modal.show .onboarding-card {
+    transform: none;
+    transition: opacity 120ms ease;
+  }
+
+  :is(
+    .header-search,
+    .profile-button,
+    .current-location-fab,
+    .festival-card,
+    .ranking-tabs button,
+    .ranking-item,
+    .search-quick button,
+    .search-result,
+    .primary-button,
+    .answer-button,
+    .demographic-button,
+    .time-form button,
+    .parking-actions button,
+    .parking-info-actions button,
+    .nav-options button,
+    .official-link
+  ):active {
+    transform: none;
+  }
+}
+
+/* Compact travel-date control beside the festival ranking title. */
+.ranking-heading > div {
+  min-width: 0;
+}
+
+.ranking-heading #rankingMetric {
+  display: block;
+  margin-top: 4px;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.festival-date-trigger {
+  display: grid;
+  flex: 0 0 124px;
+  grid-template-areas:
+    "icon label"
+    "icon status";
+  grid-template-columns: 15px minmax(0, 1fr);
+  column-gap: 7px;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 9px;
+  background: var(--seed-color-bg-layer-floating);
+  color: var(--seed-color-fg-neutral);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--app-duration-press) var(--app-ease-out),
+    border-color var(--app-duration-press) ease,
+    background-color var(--app-duration-press) ease;
+}
+
+.festival-date-trigger:active {
+  transform: scale(.97);
+}
+
+.festival-date-trigger:is(.is-open, .has-value) {
+  border-color: color-mix(in srgb, var(--seed-color-fg-brand) 38%, var(--seed-color-stroke-neutral-weak));
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand-contrast);
+}
+
+.festival-date-trigger-icon {
+  position: relative;
+  grid-area: icon;
+  align-self: center;
+  width: 14px;
+  height: 13px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+}
+
+.festival-date-trigger-icon::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  left: 1px;
+  border-top: 1.5px solid currentColor;
+}
+
+.festival-date-trigger b {
+  grid-area: label;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.festival-date-trigger small {
+  grid-area: status;
+  overflow: hidden;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.festival-date-trigger:is(.is-open, .has-value) small {
+  color: var(--seed-color-fg-brand);
+}
+
+#festivalDateFilter {
+  margin: -2px 0 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+}
+
+#festivalDateFilter[hidden] {
+  display: none !important;
+}
+
+#festivalDateFilter .festival-date-fields label {
+  padding: 5px 7px;
+}
+
+#festivalDateFilter .festival-date-fields label span {
+  font-size: 8px;
+}
+
+#festivalDateFilter .festival-date-fields input {
+  font-size: 10px;
+}
+
+#festivalDateFilter .festival-date-fields > button {
+  min-width: 38px;
+  padding-inline: 6px;
+  font-size: 9px;
+}
+
+@media (max-width: 360px) {
+  .ranking-heading {
+    gap: 8px;
+  }
+
+  .festival-date-trigger {
+    flex-basis: 116px;
+  }
+}
+
+/* Icon-only current-location control with a full touch target. */
+.current-location-fab {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+
+.current-location-fab span {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background:
+    linear-gradient(currentColor, currentColor) center / 2px 100% no-repeat,
+    linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat;
+  color: var(--seed-color-fg-brand);
+}
+
+.current-location-fab span::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--seed-color-bg-layer-floating);
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
 }

@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=28" />
+    <link rel="stylesheet" href="seed-theme.css?v=44" />
+    <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
     <div class="app-shell">
@@ -38,14 +39,27 @@
           <section class="recommend-rankings" aria-labelledby="rankingTitle">
             <div class="ranking-heading">
               <div>
-                <p>DAEJEON POPULAR</p>
-                <h2 id="rankingTitle">대전 인기 순위</h2>
+                <p id="rankingEyebrow">DAEJEON FESTIVAL</p>
+                <h2 id="rankingTitle">축제 인기 순위</h2>
+                <span id="rankingMetric">취향·거리 반영</span>
               </div>
-              <span>취향 점수 기준</span>
+              <button class="festival-date-trigger" id="festivalDateTrigger" type="button" aria-controls="festivalDateFilter" aria-expanded="false">
+                <span class="festival-date-trigger-icon" aria-hidden="true"></span>
+                <b>여행 날짜</b>
+                <small id="festivalFilterStatus" aria-live="polite">전체 일정</small>
+              </button>
             </div>
-            <div class="ranking-tabs" role="tablist" aria-label="인기 순위 종류">
-              <button class="active" type="button" data-ranking-filter="festival" role="tab" aria-selected="true">축제 인기</button>
-              <button type="button" data-ranking-filter="landmark" role="tab" aria-selected="false">명소 인기</button>
+            <div class="festival-date-filter" id="festivalDateFilter" role="group" aria-label="여행 날짜 범위" hidden>
+              <div class="festival-date-fields">
+                <label><span>시작일</span><input id="festivalStartDate" type="date" aria-label="여행 시작일" /></label>
+                <i aria-hidden="true">–</i>
+                <label><span>종료일</span><input id="festivalEndDate" type="date" aria-label="여행 종료일" /></label>
+                <button id="clearFestivalDates" type="button">전체</button>
+              </div>
+            </div>
+            <div class="ranking-tabs" role="tablist" aria-label="축제 순위 정렬 방식">
+              <button class="active" type="button" data-ranking-filter="popular" role="tab" aria-selected="true">인기순위</button>
+              <button type="button" data-ranking-filter="deadline" role="tab" aria-selected="false">마감순위</button>
             </div>
             <div class="ranking-list" id="rankingList"></div>
           </section>
@@ -56,7 +70,7 @@
             <div class="map-card">
               <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도"></div>
               <div class="daejeon-focus-mask" aria-hidden="true"></div>
-              <button class="current-location-fab" id="currentButton" aria-label="현재 위치로 이동"><span>◎</span>현재 위치</button>
+              <button class="current-location-fab" id="currentButton" aria-label="현재 위치로 이동"><span aria-hidden="true"></span></button>
             </div>
 
             <aside class="nearby-panel">
@@ -104,7 +118,6 @@
       <div class="place-sheet-grabber" id="placeSheetGrabber">
         <button class="sheet-handle" id="placeSheetHandle" type="button" aria-label="상세창 전체 화면으로 펼치기" aria-expanded="false"></button>
       </div>
-      <button class="sheet-close" data-close-sheet aria-label="닫기">×</button>
       <div id="placeSheetContent"></div>
     </section>
 
@@ -113,8 +126,8 @@
         <button class="sheet-handle" id="plannerSheetHandle" type="button" aria-label="주차 플랜 닫기"></button>
       </div>
       <div class="planner-head">
-        <div><p>3-WAY PARKING PLAN</p><h2 id="plannerTitle">주차 플랜</h2></div>
-        <div class="dream-tip"><span>★</span> 3가지 기준</div>
+        <div><p>TOP 3 PARKING</p><h2 id="plannerTitle">추천 주차장 순위</h2></div>
+        <div class="dream-tip"><span>★</span> 종합 추천</div>
       </div>
       <div class="time-form">
         <label><span>방문 날짜</span><input id="visitDate" type="date" /></label>
@@ -122,14 +135,13 @@
         <label><span>출차</span><input id="endTime" type="time" value="22:00" /></label>
         <button id="recalculate">다시 계산</button>
       </div>
-      <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>거리 · 가격 · 여유</b></div>
+      <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>체감온도 확인 중</b></div>
       <div class="parking-list" id="parkingList"></div>
-      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이며, ‘여유’는 실시간 혼잡도가 아닌 주차면 규모 기준이에요.</p>
+      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이에요. 실시간 이용면수와 총면수는 추천 조건에 포함하지 않아요.</p>
     </section>
 
     <section class="bottom-sheet parking-info-sheet" id="parkingInfoSheet" aria-label="주차장 정보">
       <div class="sheet-handle"></div>
-      <button class="sheet-close" data-close-sheet aria-label="닫기">×</button>
       <div id="parkingInfoContent"></div>
     </section>
 
@@ -171,6 +183,6 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="app.js?v=30"></script>
+    <script src="app.js?v=42"></script>
   </body>
 </html>
