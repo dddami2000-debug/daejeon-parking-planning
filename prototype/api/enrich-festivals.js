@@ -20,6 +20,7 @@ const {
 
 const TOUR_API_BASE = 'https://apis.data.go.kr/B551011/KorService2';
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
+const OPENAI_FALLBACK_MODELS = ['gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini'];
 const MAX_BATCH_SIZE = 4;
 
 function parseLimit(value) {
@@ -113,70 +114,95 @@ async function fetchTourApiDetails(place) {
   return { content: officialFestivalContent(), error: [...new Set(errors)].join(' | ') || 'tourapi_detail_empty' };
 }
 
-async function callOpenAiFestivalSearch(place, official) {
-  const apiKey = cleanText(process.env.OPENAI_API_KEY);
-  if (!apiKey) throw new Error('openai_api_key_missing');
-  const response = await fetch(OPENAI_RESPONSES_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: cleanText(process.env.OPENAI_SEARCH_MODEL) || 'gpt-5.6',
-      reasoning: { effort: 'low' },
-      store: false,
-      max_output_tokens: 900,
-      tool_choice: 'required',
-      tools: [{
-        type: 'web_search',
-        search_content_types: ['text'],
-        user_location: { type: 'approximate', country: 'KR', city: 'Daejeon', region: 'Daejeon' }
-      }],
-      include: ['web_search_call.results', 'web_search_call.action.sources'],
-      input: festivalSearchPrompt(place, official),
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'festival_content',
-          strict: true,
-          schema: {
-            type: 'object',
-            additionalProperties: false,
-            required: ['summary', 'tags', 'highlights', 'recommended_for'],
-            properties: {
-              summary: { type: ['string', 'null'] },
-              tags: { type: 'array', items: { type: 'string' } },
-              highlights: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  required: ['title', 'description'],
-                  properties: {
-                    title: { type: 'string' },
-                    description: { type: ['string', 'null'] }
-                  }
+function openAiModelCandidates() {
+  return [...new Set([
+    cleanText(process.env.OPENAI_SEARCH_MODEL),
+    ...OPENAI_FALLBACK_MODELS
+  ].filter(Boolean))];
+}
+
+function isModelAccessError(status, payload) {
+  const errorCode = cleanText(payload?.error?.code);
+  const message = cleanText(payload?.error?.message || payload?.message);
+  return errorCode === 'model_not_found'
+    || status === 404
+    || (status === 403 && /(?:does not have access to model|model.*(?:access|permission))/i.test(message));
+}
+
+function openAiRequestBody(model, place, official) {
+  const body = {
+    model,
+    store: false,
+    max_output_tokens: 900,
+    tool_choice: 'required',
+    tools: [{
+      type: 'web_search',
+      search_content_types: ['text'],
+      user_location: { type: 'approximate', country: 'KR', city: 'Daejeon', region: 'Daejeon' }
+    }],
+    include: ['web_search_call.action.sources'],
+    input: festivalSearchPrompt(place, official),
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'festival_content',
+        strict: true,
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['summary', 'tags', 'highlights', 'recommended_for'],
+          properties: {
+            summary: { type: ['string', 'null'] },
+            tags: { type: 'array', items: { type: 'string' } },
+            highlights: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['title', 'description'],
+                properties: {
+                  title: { type: 'string' },
+                  description: { type: ['string', 'null'] }
                 }
-              },
-              recommended_for: { type: ['string', 'null'] }
-            }
+              }
+            },
+            recommended_for: { type: ['string', 'null'] }
           }
         }
       }
-    })
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = cleanText(payload?.error?.message || payload?.message).slice(0, 180);
-    throw new Error(`openai_http_${response.status}${message ? `_${message}` : ''}`);
-  }
-  const parsed = parseModelJson(responseOutputText(payload));
-  if (!parsed) throw new Error('openai_invalid_json');
-  return {
-    content: normalizeOpenAiContent(parsed),
-    sourceUrls: sourceUrlsFromResponse(payload)
+    }
   };
+  if (model.startsWith('gpt-5')) body.reasoning = { effort: 'low' };
+  return body;
+}
+
+async function callOpenAiFestivalSearch(place, official) {
+  const apiKey = cleanText(process.env.OPENAI_API_KEY);
+  if (!apiKey) throw new Error('openai_api_key_missing');
+  for (const model of openAiModelCandidates()) {
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(openAiRequestBody(model, place, official))
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      if (isModelAccessError(response.status, payload)) continue;
+      const message = cleanText(payload?.error?.message || payload?.message).slice(0, 180);
+      throw new Error(`openai_http_${response.status}${message ? `_${message}` : ''}`);
+    }
+    const parsed = parseModelJson(responseOutputText(payload));
+    if (!parsed) throw new Error('openai_invalid_json');
+    return {
+      content: normalizeOpenAiContent(parsed),
+      sourceUrls: sourceUrlsFromResponse(payload),
+      model
+    };
+  }
+  throw new Error('openai_model_access_unavailable');
 }
 
 function existingFestivalContent(place) {
@@ -266,6 +292,7 @@ async function handler(req, res) {
           tourApiOverview: content.tourapi_available.overview,
           tourApiProgram: content.tourapi_available.program,
           aiUsed: Boolean(aiResult),
+          aiModel: aiResult?.model || null,
           aiError,
           preview: dryRun ? {
             summary: content.summary,

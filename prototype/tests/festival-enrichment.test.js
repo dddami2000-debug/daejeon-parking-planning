@@ -92,3 +92,8 @@ test('asks OpenAI to avoid invented program names', () => {
   assert.match(prompt, /만들어내지 말고/);
   assert.match(prompt, /계룡軍문화축제/);
 });
+
+test('uses an accessible search model default in the example environment', () => {
+  const exampleEnv = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '.env.example'), 'utf8');
+  assert.match(exampleEnv, /^OPENAI_SEARCH_MODEL=gpt-5-mini$/m);
+});
