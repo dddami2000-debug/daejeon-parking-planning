@@ -507,7 +507,7 @@ function renderMap(){
     parkingMarkers=recommendedParkings.map((parking,index)=>{
       const position=parkingPosition(index,parking);
       const parkingId=encodeURIComponent(parking.id||parking.name);
-      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker rank-${index+1}" aria-label="${escapeHtml(parking.planOption)} ${escapeHtml(parking.planCriterion)} ${escapeHtml(parking.name)}" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'),${index+1})"><span>${escapeHtml(parking.planOption)}</span><b>${escapeHtml(parking.name)}</b><small>${escapeHtml(parking.planCriterion)} · ${formatCost(parking)} · 도보 ${parking.walk}분</small></button>`,anchor:new naver.maps.Point(74,54)}});
+      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker rank-${index+1}" aria-label="${escapeHtml(parking.rankLabel)} ${escapeHtml(parking.name)}" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'),${index+1})"><span>${escapeHtml(parking.rankLabel)}</span><b>${escapeHtml(parking.name)}</b><small>${formatCost(parking)} · 도보 ${parking.walk}분</small></button>`,anchor:new naver.maps.Point(74,54)}});
     });
     parkingMarkers.push(...otherParkings.map((parking,index)=>{
       const parkingId=encodeURIComponent(parking.id||parking.name);
@@ -546,7 +546,7 @@ function renderNearbyPanel(visible){
     eyebrow.textContent='선택한 장소 주변';
     title.textContent='추천 주차장';
     $('#nearbyCount').textContent=`${parkings.length}곳`;
-    $('#nearbyList').innerHTML=parkings.map((parking,index)=>`<button class="nearby-item nearby-parking" data-parking="${escapeHtml(parking.id||parking.name)}" style="--tile:#eff7ef;--accent:#3d7657"><span class="nearby-emoji">${index+1}</span><span class="nearby-info"><span>${escapeHtml(parking.type)} 주차장</span><b>${escapeHtml(parking.name)}</b><p>${formatCost(parking)} · 도보 ${parking.walk}분</p></span></button>`).join('');
+    $('#nearbyList').innerHTML=parkings.map(parking=>`<button class="nearby-item nearby-parking" data-parking="${escapeHtml(parking.id||parking.name)}" style="--tile:#eff7ef;--accent:#3d7657"><span class="nearby-emoji">${parking.recommendationRank}위</span><span class="nearby-info"><span>${escapeHtml(parking.rankLabel)} · ${escapeHtml(parking.type)} 주차장</span><b>${escapeHtml(parking.name)}</b><p>${formatCost(parking)} · 도보 ${parking.walk}분</p></span></button>`).join('');
     document.querySelectorAll('[data-parking]').forEach(item=>item.addEventListener('click',openPlanner));
     return;
   }
@@ -871,38 +871,27 @@ function costFor(parking){
 function formatCost(parking){const cost=costFor(parking);return cost===null?'요금 확인 필요':`${cost.toLocaleString()}원`;}
 function parkingHours(parking){const schedule=scheduleForVisit(parking);return schedule.open&&schedule.close?`${schedule.open}–${schedule.close}`:'운영시간 확인';}
 
-const parkingPlanCriteria = [
-  {
-    key:'distance',option:'1안',label:'거리 우선',description:'목적지까지 가장 적게 걷는 곳',icon:'⌖',
-    compare:(a,b)=>a.walk-b.walk||a.distance-b.distance
-  },
-  {
-    key:'price',option:'2안',label:'가격 우선',description:'선택 시간의 예상 요금이 낮은 곳',icon:'₩',
-    compare:(a,b)=>(costFor(a)??Number.POSITIVE_INFINITY)-(costFor(b)??Number.POSITIVE_INFINITY)||a.walk-b.walk
-  },
-  {
-    key:'space',option:'3안',label:'여유 우선',description:'주차면 규모가 커서 여유를 기대할 수 있는 곳',icon:'P',
-    compare:(a,b)=>(b.capacity??-1)-(a.capacity??-1)||a.walk-b.walk
-  }
-];
-
-function currentParkingList(){
-  const candidates=allParkingCandidates();
-  const selected=[];
-  const usedNames=new Set();
-  parkingPlanCriteria.forEach(criterion=>{
-    const parking=[...candidates].filter(candidate=>!usedNames.has(candidate.name)).sort(criterion.compare)[0];
-    if(!parking)return;
-    usedNames.add(parking.name);
-    selected.push({...parking,planKey:criterion.key,planOption:criterion.option,planCriterion:criterion.label,planDescription:criterion.description,planIcon:criterion.icon});
-  });
-  return selected;
+function weatherTemperatureCopy(){
+  const temperature=Number(parkingWeather?.apparentTemperature);
+  return parkingWeather?.available&&Number.isFinite(temperature)?`체감온도 ${temperature.toFixed(1)}℃`:'체감온도 정보 없음';
 }
 
-function parkingPlanMetric(parking){
-  if(parking.planKey==='distance')return `도보 ${parking.walk}분`;
-  if(parking.planKey==='price')return formatCost(parking);
-  return parking.capacity?`${parking.capacity}면 규모`:'규모 확인 필요';
+function currentParkingList(){
+  return allParkingCandidates().slice(0,3).map((parking,index)=>({
+    ...parking,
+    recommendationRank:index+1,
+    rankLabel:`추천 ${index+1}위`
+  }));
+}
+
+function rankedSelectionReason(parking){
+  const detail=parking.reason||'도보 거리와 예상 요금을 종합해 비교했어요';
+  const rankCopy=parking.recommendationRank===1
+    ? '현재 조건에 가장 잘 맞아 추천 1위예요'
+    : `현재 조건에 ${parking.recommendationRank===2?'두 번째로':'세 번째로'} 잘 맞아 추천 ${parking.recommendationRank}위예요`;
+  return detail.includes('종합점수가 높아요')
+    ? detail.replace('종합점수가 높아요',rankCopy)
+    : `${detail} ${rankCopy}`;
 }
 
 function allParkingCandidates(){
@@ -910,15 +899,15 @@ function allParkingCandidates(){
     .filter(parking=>!excludedParkings.includes(parking.name))
     .map(parking=>({
       ...parking,
-      recommendationScore:parking.recommendationScore??((costFor(parking)??8000)/100 + parking.drive*2 + parking.walk - Math.min((parking.capacity||0)/50,3))
+      recommendationScore:parking.recommendationScore??((costFor(parking)??8000)/100 + parking.drive*2 + parking.walk)
     }))
     .sort((a,b)=>a.recommendationScore-b.recommendationScore);
 }
 
 function openParkingInfo(parking,rank){
   const planned=currentParkingList().find(candidate=>candidate.name===parking.name);
-  const rankCopy=planned?`${planned.planOption} · ${planned.planCriterion}`:rank?`${rank}안 비교 후보`:'주변 주차장';
-  $('#parkingInfoContent').innerHTML=`<div class="parking-info-kicker"><span>${escapeHtml(parking.type)} 주차장</span><b>${rankCopy}</b></div><h2>${escapeHtml(parking.name)}</h2><div class="parking-info-grid"><div><span>예상 요금</span><b>${formatCost(parking)}</b></div><div><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>운영 시간</span><b>${escapeHtml(parkingHours(parking))}</b></div><div><span>주차 면수</span><b>${parking.capacity??'정보 없음'}${parking.capacity?'면':''}</b></div></div><p class="parking-info-reason">✓ ${escapeHtml(parking.reason)}</p><p class="data-source-note">${escapeHtml(parkingSourceAttribution||'주차장 정보는 제공 데이터 기준이에요.')}</p><div class="parking-info-actions"><button class="route-button" id="parkingInfoRoute">이곳으로 길안내</button><button class="parking-info-plan" id="parkingInfoPlan">주차 플랜에서 비교</button></div>`;
+  const rankCopy=planned?.rankLabel||(rank?`추천 ${rank}위`:'주변 주차장');
+  $('#parkingInfoContent').innerHTML=`<div class="parking-info-kicker"><span>${escapeHtml(parking.type)} 주차장</span><b>${rankCopy}</b></div><h2>${escapeHtml(parking.name)}</h2><div class="parking-info-grid"><div><span>예상 요금</span><b>${formatCost(parking)}</b></div><div><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>운영 시간</span><b>${escapeHtml(parkingHours(parking))}</b></div><div><span>날씨 반영</span><b>${escapeHtml(weatherTemperatureCopy())}</b></div></div><p class="parking-info-reason">✓ ${escapeHtml(parking.reason)}</p><p class="data-source-note">${escapeHtml(parkingSourceAttribution||'주차장 정보는 제공 데이터 기준이에요.')}</p><div class="parking-info-actions"><button class="route-button" id="parkingInfoRoute">이곳으로 길안내</button><button class="parking-info-plan" id="parkingInfoPlan">주차 플랜에서 비교</button></div>`;
   showSheet('#parkingInfoSheet');
   $('#parkingInfoRoute').addEventListener('click',()=>selectNavigation(parking.name));
   $('#parkingInfoPlan').addEventListener('click',openPlanner);
@@ -929,38 +918,13 @@ window.showParkingInfo=(parkingId,rank)=>{
   if(parking)openParkingInfo(parking,rank);
 };
 
-function weatherRecommendationFor(weather){
-  const temperature=Number(weather?.apparentTemperature);
-  if(!weather?.available||!Number.isFinite(temperature))return null;
-  const rounded=Math.round(temperature);
-  if(rounded>=31)return {icon:'☀️',title:`체감 ${rounded}°C · 가까운 주차장을 더 높게 추천했어요`,description:'더운 시간대에는 주차장부터 목적지까지의 도보 거리를 크게 반영했어요.'};
-  if(rounded>=26)return {icon:'🌤️',title:`체감 ${rounded}°C · 도보 거리도 함께 비교했어요`,description:'더위 영향을 고려해 주차비와 이동 편의의 균형을 맞췄어요.'};
-  return {icon:'🌿',title:`체감 ${rounded}°C · 거리와 주차비를 균형 있게 비교했어요`,description:'걷기 좋은 날씨라 예상 주차비와 도보 거리를 함께 반영했어요.'};
-}
-
-function renderWeatherRecommendation(){
-  const recommendation=weatherRecommendationFor(parkingWeather);
-  const panel=$('#weatherRecommendation');
-  const badge=$('#parkingWeatherBadge');
-  if(!recommendation){
-    panel.hidden=true;
-    panel.innerHTML='';
-    badge.innerHTML='<span>★</span> 3가지 기준';
-    return;
-  }
-  const source=parkingWeather.sourceLabel?` · ${parkingWeather.sourceLabel}`:'';
-  panel.hidden=false;
-  panel.innerHTML=`<span class="weather-recommendation-icon" aria-hidden="true">${recommendation.icon}</span><span><b>${escapeHtml(recommendation.title)}</b><small>${escapeHtml(recommendation.description)}${escapeHtml(source)}</small></span>`;
-  badge.innerHTML=`<span>${recommendation.icon}</span> 체감 ${Math.round(Number(parkingWeather.apparentTemperature))}°C`;
-}
-
 function renderParkings(){
   const start=$('#startTime').value,end=$('#endTime').value;
   const duration=Math.max(0,(minutes(end)||0)-(minutes(start)||0));
   $('#parkingSummary').textContent=`${Math.floor(duration/60)}시간 ${duration%60?duration%60+'분 ':''}주차 기준`;
-  renderWeatherRecommendation();
+  $('.parking-summary b').textContent=weatherTemperatureCopy();
   const list=currentParkingList();
-  $('#parkingList').innerHTML=list.length?list.map(parking=>`<article class="parking-item parking-plan-${escapeHtml(parking.planKey)}"><div class="parking-plan-head"><span class="parking-plan-option">${escapeHtml(parking.planOption)}</span><span class="parking-plan-icon">${escapeHtml(parking.planIcon)}</span><span><b>${escapeHtml(parking.planCriterion)}</b><small>${escapeHtml(parking.planDescription)}</small></span></div><span class="parking-type">${escapeHtml(parking.type)} 주차장</span><h3>${escapeHtml(parking.name)}</h3><div class="parking-meta"><span>차로 ${parking.drive}분</span><span>도보 ${parking.walk}분</span><span>${escapeHtml(parkingHours(parking))} 운영</span></div><div class="parking-stats"><div class="criterion-stat"><span>선택 기준</span><b>${escapeHtml(parkingPlanMetric(parking))}</b></div><div><span>예상 요금</span><b>${formatCost(parking)}</b></div><div><span>주차 규모</span><b>${parking.capacity?`${parking.capacity}면`:'정보 확인'}</b></div></div><p class="parking-reason">✓ ${escapeHtml(parking.planDescription)}</p><div class="parking-actions"><button class="route-button" data-route="${escapeHtml(parking.name)}">이곳으로 길안내</button><button class="full-button" data-full="${escapeHtml(parking.name)}">만차로 제외</button></div></article>`).join(''):`<div class="parking-item"><h3>준비한 후보를 모두 확인했어요</h3><p class="place-description">검색 반경을 넓혀 주변 주차장을 다시 찾아볼게요.</p><button class="primary-button" id="resetParking">주변 후보 다시 계산</button></div>`;
+  $('#parkingList').innerHTML=list.length?list.map(parking=>`<article class="parking-item parking-plan-rank-${parking.recommendationRank}"><div class="parking-plan-head"><span class="parking-plan-option">${escapeHtml(parking.rankLabel)}</span><span class="parking-plan-reason"><b>선정 이유</b><small>${escapeHtml(rankedSelectionReason(parking))}</small></span></div><span class="parking-type">${escapeHtml(parking.type)} 주차장</span><h3>${escapeHtml(parking.name)}</h3><div class="parking-meta"><span>차로 ${parking.drive}분</span><span>도보 ${parking.walk}분</span><span>${escapeHtml(parkingHours(parking))} 운영</span></div><div class="parking-stats"><div class="criterion-stat"><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>예상 요금</span><b>${formatCost(parking)}</b></div></div><div class="parking-actions"><button class="route-button" data-route="${escapeHtml(parking.name)}">이곳으로 길안내</button><button class="full-button" data-full="${escapeHtml(parking.name)}">만차로 제외</button></div></article>`).join(''):`<div class="parking-item"><h3>준비한 후보를 모두 확인했어요</h3><p class="place-description">검색 반경을 넓혀 주변 주차장을 다시 찾아볼게요.</p><button class="primary-button" id="resetParking">주변 후보 다시 계산</button></div>`;
   document.querySelectorAll('[data-route]').forEach(button=>button.addEventListener('click',()=>selectNavigation(button.dataset.route)));
   document.querySelectorAll('[data-full]').forEach(button=>button.addEventListener('click',()=>markFull(button.dataset.full)));
   if($('#resetParking'))$('#resetParking').addEventListener('click',()=>{excludedParkings=[];renderParkings();toast('새로운 후보를 다시 계산했어요.');});
@@ -980,7 +944,7 @@ function markFull(name){
   excludedParkings.push(name);
   renderParkings();
   if(isPlaceFocused)renderMap();
-  if(currentParkingList().length)toast(`${name}을 제외하고 거리·가격·여유 기준을 다시 계산했어요.`);
+  if(currentParkingList().length)toast(`${name}을 제외하고 종합 추천 순위를 다시 계산했어요.`);
   else toast('주변 후보를 다시 계산해 주세요.');
 }
 
