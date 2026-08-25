@@ -21,7 +21,7 @@ test('offers explicit distance, price, and large-lot parking priorities', () => 
 });
 
 test('shows apparent temperature once and labels missing real-time congestion honestly', () => {
-  const renderParkings = appSource.match(/function renderParkings\(\)[\s\S]*?\n}\n\nfunction openPlanner/)?.[0] || '';
+  const renderParkings = appSource.match(/function renderParkings\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction openPlanner/)?.[0] || '';
   assert.match(indexSource, /체감온도 확인 중/);
   assert.doesNotMatch(indexSource, /weatherRecommendation|parkingWeatherBadge/);
   assert.match(renderParkings, /도보 \$\{parking\.walk\}분/);
@@ -50,13 +50,13 @@ test('personalizes festivals from views and favorites without using parking beha
   assert.match(appSource, /daejeonMap\.festivalPreferences\.v1/);
   assert.match(appSource, /recordFestivalView\(activePlace\)/);
   assert.match(appSource, /festivalRecommender\.setFavorite/);
-  assert.match(appSource, /주제·지역·즐겨찾기·조회 반영/);
+  assert.match(appSource, /취향 알고리즘 기반 추천/);
   assert.match(appSource, /if\(!festivalRecommender\|\|place\?\.type!=='festival'\)return/);
   assert.match(recommenderSource, /candidate\.type !== 'festival'/);
   assert.match(recommenderSource, /FAVORITE_WEIGHT = 8/);
 
-  const plannerBlock = appSource.match(/function openPlanner\(\)[\s\S]*?\n}/)?.[0] || '';
-  const parkingBlock = appSource.match(/function renderParkings\(\)[\s\S]*?\n}\n\nfunction openPlanner/)?.[0] || '';
+  const plannerBlock = appSource.match(/function openPlanner\(\)[\s\S]*?\r?\n}/)?.[0] || '';
+  const parkingBlock = appSource.match(/function renderParkings\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction openPlanner/)?.[0] || '';
   assert.doesNotMatch(plannerBlock, /festivalPreferences|recordFestivalView|setFavorite|festivalBehaviorFor/);
   assert.doesNotMatch(parkingBlock, /festivalPreferences|recordFestivalView|setFavorite|festivalBehaviorFor/);
 });
@@ -101,12 +101,12 @@ test('refreshes recommendation ordering on load and every ten minutes instead of
   assert.match(appSource, /RECOMMENDATION_REFRESH_INTERVAL_MS = 10 \* 60 \* 1000/);
   assert.match(appSource, /refreshRecommendationScoreCache\(\);renderFestivals\(\);renderRankings\(\)/);
   assert.match(appSource, /startRecommendationRefreshSchedule\(\)/);
-  const favoriteBlock=appSource.match(/function toggleFestivalFavorite\(placeId\)[\s\S]*?\n}/)?.[0]||'';
+  const favoriteBlock=appSource.match(/function toggleFestivalFavorite\(placeId\)[\s\S]*?\r?\n}/)?.[0]||'';
   assert.match(favoriteBlock, /syncFavoriteButtons\(\)/);
   assert.match(favoriteBlock, /updateFavoriteMapButton\(\)/);
   assert.match(favoriteBlock, /scheduleFavoriteVisualRefresh\(\)/);
   assert.doesNotMatch(favoriteBlock, /renderFestivals\(\)|renderRankings\(\)|renderMap\(\)/);
-  const viewBlock=appSource.match(/function recordFestivalView\(place\)[\s\S]*?\n}/)?.[0]||'';
+  const viewBlock=appSource.match(/function recordFestivalView\(place\)[\s\S]*?\r?\n}/)?.[0]||'';
   assert.doesNotMatch(viewBlock, /renderFestivals\(\)|renderRankings\(\)/);
 });
 
@@ -148,7 +148,7 @@ test('keeps map filters uniform and festival favorite controls compact', () => {
 });
 
 test('replaces festival detail parking and homepage CTAs with travel guidance apps', () => {
-  const detailBlock = appSource.match(/function openPlace\(id\)[\s\S]*?\n}\n\nfunction setPlaceSheetHeights/)?.[0] || '';
+  const detailBlock = appSource.match(/function openPlace\(id\)[\s\S]*?\r?\n}\r?\n\r?\nfunction setPlaceSheetHeights/)?.[0] || '';
   assert.match(detailBlock, /대중교통 안내/);
   assert.match(detailBlock, /내비게이션 안내/);
   assert.doesNotMatch(detailBlock, /🚌|🚘/);
