@@ -3,6 +3,9 @@
   "functions": {
     "api/sync.js": {
       "maxDuration": 60
+    },
+    "api/enrich-landmarks.js": {
+      "maxDuration": 60
     }
   },
   "crons": [

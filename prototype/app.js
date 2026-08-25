@@ -353,11 +353,15 @@ function updateDistancesFromCurrentLocation(lat,lng){
   renderMap();
 }
 
+function landmarkEnrichmentFor(place){
+  const enrichment=place?.metadata?.landmark_enrichment;
+  return enrichment&&typeof enrichment==='object'?enrichment:null;
+}
+function highlightIcon(index){return ['📍','✨','📸'][index%3];}
 function experienceFor(place){
   const curated=curatedExperiences.find(item=>item.match.some(keyword=>String(place.name).toLowerCase().includes(keyword.toLowerCase())));
-  if(curated)return curated;
   const isFestival=place.type==='festival';
-  return {
+  const fallback={
     venue:place.metadata?.place_name||place.address||(isFestival?'행사장 정보 확인':'대전 시내'),
     admission:place.metadata?.usage_fee||'이용 정보 확인',
     audience:isFestival?'친구 · 연인 · 가족':'가벼운 나들이',
@@ -372,6 +376,22 @@ function experienceFor(place){
       {icon:'☕',title:'주변 코스',description:'가까운 카페와 명소를 연결해 반나절 코스로 즐겨보세요.'}
     ],
     tip:'운영 시간과 현장 프로그램은 바뀔 수 있으니 출발 전에 공식 안내를 한 번 확인해 주세요.'
+  };
+  const base=curated||fallback;
+  const enrichment=place.type==='landmark'?landmarkEnrichmentFor(place):null;
+  if(!enrichment)return {...base,officialUrl:base.officialUrl||place.homepageUrl};
+  const enrichedHighlights=Array.isArray(enrichment.highlights)
+    ?enrichment.highlights.filter(item=>item?.title&&item?.description).slice(0,3).map((item,index)=>({icon:highlightIcon(index),title:item.title,description:item.description}))
+    :[];
+  return {
+    ...base,
+    venue:enrichment.venue||base.venue,
+    admission:enrichment.admission||base.admission,
+    audience:enrichment.audience||base.audience,
+    tags:Array.isArray(enrichment.tags)&&enrichment.tags.length?enrichment.tags:base.tags,
+    highlights:enrichedHighlights.length?enrichedHighlights:base.highlights,
+    tip:enrichment.visit_tip||enrichment.visitTip||base.tip,
+    officialUrl:place.homepageUrl||base.officialUrl||enrichment.source_urls?.[0]||null
   };
 }
 
@@ -689,11 +709,13 @@ function openPlace(id){
   const locationCopy=hasCoordinates(activePlace)?`${activePlace.distance}km · 차로 ${activePlace.eta}분`:'지도 좌표 확인 중';
   const experience=experienceFor(activePlace);
   const sourceCopy=placeSourceAttribution?`<p class="data-source-note">${escapeHtml(placeSourceAttribution)}</p>`:'';
-  const officialLink=experience.officialUrl?`<a class="official-link" href="${escapeHtml(experience.officialUrl)}" target="_blank" rel="noopener">공식 일정 확인 <span>↗</span></a>`:'';
+  const officialLink=experience.officialUrl?`<a class="official-link" href="${escapeHtml(experience.officialUrl)}" target="_blank" rel="noopener">${activePlace.type==='festival'?'공식 일정 확인':'공식 안내 보기'} <span>↗</span></a>`:'';
+  const enrichment=landmarkEnrichmentFor(activePlace);
+  const imageSourceLink=enrichment?.image_source_url?`<p class="landmark-image-source">대표 사진 출처 <a href="${escapeHtml(enrichment.image_source_url)}" target="_blank" rel="noopener">공식 페이지 ↗</a></p>`:'';
   const hasHeroImage=Boolean(activePlace.imageUrl);
   const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.toggle('festival-detail',activePlace.type==='festival');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div>${imageSourceLink}<div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
