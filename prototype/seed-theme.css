@@ -1261,6 +1261,19 @@ button:focus-visible, input:focus-visible {
 }
 
 .entry-actions { display: grid; gap: 10px; margin-top: 26px; }
+.onboarding-card .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.onboarding-card .primary-button span {
+  display: inline-grid;
+  margin-left: 0;
+  place-items: center;
+  line-height: 1;
+  transform: translateY(-1px);
+}
 .onboarding-card.showing-guide .onboarding-brand { margin-bottom: 24px; }
 .onboarding-card.showing-guide .question-progress { display: none; }
 .usage-guide { animation: usage-guide-in 320ms ease both; }

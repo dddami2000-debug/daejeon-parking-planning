@@ -1379,7 +1379,7 @@ function showResult(){
   $('#progressBar').style.width='100%';
   const labels={solo:'혼자',friends:'연인·친구',family:'가족',festival:'축제',experience:'체험',mood:'감성',rest:'휴식',near:'가까운 지역 위주',any:'전국 어디든',indoor:'실내 위주',both:'실내·야외 모두'};
   const selected=Object.values(visitConditions).map(value=>labels[value]).filter(Boolean);
-  $('#questionArea').innerHTML=`<p class="test-kicker">방문 조건 설정 완료</p><h2>오늘 갈 수 있는 곳만<br />차분히 골라볼게요.</h2><div class="result-tags">${selected.map(label=>`<span>${escapeHtml(label)}</span>`).join('')}</div><div class="result-trust-copy"><b>이렇게 추천해요.</b><span>방문 조건과 행사 일정으로 먼저 추천하고, 즐겨찾기한 축제를 바탕으로 다음 추천을 더 내 취향에 맞춰가요.</span></div><button class="primary-button" id="finishTest">맞춤 축제 둘러보기 <span>→</span></button>`;
+  $('#questionArea').innerHTML=`<p class="test-kicker">방문 조건 설정 완료</p><h2>이제 나에게 맞는 축제를<br />만나볼 차례예요.</h2><div class="result-tags">${selected.map(label=>`<span>${escapeHtml(label)}</span>`).join('')}</div><div class="result-trust-copy"><b>이렇게 추천해요.</b><span>설정한 취향과 여행 날짜를 바탕으로 축제를 추천해요. 즐겨찾기할수록 추천이 더 내 취향에 가까워져요.</span></div><button class="primary-button" id="finishTest">맞춤 축제 둘러보기 <span>→</span></button>`;
   $('#finishTest').addEventListener('click',()=>closeOnboarding(true));
 }
 
