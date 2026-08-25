@@ -10,6 +10,7 @@ const {
   sourceUrlsFromResponse
 } = require('../api/_landmark-enrichment');
 const { shouldEnrich } = require('../api/enrich-landmarks');
+const { imageMatchFor, shouldFillImage } = require('../api/fill-landmark-images');
 
 const response = {
   output: [{
@@ -87,4 +88,20 @@ test('does not endlessly re-enrich a completed landmark without an image or summ
     image_url: null,
     metadata: { landmark_enrichment: { enriched_at: '2026-08-25T00:00:00.000Z' } }
   }, false), false);
+});
+
+test('uses a Korea Tourism Organization image only for an exact landmark-name match', () => {
+  const match = imageMatchFor({ name: '대전시립미술관' }, [{
+    title: '대전시립미술관', contentid: '1234', firstimage: 'https://cdn.visitkorea.or.kr/museum.jpg'
+  }]);
+  assert.equal(match.imageUrl, 'https://cdn.visitkorea.or.kr/museum.jpg');
+  assert.equal(imageMatchFor({ name: '대전시립미술관' }, [{
+    title: '대전시립박물관', firstimage: 'https://cdn.visitkorea.or.kr/wrong.jpg'
+  }]), null);
+});
+
+test('marks unmatched Korea Tourism Organization image attempts as completed', () => {
+  assert.equal(shouldFillImage({ metadata: { landmark_enrichment: {
+    enriched_at: '2026-08-25T00:00:00.000Z', kto_image_checked_at: '2026-08-25T00:01:00.000Z'
+  } } }, false), false);
 });

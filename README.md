@@ -43,10 +43,13 @@
 - `GET /api/parking?lat=...&lng=...` — 목적지 주변 주차장 및 예상 요금 조회
 - `GET|POST /api/sync?dataset=festival|landmark|parking|sharenuri` — 데이터 수집·동기화
 - `GET|POST /api/enrich-landmarks?limit=4` — OpenAI 웹 검색으로 공식 사진과 장소별 방문 안내를 보강
+- `GET|POST /api/fill-landmark-images?limit=4` — 한국관광공사 TourAPI 대표 사진을 장소명 정확 일치 기준으로 보강
 
 축제 데이터에 좌표가 없을 때는 주소를 좌표화해 지도 표시를 보완합니다. 데이터 수집 실패가 발생해도 다른 데이터셋 동기화는 계속 진행되도록 구성했습니다.
 
 랜드마크 보강 작업은 `CRON_SECRET` 또는 수동 실행 전용 `ENRICH_ADMIN_TOKEN` 인증이 필요한 관리자용 작업입니다. 대전시·대전관광·한국관광공사 도메인과 각 장소의 공공데이터 공식 홈페이지 도메인만 검색 대상으로 제한하고, 대표 이미지 URL·출처 페이지·짧은 방문 안내를 `places.metadata.landmark_enrichment`에 저장합니다. 화면 요청마다 AI를 호출하지 않으므로 반복 비용이 발생하지 않습니다.
+
+공식 웹 검색에서 사진을 찾지 못한 장소는 한국관광공사 TourAPI의 대전 관광지 목록과 이름을 정확히 대조해 대표 사진을 한 번 더 보강한다. 이름이 정확히 일치할 때만 저장해 다른 장소 사진이 섞이지 않도록 한다.
 
 운영자가 최초 데이터를 채울 때는 `node prototype/scripts/enrich-landmarks-once.js .env.local 4`처럼 소량씩 실행할 수도 있습니다.
 

@@ -4,6 +4,9 @@
     "api/sync.js": {
       "maxDuration": 60
     },
+    "api/fill-landmark-images.js": {
+      "maxDuration": 60
+    },
     "api/enrich-landmarks.js": {
       "maxDuration": 60
     }
