@@ -67,7 +67,7 @@ Vercel은 현재 **포크 `sjndox/daejeon-parking-planning`** 에 연결되어 �
 | 랜드마크 | 대전광역시 문화관광(관광지) API | 사용 중 |
 | 주차장 | 대전광역시 실시간 주차장 정보 API | 사용 중. 공영·노상 데이터 포함 |
 | 공공기관 주차장 | 공유누리 API | 보류. 승인·응답 데이터 품질 확인 필요 |
-| 날씨 | 기상청 단기예보 → Open-Meteo fallback | 구현 완료. `KMA_WEATHER_API_KEY`는 Vercel Production에 등록, Preview에는 미등록 |
+| 날씨 | 기상청 단기예보 → Open-Meteo fallback | Production 배포·기상청 실응답 검증 완료. Preview에는 기상청 키 미등록 |
 
 ### API 엔드포인트
 
@@ -111,7 +111,7 @@ CRON_SECRET
 OPENAI_API_KEY
 ```
 
-`KMA_WEATHER_API_KEY`는 Vercel Production에만 등록했다. Preview는 키가 없어 Open-Meteo를 사용하며, Production에서는 기상청 요청이 실패할 때만 Open-Meteo로 전환된다. 배포 응답의 `weather.source`가 `kma`인지 확인하면 실제 적용 여부를 판단할 수 있다.
+`KMA_WEATHER_API_KEY`는 Vercel Production에만 등록했다. Preview는 키가 없어 Open-Meteo를 사용하며, Production에서는 기상청 요청이 실패할 때만 Open-Meteo로 전환된다. 2026-08-25 Production 실응답에서 `weather.source: "kma"`, `fallbackUsed: false`를 확인했다.
 
 `prototype/.env.example`에는 현재 네이버 Geocoding 환경 변수 두 개가 빠져 있다. 다음 환경 변수 정리 작업 때 함께 추가하면 된다.
 
@@ -178,6 +178,6 @@ npx --yes vercel@latest ls daejeon-parking-planning --scope asdf-a266
 1. 원본→포크 GitHub Actions 자동 동기화 완성(PR #3 + 원본 소유자 Secret 등록).
 2. README PR #4 검토·병합.
 3. 공유누리 API 응답을 다시 검증하고, 유효한 공공기관 주차장만 병합.
-4. Preview에서 Open-Meteo fallback과 새 추천 점수 동작은 검증 완료. 명시적인 배포 승인 후 포크 `main`에 반영하고 Production 응답의 `weather.source: "kma"`를 확인.
+4. 체감온도 기반 추천은 포크 `main`과 Vercel Production 반영 및 기상청 실응답 검증 완료. 원본 저장소 반영을 위한 PR 생성·검토가 남아 있음.
 5. OpenAI API를 이용한 취향 테스트 결과 설명·추천 문구를 서버에서 생성하도록 고도화.
 6. 휴대폰 Production URL로 지도, 바텀시트, 주차장 전환, 외부 길안내를 최종 점검.
