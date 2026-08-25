@@ -9,6 +9,7 @@ const {
   buildNaverUrl,
   buildNaverWebUrl,
   buildTmapRedirectUrl,
+  initializeKakaoNavi,
   normalizeDestination,
   platformFromUserAgent
 } = require('../navigation-links');
@@ -60,6 +61,25 @@ test('builds a local TMAP redirect without putting an app key in browser code', 
   assert.equal(tmap.searchParams.get('name'), destination.name);
   assert.equal(tmap.searchParams.get('lat'), String(destination.lat));
   assert.equal(tmap.searchParams.has('appKey'), false);
+});
+
+test('initializes Kakao before checking and using the Navi module', () => {
+  let initializedKey = null;
+  const kakao = {
+    initialized: false,
+    isInitialized() { return this.initialized; },
+    init(key) {
+      initializedKey = key;
+      this.initialized = true;
+      this.Navi = { start() {} };
+    }
+  };
+
+  assert.equal(initializeKakaoNavi(kakao, ' kakao-javascript-key '), true);
+  assert.equal(initializedKey, 'kakao-javascript-key');
+  assert.equal(initializeKakaoNavi(kakao, 'kakao-javascript-key'), true);
+  assert.equal(initializeKakaoNavi(null, 'kakao-javascript-key'), false);
+  assert.equal(initializeKakaoNavi(kakao, ''), false);
 });
 
 test('rejects out-of-country coordinates and detects mobile platforms', () => {
