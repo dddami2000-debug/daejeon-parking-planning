@@ -83,7 +83,7 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
   assert.match(indexSource, /seed-theme\.css\?v=63/);
-  assert.match(indexSource, /app\.js\?v=57/);
+  assert.match(indexSource, /app\.js\?v=58/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=57/);
+  assert.match(indexSource, /app\.js\?v=58/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
