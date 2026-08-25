@@ -133,7 +133,7 @@ function openAiRequestBody(model, place, official) {
   const body = {
     model,
     store: false,
-    max_output_tokens: 900,
+    max_output_tokens: 2400,
     tool_choice: 'required',
     tools: [{
       type: 'web_search',
@@ -194,8 +194,13 @@ async function callOpenAiFestivalSearch(place, official) {
       const message = cleanText(payload?.error?.message || payload?.message).slice(0, 180);
       throw new Error(`openai_http_${response.status}${message ? `_${message}` : ''}`);
     }
-    const parsed = parseModelJson(responseOutputText(payload));
-    if (!parsed) throw new Error('openai_invalid_json');
+    const outputText = responseOutputText(payload);
+    const parsed = parseModelJson(outputText);
+    if (!parsed) {
+      const responseStatus = cleanText(payload?.status) || 'unknown';
+      const incompleteReason = cleanText(payload?.incomplete_details?.reason) || 'none';
+      throw new Error(`openai_invalid_json_status_${responseStatus}_reason_${incompleteReason}_text_${outputText ? 'present' : 'empty'}`);
+    }
     return {
       content: normalizeOpenAiContent(parsed),
       sourceUrls: sourceUrlsFromResponse(payload),
