@@ -127,7 +127,8 @@ let parkingMarkers = [];
 let currentLocationMarker = null;
 let userPosition = null;
 let isPlaceFocused = false;
-let rankingFilter = 'festival';
+let rankingFilter = 'popular';
+let festivalDateFilter = {start:null,end:null};
 const overviewPosition = {lat:36.3515,lng:127.4050,zoom:13};
 let previousMapView = {...overviewPosition};
 let placeSourceAttribution = '';
@@ -142,8 +143,15 @@ let plannerDismissTimer = null;
 let recommendSheetDrag = null;
 let suppressRecommendSheetGestureClick = false;
 let tasteProfile = readTasteProfile();
+const GESTURE_VELOCITY_THRESHOLD = .11;
 
 function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
+function gestureVelocity(distance,startTime){return distance/Math.max(1,performance.now()-startTime);}
+function dampGestureValue(value,min,max){
+  if(value<min)return min-(min-value)*.18;
+  if(value>max)return max+(value-max)*.18;
+  return value;
+}
 function emptyTasteScores(){return Object.fromEntries(tasteTypes.map(type=>[type,0]));}
 function validTasteScores(scores){
   if(!scores||tasteTypes.some(type=>!Number.isFinite(Number(scores[type]))))return false;
@@ -212,6 +220,51 @@ function festivalTimingScore(place){
   if(today>=start)return 100;
   const days=Math.ceil((start-today)/86400000);
   return days<=7?90:days<=30?75:60;
+}
+function koreaDateTime(value,endOfDay=false){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return NaN;
+  return Date.parse(`${value}T${endOfDay?'23:59:59':'00:00:00'}+09:00`);
+}
+function activeFestivalDateRange(){
+  const startValue=festivalDateFilter.start||festivalDateFilter.end;
+  const endValue=festivalDateFilter.end||festivalDateFilter.start;
+  if(!startValue||!endValue)return null;
+  const first=Math.min(koreaDateTime(startValue),koreaDateTime(endValue));
+  const last=Math.max(koreaDateTime(startValue,true),koreaDateTime(endValue,true));
+  if(!Number.isFinite(first)||!Number.isFinite(last))return null;
+  return {start:first,end:last,startValue:startValue<=endValue?startValue:endValue,endValue:startValue<=endValue?endValue:startValue};
+}
+function festivalMatchesDateFilter(place,range=activeFestivalDateRange()){
+  if(place.type!=='festival'||festivalTimingScore(place)<=0)return false;
+  if(!range)return true;
+  const festivalStart=koreaDateTime(place.startDate);
+  const festivalEnd=koreaDateTime(place.endDate,true);
+  if(!Number.isFinite(festivalStart)||!Number.isFinite(festivalEnd))return false;
+  return festivalStart<=range.end&&festivalEnd>=range.start;
+}
+function filteredFestivals(){return places.filter(place=>festivalMatchesDateFilter(place));}
+function shortKoreanDate(value){
+  const [,month,day]=String(value||'').split('-');
+  return month&&day?`${Number(month)}.${Number(day)}`:'';
+}
+function festivalFilterLabel(count){
+  const range=activeFestivalDateRange();
+  if(!range)return `전체 일정 · ${count}개`;
+  const dateLabel=range.startValue===range.endValue?shortKoreanDate(range.startValue):`${shortKoreanDate(range.startValue)}–${shortKoreanDate(range.endValue)}`;
+  return `${dateLabel} · ${count}개`;
+}
+function festivalDeadlineValue(place){
+  const end=koreaDateTime(place.endDate,true);
+  return Number.isFinite(end)?end:Number.POSITIVE_INFINITY;
+}
+function festivalDeadlineLabel(place){
+  const end=festivalDeadlineValue(place);
+  if(!Number.isFinite(end))return '마감일 확인';
+  const endDate=koreaDateTime(place.endDate);
+  const days=Math.max(0,Math.ceil((endDate-todayInKorea())/86400000));
+  if(days===0)return '오늘 마감';
+  if(days<=7)return `마감 D-${days}`;
+  return `${shortKoreanDate(place.endDate)} 마감`;
 }
 function distanceRecommendationScore(place){
   const distance=Number(place.distance);
@@ -444,9 +497,10 @@ async function loadParkingForActivePlace(){
 }
 
 function renderFestivals(){
-  const festivalPlaces = places
-    .filter(place=>place.type==='festival'&&festivalTimingScore(place)>0)
+  const festivalPlaces = filteredFestivals()
     .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||a.distance-b.distance);
+  $('#festivalFilterStatus').textContent=festivalFilterLabel(festivalPlaces.length);
+  $('#festivalDateTrigger').classList.toggle('has-value',Boolean(festivalDateFilter.start||festivalDateFilter.end));
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
     const match=tasteMatchFor(place);
     const total=recommendationScoreFor(place);
@@ -454,15 +508,18 @@ function renderFestivals(){
     const category=compactPlaceCategory(place);
     const area=compactPlaceArea(place);
     return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${category}, ${matchBadge}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(category)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-score">${escapeHtml(matchBadge)}</span><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
-  }).join(''):'<p class="map-status">불러온 축제 정보가 아직 없어요.</p>';
+  }).join(''):`<div class="festival-filter-empty"><b>선택한 날짜에 열리는 축제가 없어요.</b><span>기간을 넓히거나 ‘전체’를 눌러보세요.</span></div>`;
   document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
 
 function renderRankings(){
-  const ranked=places
-    .filter(place=>place.type===rankingFilter)
-    .filter(place=>festivalTimingScore(place)>0)
-    .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99))
+  const isDeadline=rankingFilter==='deadline';
+  $('#rankingTitle').textContent=isDeadline?'마감 임박 순위':'축제 인기 순위';
+  $('#rankingMetric').textContent=isDeadline?'종료일 가까운 순':'취향·거리 반영';
+  const ranked=filteredFestivals()
+    .sort((a,b)=>isDeadline
+      ? festivalDeadlineValue(a)-festivalDeadlineValue(b)||recommendationScoreFor(b)-recommendationScoreFor(a)
+      : recommendationScoreFor(b)-recommendationScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99))
     .slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const category=compactPlaceCategory(place);
@@ -470,29 +527,85 @@ function renderRankings(){
     const match=tasteMatchFor(place);
     const total=recommendationScoreFor(place);
     const scoreCopy=match===null?`추천 ${total}점`:`취향 ${match}% · 추천 ${total}점`;
-    return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${category}, ${scoreCopy}, ${area} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(`${category} · ${scoreCopy}`)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span></span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
-  }).join(''):'<p class="ranking-empty">표시할 순위 정보가 아직 없어요.</p>';
+    const deadline=isDeadline?`<em>${escapeHtml(festivalDeadlineLabel(place))}</em>`:'';
+    return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${category}, ${scoreCopy}, ${area}${isDeadline?`, ${festivalDeadlineLabel(place)}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(`${category} · ${scoreCopy}`)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
+  }).join(''):'<p class="ranking-empty">선택한 날짜에 순위를 표시할 축제가 없어요.</p>';
   document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
 }
 
+function applyFestivalDateFilter(changedField){
+  const startInput=$('#festivalStartDate');
+  const endInput=$('#festivalEndDate');
+  if(startInput.value&&endInput.value&&startInput.value>endInput.value){
+    if(changedField==='start')endInput.value=startInput.value;
+    else startInput.value=endInput.value;
+  }
+  festivalDateFilter={start:startInput.value||null,end:endInput.value||null};
+  renderFestivals();
+  renderRankings();
+  renderMap();
+}
+
+function clearFestivalDateFilter(){
+  $('#festivalStartDate').value='';
+  $('#festivalEndDate').value='';
+  festivalDateFilter={start:null,end:null};
+  renderFestivals();
+  renderRankings();
+  renderMap();
+}
+
+function setFestivalDateFilterOpen(open){
+  const filter=$('#festivalDateFilter');
+  const trigger=$('#festivalDateTrigger');
+  filter.hidden=!open;
+  trigger.classList.toggle('is-open',open);
+  trigger.setAttribute('aria-expanded',String(open));
+}
+
 function groupPlacesForZoom(visible,zoom){
-  const threshold=zoom<=12?2.4:zoom===13?1.35:zoom===14?.55:0;
-  if(!threshold)return visible.map(place=>({places:[place],lat:Number(place.lat),lng:Number(place.lng)}));
-  const groups=[];
-  visible.forEach(place=>{
-    const group=groups.find(candidate=>candidate.places.some(item=>haversineDistance(Number(item.lat),Number(item.lng),Number(place.lat),Number(place.lng))<=threshold));
-    if(group)group.places.push(place);
-    else groups.push({places:[place]});
+  const withCenter=places=>({
+    places,
+    lat:places.reduce((sum,place)=>sum+Number(place.lat),0)/places.length,
+    lng:places.reduce((sum,place)=>sum+Number(place.lng),0)/places.length
   });
-  return groups.map(group=>({
-    ...group,
-    lat:group.places.reduce((sum,place)=>sum+Number(place.lat),0)/group.places.length,
-    lng:group.places.reduce((sum,place)=>sum+Number(place.lng),0)/group.places.length
-  }));
+  let groups=visible.map(place=>withCenter([place]));
+  if(!naverMap?.getProjection||!groups.length)return groups;
+  const minGap=zoom<=12?78:68;
+  const projection=naverMap.getProjection();
+
+  for(let pass=0;pass<visible.length;pass++){
+    let offsets;
+    try{
+      offsets=groups.map(group=>projection.fromCoordToOffset(new naver.maps.LatLng(group.lat,group.lng)));
+    }catch{return groups;}
+    const parent=groups.map((_,index)=>index);
+    const find=index=>{while(parent[index]!==index){parent[index]=parent[parent[index]];index=parent[index];}return index;};
+    const unite=(left,right)=>{const leftRoot=find(left),rightRoot=find(right);if(leftRoot!==rightRoot)parent[rightRoot]=leftRoot;};
+    for(let left=0;left<offsets.length;left++){
+      for(let right=left+1;right<offsets.length;right++){
+        if(Math.abs(offsets[left].x-offsets[right].x)<minGap&&Math.abs(offsets[left].y-offsets[right].y)<minGap)unite(left,right);
+      }
+    }
+    const merged=new Map();
+    groups.forEach((group,index)=>{
+      const root=find(index);
+      merged.set(root,[...(merged.get(root)||[]),...group.places]);
+    });
+    if(merged.size===groups.length)break;
+    groups=[...merged.values()].map(withCenter);
+  }
+  return groups;
+}
+
+function clusterTypeLabel(places){
+  const types=new Set(places.map(place=>place.type));
+  if(types.size>1)return '';
+  return types.has('festival')?'축제':'명소';
 }
 
 function renderMap(){
-  const visible = places.filter(hasCoordinates);
+  const visible = places.filter(place=>hasCoordinates(place)&&(place.type!=='festival'||festivalMatchesDateFilter(place)));
   renderNearbyPanel(visible);
   if(!naverMap)return;
   placeMarkers.forEach(marker=>marker.setMap(null));
@@ -501,13 +614,14 @@ function renderMap(){
   if(isPlaceFocused){
     if(!hasCoordinates(activePlace))return;
     const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
-    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker" style="--pin:${activePlace.color}" aria-label="선택한 장소"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span></span>`,anchor:new naver.maps.Point(24,46)}})];
+    const focusedPinClass=activePlace.type==='festival'?'place-pin-festival':'place-pin-landmark';
+    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker ${focusedPinClass}" style="--pin:${activePlace.color}" aria-label="선택한 장소"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span></span>`,anchor:new naver.maps.Point(24,46)}})];
     const recommendedParkings=currentParkingList();
     const otherParkings=allParkingCandidates().filter(parking=>!recommendedParkings.some(recommended=>recommended.name===parking.name));
     parkingMarkers=recommendedParkings.map((parking,index)=>{
       const position=parkingPosition(index,parking);
       const parkingId=encodeURIComponent(parking.id||parking.name);
-      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker rank-${index+1}" aria-label="${escapeHtml(parking.planOption)} ${escapeHtml(parking.planCriterion)} ${escapeHtml(parking.name)}" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'),${index+1})"><span>${escapeHtml(parking.planOption)}</span><b>${escapeHtml(parking.name)}</b><small>${escapeHtml(parking.planCriterion)} · ${formatCost(parking)} · 도보 ${parking.walk}분</small></button>`,anchor:new naver.maps.Point(74,54)}});
+      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker parking-rank-dot rank-${index+1}" aria-label="${index+1}번 추천, ${escapeHtml(parking.planCriterion)}, ${escapeHtml(parking.name)}" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'),${index+1})"><span>${index+1}</span></button>`,anchor:new naver.maps.Point(18,18)}});
     });
     parkingMarkers.push(...otherParkings.map((parking,index)=>{
       const parkingId=encodeURIComponent(parking.id||parking.name);
@@ -518,19 +632,22 @@ function renderMap(){
   const zoom=naverMap.getZoom();
   placeMarkers=groupPlacesForZoom(visible,zoom).map(group=>{
     if(group.places.length>1){
-      const label=group.places.some(place=>place.type==='festival')?'축제·명소':'대전 명소';
-      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`${label} ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker" aria-label="${escapeHtml(label)} ${group.places.length}곳 확대해서 보기"><b>${group.places.length}</b><span>${escapeHtml(label)}</span></button>`,anchor:new naver.maps.Point(38,28)}});
-      naver.maps.Event.addListener(marker,'click',()=>focusMapOn(new naver.maps.LatLng(group.lat,group.lng),Math.min(15,zoom+2),'overview',600));
+      const label=clusterTypeLabel(group.places);
+      const accessibleLabel=label||'축제·명소';
+      const clusterColor=label==='축제'?'#ff4f64':label==='명소'?'#7454e8':'#25465e';
+      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`${accessibleLabel} ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker" style="--cluster-color:${clusterColor}" aria-label="${escapeHtml(accessibleLabel)} ${group.places.length}곳 확대해서 보기"><span>${escapeHtml(label)}</span><b>${group.places.length}</b></button>`,anchor:new naver.maps.Point(31,31)}});
+      naver.maps.Event.addListener(marker,'click',()=>focusMapOn(new naver.maps.LatLng(group.lat,group.lng),Math.min(18,zoom+2),'overview',600));
       return marker;
     }
     const place=group.places[0];
+    const pinClass=place.type==='festival'?'place-pin-festival':'place-pin-landmark';
     const marker=new naver.maps.Marker({
       map:naverMap,
       position:new naver.maps.LatLng(place.lat,place.lng),
       title:place.name,
       zIndex:place.id===activePlace.id?20:10,
       icon:{
-        content:`<button class="map-marker ${place.id===activePlace.id?'active':''}" style="--pin:${place.color}" aria-label="${escapeHtml(place.name)} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${markerVisual(place)}</span></span></button>`,
+        content:`<button class="map-marker ${pinClass} ${place.id===activePlace.id?'active':''}" style="--pin:${place.color}" aria-label="${escapeHtml(place.name)} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${markerVisual(place)}</span></span></button>`,
         anchor:new naver.maps.Point(24,46)
       }
     });
@@ -648,7 +765,7 @@ function initNaverMap(){
     return;
   }
   naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),zoom:overviewPosition.zoom,minZoom:10,maxZoom:18});
-  naver.maps.Event.addListener(naverMap,'zoom_changed',()=>{if(!isPlaceFocused)renderMap();});
+  naver.maps.Event.addListener(naverMap,'idle',()=>{if(!isPlaceFocused)renderMap();});
   renderMap();
   fitAllPlaces();
 }
@@ -690,10 +807,11 @@ function openPlace(id){
   const experience=experienceFor(activePlace);
   const sourceCopy=placeSourceAttribution?`<p class="data-source-note">${escapeHtml(placeSourceAttribution)}</p>`:'';
   const officialLink=experience.officialUrl?`<a class="official-link" href="${escapeHtml(experience.officialUrl)}" target="_blank" rel="noopener">공식 일정 확인 <span>↗</span></a>`:'';
+  const guideLabel=activePlace.type==='festival'?'<span>축제 GUIDE</span>':'';
   const hasHeroImage=Boolean(activePlace.imageUrl);
   const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.toggle('festival-detail',activePlace.type==='festival');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro">${guideLabel}<h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
@@ -722,15 +840,46 @@ function setPlaceSheetExpanded(expanded){
   if(!expanded)sheet.scrollTop=0;
 }
 
+function canStartSheetDrag(event,sheet,grabberSelector){
+  const target=event.target;
+  if(!(target instanceof Element)||!sheet.contains(target))return false;
+  if(target.closest(grabberSelector))return true;
+  if(target.closest('button, a, input, select, textarea, label, [role="button"], [contenteditable="true"]'))return false;
+  const contentBlock=target.closest([
+    '.place-hero-rich',
+    '.festival-chip-row',
+    '.place-intro',
+    '.festival-facts > div',
+    '.recommend-reason',
+    '.festival-activity-grid article',
+    '.festival-tip',
+    '.festival-actions',
+    '.planner-head',
+    '.time-form',
+    '.parking-summary',
+    '.parking-item',
+    '.data-note',
+    '.parking-info-kicker',
+    '.parking-info-grid > div',
+    '.parking-info-reason',
+    '.parking-info-actions'
+  ].join(','));
+  return !contentBlock;
+}
+
 function beginPlaceSheetDrag(event){
   if(event.button!==undefined&&event.button!==0)return;
+  if(placeSheetDrag)return;
   const sheet=$('#placeSheet');
   if(!sheet.classList.contains('show'))return;
+  if(!canStartSheetDrag(event,sheet,'.place-sheet-grabber'))return;
+  event.preventDefault();
   setPlaceSheetHeights();
   const styles=getComputedStyle(sheet);
   placeSheetDrag={
     pointerId:event.pointerId,
     startY:event.clientY,
+    startTime:performance.now(),
     startHeight:sheet.getBoundingClientRect().height,
     minHeight:Math.min(220,parseFloat(styles.getPropertyValue('--place-sheet-peek-height'))*.55),
     maxHeight:parseFloat(styles.getPropertyValue('--place-sheet-full-height')),
@@ -745,7 +894,7 @@ function movePlaceSheetDrag(event){
   if(!placeSheetDrag||event.pointerId!==placeSheetDrag.pointerId)return;
   const delta=placeSheetDrag.startY-event.clientY;
   if(Math.abs(delta)>6)placeSheetDrag.moved=true;
-  const nextHeight=Math.max(placeSheetDrag.minHeight,Math.min(placeSheetDrag.maxHeight,placeSheetDrag.startHeight+delta));
+  const nextHeight=dampGestureValue(placeSheetDrag.startHeight+delta,placeSheetDrag.minHeight,placeSheetDrag.maxHeight);
   $('#placeSheet').style.setProperty('--place-sheet-drag-height',`${nextHeight}px`);
   if(placeSheetDrag.moved)event.preventDefault();
 }
@@ -754,15 +903,16 @@ function endPlaceSheetDrag(event){
   if(!placeSheetDrag||event.pointerId!==placeSheetDrag.pointerId)return;
   const drag=placeSheetDrag;
   const delta=drag.startY-event.clientY;
+  const velocity=gestureVelocity(delta,drag.startTime);
   placeSheetDrag=null;
   if(drag.moved){
     suppressPlaceSheetGestureClick=true;
     window.setTimeout(()=>{suppressPlaceSheetGestureClick=false;},0);
   }
-  if(delta<-58){
+  if(delta<-58||velocity<-GESTURE_VELOCITY_THRESHOLD){
     if(drag.expanded)setPlaceSheetExpanded(false);
     else resetMapFocus();
-  }else if(!drag.expanded&&delta>48){
+  }else if(!drag.expanded&&(delta>48||velocity>GESTURE_VELOCITY_THRESHOLD)){
     setPlaceSheetExpanded(true);
   }else{
     setPlaceSheetExpanded(drag.expanded);
@@ -773,52 +923,58 @@ function resetPlannerSheetDrag(){
   window.clearTimeout(plannerDismissTimer);
   plannerDismissTimer=null;
   plannerSheetDrag=null;
-  const sheet=$('#plannerSheet');
-  sheet.classList.remove('is-dragging','is-dismissing');
-  sheet.style.removeProperty('--planner-drag-y');
+  document.querySelectorAll('#plannerSheet, #parkingInfoSheet').forEach(sheet=>{
+    sheet.classList.remove('is-dragging','is-dismissing');
+    sheet.style.removeProperty('transform');
+  });
 }
 
 function beginPlannerSheetDrag(event){
   if(event.button!==undefined&&event.button!==0)return;
-  const sheet=$('#plannerSheet');
+  if(plannerSheetDrag)return;
+  const sheet=event.currentTarget;
   if(!sheet.classList.contains('show'))return;
+  if(!canStartSheetDrag(event,sheet,'.planner-sheet-grabber, .sheet-handle'))return;
+  event.preventDefault();
   resetPlannerSheetDrag();
-  plannerSheetDrag={pointerId:event.pointerId,startY:event.clientY,moved:false};
+  plannerSheetDrag={pointerId:event.pointerId,startY:event.clientY,startTime:performance.now(),moved:false,sheet};
   sheet.classList.add('is-dragging');
   if(event.pointerId!==undefined){try{event.currentTarget.setPointerCapture?.(event.pointerId);}catch{/* Pointer capture is optional. */}}
 }
 
 function movePlannerSheetDrag(event){
   if(!plannerSheetDrag||event.pointerId!==plannerSheetDrag.pointerId)return;
+  const sheet=plannerSheetDrag.sheet;
   const delta=Math.max(0,event.clientY-plannerSheetDrag.startY);
   if(delta>5)plannerSheetDrag.moved=true;
-  $('#plannerSheet').style.setProperty('--planner-drag-y',`${Math.min(delta,$('#plannerSheet').offsetHeight)}px`);
+  sheet.style.transform=`translateY(${dampGestureValue(delta,0,sheet.offsetHeight)}px)`;
   if(plannerSheetDrag.moved)event.preventDefault();
 }
 
 function endPlannerSheetDrag(event){
   if(!plannerSheetDrag||event.pointerId!==plannerSheetDrag.pointerId)return;
   const drag=plannerSheetDrag;
-  const sheet=$('#plannerSheet');
+  const sheet=drag.sheet;
   const delta=Math.max(0,event.clientY-drag.startY);
+  const velocity=gestureVelocity(delta,drag.startTime);
   plannerSheetDrag=null;
   if(drag.moved){
     suppressPlannerSheetGestureClick=true;
     window.setTimeout(()=>{suppressPlannerSheetGestureClick=false;},0);
   }
   sheet.classList.remove('is-dragging');
-  if(delta>64){
+  if(delta>64||velocity>GESTURE_VELOCITY_THRESHOLD){
     sheet.classList.add('is-dismissing');
-    sheet.style.setProperty('--planner-drag-y',`${Math.max(delta,Math.round(sheet.offsetHeight*.38))}px`);
+    sheet.style.transform=`translateY(${Math.max(delta,Math.round(sheet.offsetHeight*.38))}px)`;
     plannerDismissTimer=window.setTimeout(()=>{
       plannerDismissTimer=null;
       sheet.classList.remove('is-dismissing');
-      sheet.style.removeProperty('--planner-drag-y');
+      sheet.style.removeProperty('transform');
       closeSheets();
     },220);
     return;
   }
-  sheet.style.removeProperty('--planner-drag-y');
+  sheet.style.removeProperty('transform');
 }
 
 function showSheet(selector){
@@ -1074,11 +1230,15 @@ function setRecommendationsState(state){
   const handle=$('#recommendSheetHandle');
   handle.setAttribute('aria-expanded',String(expanded));
   handle.setAttribute('aria-label',collapsed?'추천 펼치기':expanded?'추천 기본 높이로 줄이기':'추천 순위까지 펼치기');
-  if(!expanded)section.scrollTop=0;
+  if(!expanded){
+    section.scrollTop=0;
+    setFestivalDateFilterOpen(false);
+  }
 }
 
 function beginRecommendSheetDrag(event){
   if(event.button!==undefined&&event.button!==0)return;
+  if(recommendSheetDrag)return;
   const section=$('.recommend-section');
   if($('.app-shell').classList.contains('is-place-focused'))return;
   const state=recommendationState();
@@ -1091,6 +1251,7 @@ function beginRecommendSheetDrag(event){
   recommendSheetDrag={
     pointerId:event.pointerId,
     startY:event.clientY,
+    startTime:performance.now(),
     startOffset,
     state,
     moved:false,
@@ -1098,7 +1259,7 @@ function beginRecommendSheetDrag(event){
     collapsedOffset
   };
   section.classList.add('is-dragging');
-  section.style.setProperty('--recommend-drag-y',`${recommendSheetDrag.startOffset}px`);
+  section.style.transform=`translateY(${recommendSheetDrag.startOffset}px)`;
   if(event.pointerId!==undefined){try{event.currentTarget.setPointerCapture?.(event.pointerId);}catch{/* Pointer capture is optional. */}}
 }
 
@@ -1106,8 +1267,8 @@ function moveRecommendSheetDrag(event){
   if(!recommendSheetDrag||event.pointerId!==recommendSheetDrag.pointerId)return;
   const delta=event.clientY-recommendSheetDrag.startY;
   if(Math.abs(delta)>5)recommendSheetDrag.moved=true;
-  const offset=Math.max(0,Math.min(recommendSheetDrag.collapsedOffset,recommendSheetDrag.startOffset+delta));
-  $('.recommend-section').style.setProperty('--recommend-drag-y',`${offset}px`);
+  const offset=dampGestureValue(recommendSheetDrag.startOffset+delta,0,recommendSheetDrag.collapsedOffset);
+  $('.recommend-section').style.transform=`translateY(${offset}px)`;
   if(recommendSheetDrag.moved)event.preventDefault();
 }
 
@@ -1115,6 +1276,7 @@ function endRecommendSheetDrag(event){
   if(!recommendSheetDrag||event.pointerId!==recommendSheetDrag.pointerId)return;
   const drag=recommendSheetDrag;
   const delta=event.clientY-drag.startY;
+  const velocity=gestureVelocity(delta,drag.startTime);
   const endOffset=Math.max(0,Math.min(drag.collapsedOffset,drag.startOffset+delta));
   recommendSheetDrag=null;
   suppressRecommendSheetGestureClick=true;
@@ -1124,12 +1286,12 @@ function endRecommendSheetDrag(event){
   if(isTap){
     nextState=drag.state==='collapsed'?'preview':drag.state==='preview'?'expanded':'preview';
   }else if(drag.state==='expanded'){
-    nextState=delta>54?'preview':'expanded';
+    nextState=delta>54||velocity>GESTURE_VELOCITY_THRESHOLD?'preview':'expanded';
   }else if(drag.state==='collapsed'){
-    nextState=delta<-42?'preview':'collapsed';
-  }else if(delta<-52){
+    nextState=delta<-42||velocity<-GESTURE_VELOCITY_THRESHOLD?'preview':'collapsed';
+  }else if(delta<-52||velocity<-GESTURE_VELOCITY_THRESHOLD){
     nextState='expanded';
-  }else if(delta>52){
+  }else if(delta>52||velocity>GESTURE_VELOCITY_THRESHOLD){
     nextState='collapsed';
   }else{
     const snaps=[['expanded',0],['preview',drag.previewOffset],['collapsed',drag.collapsedOffset]];
@@ -1139,7 +1301,7 @@ function endRecommendSheetDrag(event){
   requestAnimationFrame(()=>{
     const section=$('.recommend-section');
     section.classList.remove('is-dragging');
-    section.style.removeProperty('--recommend-drag-y');
+    section.style.removeProperty('transform');
   });
 }
 
@@ -1151,7 +1313,7 @@ function cancelRecommendSheetDrag(event){
   requestAnimationFrame(()=>{
     const section=$('.recommend-section');
     section.classList.remove('is-dragging');
-    section.style.removeProperty('--recommend-drag-y');
+    section.style.removeProperty('transform');
   });
 }
 
@@ -1202,12 +1364,15 @@ $('#recommendSheetHandle').addEventListener('click',()=>{
   const state=recommendationState();
   setRecommendationsState(state==='collapsed'?'preview':state==='preview'?'expanded':'preview');
 });
+$('#festivalStartDate').addEventListener('change',()=>applyFestivalDateFilter('start'));
+$('#festivalEndDate').addEventListener('change',()=>applyFestivalDateFilter('end'));
+$('#clearFestivalDates').addEventListener('click',clearFestivalDateFilter);
+$('#festivalDateTrigger').addEventListener('click',()=>setFestivalDateFilterOpen($('#festivalDateFilter').hidden));
 document.querySelectorAll('[data-ranking-filter]').forEach(button=>button.addEventListener('click',()=>{
   rankingFilter=button.dataset.rankingFilter;
   document.querySelectorAll('[data-ranking-filter]').forEach(tab=>{const active=tab===button;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));});
   renderRankings();
 }));
-document.querySelectorAll('[data-close-sheet]').forEach(button=>button.addEventListener('click',closeSheets));
 $('#sheetBackdrop').addEventListener('click',closeSheets);
 $('#recalculate').addEventListener('click',()=>{parkingWeather=null;renderParkings();loadParkingForActivePlace();toast('선택한 시간으로 요금을 다시 계산했어요.');});
 $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remove('show'));
@@ -1220,7 +1385,7 @@ $('#searchModal').addEventListener('click',event=>{if(event.target===$('#searchM
 $('#placeSearchForm').addEventListener('submit',event=>{event.preventDefault();renderSearchResults($('#placeSearchInput').value);});
 $('#placeSearchInput').addEventListener('input',()=>renderSearchResults($('#placeSearchInput').value));
 document.querySelectorAll('[data-search-query]').forEach(button=>button.addEventListener('click',()=>{$('#placeSearchInput').value=button.dataset.searchQuery;renderSearchResults(button.dataset.searchQuery);}));
-$('#placeSheetGrabber').addEventListener('pointerdown',beginPlaceSheetDrag);
+$('#placeSheet').addEventListener('pointerdown',beginPlaceSheetDrag);
 document.addEventListener('pointermove',movePlaceSheetDrag,{passive:false});
 document.addEventListener('pointerup',endPlaceSheetDrag);
 document.addEventListener('pointercancel',endPlaceSheetDrag);
@@ -1229,7 +1394,8 @@ $('#placeSheetHandle').addEventListener('click',()=>{
   if($('#placeSheet').classList.contains('is-expanded'))setPlaceSheetExpanded(false);
   else setPlaceSheetExpanded(true);
 });
-$('#plannerSheetGrabber').addEventListener('pointerdown',beginPlannerSheetDrag);
+$('#plannerSheet').addEventListener('pointerdown',beginPlannerSheetDrag);
+$('#parkingInfoSheet').addEventListener('pointerdown',beginPlannerSheetDrag);
 document.addEventListener('pointermove',movePlannerSheetDrag,{passive:false});
 document.addEventListener('pointerup',endPlannerSheetDrag);
 document.addEventListener('pointercancel',endPlannerSheetDrag);
