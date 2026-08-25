@@ -10,6 +10,7 @@ const {
   isDaejeonCoordinate,
   methodNotAllowed,
   normalizeCoordinates,
+  normalizeKoreaCoordinates,
   normalizedServiceKey,
   parseParkingXml,
   sendJson,
@@ -19,7 +20,6 @@ const {
 } = require('./_lib');
 
 const FESTIVAL_URL = 'https://apis.data.go.kr/B551011/KorService2/searchFestival2';
-const TOURSPOT_URL = 'https://apis.data.go.kr/6300000/openapi2022/tourspot/gettourspot';
 const PARKING_URL = 'https://apis.data.go.kr/6300000/pis/parkinglotIF';
 const SHARE_NURI_LIST_URL = 'https://www.eshare.go.kr/eshare-openapi/rsrc/list';
 const SHARE_NURI_DETAIL_URL = 'https://www.eshare.go.kr/eshare-openapi/rsrc/detail';
@@ -49,56 +49,6 @@ function isoDate(value) {
   const match = cleanText(value).match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/);
   if (!match) return null;
   return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`;
-}
-
-function festivalDates(period) {
-  const text = cleanText(period);
-  const matches = [...text.matchAll(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/g)];
-  const dateFromMatch = (match) => `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`;
-  if (!matches.length) return { startDate: null, endDate: null };
-  const startDate = dateFromMatch(matches[0]);
-  if (matches[1]) return { startDate, endDate: dateFromMatch(matches[1]) };
-  const endPart = text.slice(matches[0].index + matches[0][0].length).match(/(?:~|[-–—])\s*(\d{1,2})[.\-/월\s]+(\d{1,2})/);
-  return {
-    startDate,
-    endDate: endPart ? `${matches[0][1]}-${String(endPart[1]).padStart(2, '0')}-${String(endPart[2]).padStart(2, '0')}` : null
-  };
-}
-
-async function fetchPagedDataGov(url, key, source, successCodes = ['00', 'C00'], pageSize = 100) {
-  const requestPage = async (pageNo) => {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const requestUrl = new URL(url);
-        requestUrl.searchParams.set('serviceKey', normalizedServiceKey(key));
-        requestUrl.searchParams.set('pageNo', String(pageNo));
-        requestUrl.searchParams.set('numOfRows', String(pageSize));
-        const payload = dataGovEnvelope(await fetchJson(requestUrl));
-        const resultCode = cleanText(payload?.header?.resultCode);
-        if (resultCode && !successCodes.includes(resultCode)) {
-          const message = cleanText(payload?.header?.resultMsg).replace(/[^\w가-힣 -]/g, '').slice(0, 120);
-          throw new Error(`upstream_result_${resultCode}${message ? `_${message}` : ''}`);
-        }
-        return payload;
-      } catch (error) {
-        if (attempt === 1) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-    }
-  };
-
-  const first = await requestPage(1);
-  const firstItems = getPageItems(first?.body || first);
-  const total = getTotalCount(first, firstItems.length);
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  console.info(JSON.stringify({ event: 'datagov_page_summary', source, total, firstPageItems: firstItems.length, pages }));
-  const rest = [];
-  // 공공 API의 대량 페이지를 한 번에 요청하면 연결이 끊길 수 있어 3개씩만 처리한다.
-  for (let pageNo = 2; pageNo <= pages; pageNo += 3) {
-    const batch = Array.from({ length: Math.min(3, pages - pageNo + 1) }, (_, index) => requestPage(pageNo + index));
-    rest.push(...await Promise.all(batch));
-  }
-  return [first, ...rest].flatMap((payload) => getPageItems(payload?.body || payload));
 }
 
 function isCurrentOrUpcomingFestival(record) {
@@ -239,8 +189,8 @@ async function geocodeAddress(query, credentials) {
     }
   });
   const address = asArray(payload?.addresses)[0];
-  const coordinates = normalizeCoordinates(address?.y, address?.x);
-  return isDaejeonCoordinate(coordinates.latitude, coordinates.longitude) ? coordinates : null;
+  const coordinates = normalizeKoreaCoordinates(address?.y, address?.x);
+  return coordinates.latitude !== null ? coordinates : null;
 }
 
 async function existingFestivalCoordinates() {
@@ -248,7 +198,7 @@ async function existingFestivalCoordinates() {
     const rows = await supabaseRequest(`places?select=external_id,latitude,longitude&source=eq.${FESTIVAL_SOURCE}`);
     return new Map(asArray(rows).map((row) => [
       cleanText(row.external_id),
-      normalizeCoordinates(row.latitude, row.longitude)
+      normalizeKoreaCoordinates(row.latitude, row.longitude)
     ]));
   } catch {
     return new Map();
@@ -262,7 +212,7 @@ async function enrichFestivalCoordinates(records) {
   if (!credentials) {
     return records.map((record) => {
       const saved = savedCoordinates.get(record.external_id);
-      return saved && isDaejeonCoordinate(saved.latitude, saved.longitude)
+      return saved && saved.latitude !== null
         ? { ...record, latitude: saved.latitude, longitude: saved.longitude }
         : record;
     });
@@ -285,7 +235,7 @@ async function enrichFestivalCoordinates(records) {
         // A single ambiguous festival address must not stop the whole daily sync.
       }
     }
-    if (!coordinates && saved && isDaejeonCoordinate(saved.latitude, saved.longitude)) coordinates = saved;
+    if (!coordinates && saved && saved.latitude !== null) coordinates = saved;
     enriched.push({
       ...record,
       latitude: coordinates?.latitude ?? null,
@@ -307,7 +257,7 @@ function mapFestival(item) {
   const period = [startDate, endDate].filter(Boolean).join(' — ');
   const name = cleanText(item.title);
   const address = [item.addr1, item.addr2].map(cleanText).filter(Boolean).join(' ');
-  const coordinates = normalizeCoordinates(item.mapy, item.mapx);
+  const coordinates = normalizeKoreaCoordinates(item.mapy, item.mapx);
   const externalId = cleanText(item.contentid) || `${name}|${period}|${address}`;
   return {
     source: FESTIVAL_SOURCE,
@@ -334,36 +284,6 @@ function mapFestival(item) {
       copyright_type: cleanText(item.cpyrhtDivCd) || null,
       registered_at: cleanText(item.createdtime) || null,
       modified_at: cleanText(item.modifiedtime) || null
-    },
-    synced_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-}
-
-function mapTourspot(item) {
-  const name = cleanText(item.tourspotNm);
-  const address = [item.tourspotAddr, item.tourspotDtlAddr].map(cleanText).filter(Boolean).join(' ');
-  const coordinates = normalizeCoordinates(item.mapLat, item.mapLot);
-  const externalId = cleanText(item.refadNo) || `${name}|${address}`;
-  return {
-    source: 'daejeon_tourspot',
-    external_id: externalId,
-    category: 'landmark',
-    name,
-    address: address || null,
-    latitude: coordinates.latitude,
-    longitude: coordinates.longitude,
-    start_date: null,
-    end_date: null,
-    operating_hours: { raw: cleanText(item.mngTime) || null },
-    description: cleanText(item.tourspotSumm) || null,
-    image_url: null,
-    homepage_url: cleanText(item.urlAddr) || null,
-    metadata: {
-      zip: cleanText(item.tourspotZip) || null,
-      usage_fee: cleanText(item.tourUtlzAmt) || null,
-      ancillary_facilities: cleanText(item.pkgFclt) || null,
-      convenience_facilities: cleanText(item.cnvenFcltGuid) || null
     },
     synced_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -452,10 +372,6 @@ async function syncOne(dataset) {
         (await fetchKtoFestivals()).map(mapFestival).filter(isCurrentOrUpcomingFestival)
       )
     },
-    landmark: {
-      source: 'daejeon_tourspot',
-      run: () => fetchPagedDataGov(TOURSPOT_URL, process.env.TOUR_API_KEY, 'landmark').then((items) => items.map(mapTourspot))
-    },
     parking: {
       source: 'daejeon_parking',
       run: () => fetchParkingRows().then((items) => items.map(mapDaejeonParking).filter((item) => isDaejeonCoordinate(item.latitude, item.longitude)))
@@ -467,11 +383,11 @@ async function syncOne(dataset) {
   };
   const job = jobs[dataset];
   if (!job) throw new Error('unsupported_dataset');
-  const log = await createSyncLog(dataset === 'landmark' ? 'landmark' : dataset === 'festival' ? 'festival' : 'parking', job.source);
+  const log = await createSyncLog(dataset === 'festival' ? 'festival' : 'parking', job.source);
   try {
     const receivedRecords = await job.run();
     const records = dedupeRecords(receivedRecords);
-    const table = dataset === 'festival' || dataset === 'landmark' ? 'places' : 'parking_lots';
+    const table = dataset === 'festival' ? 'places' : 'parking_lots';
     const written = await supabaseUpsert(table, records);
     await finishSyncLog(log, 'success', {
       recordsReceived: receivedRecords.length,
@@ -489,7 +405,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
   if (!isAuthorizedCron(req)) return sendJson(res, 401, { error: 'unauthorized' });
   const requested = cleanText(req.query?.dataset || 'all');
-  const datasets = requested === 'all' ? ['festival', 'landmark', 'parking', 'sharenuri'] : [requested];
+  const datasets = requested === 'all' ? ['festival', 'parking', 'sharenuri'] : [requested];
   const results = await Promise.allSettled(datasets.map(syncOne));
   const summary = results.map((result, index) => result.status === 'fulfilled'
     ? { ok: true, ...result.value }

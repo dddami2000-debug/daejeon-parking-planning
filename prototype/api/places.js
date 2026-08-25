@@ -5,15 +5,15 @@ const {
   supabaseRequest,
   toNumber
 } = require('./_lib');
+const { festivalRegionLabel } = require('../region');
 
-const ALLOWED_CATEGORIES = new Set(['festival', 'landmark']);
+const ALLOWED_CATEGORIES = new Set(['festival']);
 
 function asIsoDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(cleanText(value)) ? cleanText(value) : null;
 }
 
 function dateLabel(place) {
-  if (place.category !== 'festival') return '오늘 추천';
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   const end = asIsoDate(place.end_date);
   if (!end) return '축제';
@@ -30,20 +30,22 @@ function periodLabel(place) {
 }
 
 function mapPlace(place) {
+  const address = cleanText(place.address);
   return {
     id: cleanText(place.id),
     source: cleanText(place.source),
-    type: place.category,
+    type: 'festival',
     name: cleanText(place.name),
-    address: cleanText(place.address),
+    address,
+    region: festivalRegionLabel(address),
     lat: toNumber(place.latitude),
     lng: toNumber(place.longitude),
     startDate: asIsoDate(place.start_date),
     endDate: asIsoDate(place.end_date),
     date: dateLabel(place),
     period: periodLabel(place),
-    hours: cleanText(place.operating_hours?.raw) || (place.category === 'festival' ? '행사 시간 확인' : '운영 시간 확인'),
-    summary: cleanText(place.description) || '대전에서 즐길 수 있는 추천 장소예요.',
+    hours: cleanText(place.operating_hours?.raw) || '행사 시간 확인',
+    summary: cleanText(place.description) || '대전과 근교에서 즐길 수 있는 지역 축제예요.',
     imageUrl: cleanText(place.image_url) || cleanText(place.metadata?.image_url) || null,
     homepageUrl: cleanText(place.homepage_url) || null,
     metadata: place.metadata || {},
@@ -57,19 +59,17 @@ module.exports = async function handler(req, res) {
   if (category && !ALLOWED_CATEGORIES.has(category)) return sendJson(res, 400, { error: 'invalid_category' });
 
   try {
-    const sourceFilter = category === 'landmark'
-      ? '&source=eq.daejeon_tourspot'
-      : '&source=in.(kto_festival,daejeon_festival,daejeon_tourspot)';
-    const categoryFilter = category ? `&category=eq.${category}` : '';
-    const rows = await supabaseRequest(`places?select=id,source,category,name,address,latitude,longitude,start_date,end_date,operating_hours,description,homepage_url,image_url,metadata,updated_at&order=updated_at.desc${sourceFilter}${categoryFilter}`);
-    const mapped = (Array.isArray(rows) ? rows : []).map(mapPlace);
+    const rows = await supabaseRequest('places?select=id,source,category,name,address,latitude,longitude,start_date,end_date,operating_hours,description,homepage_url,image_url,metadata,updated_at&category=eq.festival&source=in.(kto_festival,daejeon_festival)&order=updated_at.desc');
+    const mapped = (Array.isArray(rows) ? rows : [])
+      .filter((place) => place.category === 'festival')
+      .map(mapPlace);
     const hasCurrentFestivalSource = mapped.some((place) => place.source === 'kto_festival');
     const places = hasCurrentFestivalSource
       ? mapped.filter((place) => place.type !== 'festival' || place.source === 'kto_festival')
       : mapped;
     return sendJson(res, 200, {
       places,
-      sourceAttribution: '출처: 한국관광공사 TourAPI · 대전광역시 문화관광(관광지)',
+      sourceAttribution: '출처: 한국관광공사 TourAPI',
       generatedAt: new Date().toISOString()
     }, 'public, s-maxage=300, stale-while-revalidate=600');
   } catch (error) {

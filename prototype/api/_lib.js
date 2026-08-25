@@ -1,4 +1,5 @@
 const DAEJEON_BOUNDS = { minLat: 35.9, maxLat: 36.8, minLng: 127.0, maxLng: 127.7 };
+const KOREA_BOUNDS = { minLat: 33.0, maxLat: 39.0, minLng: 124.0, maxLng: 132.0 };
 
 function sendJson(res, status, body, cacheControl = 'no-store') {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -38,13 +39,27 @@ function isDaejeonCoordinate(lat, lng) {
     && lng >= DAEJEON_BOUNDS.minLng && lng <= DAEJEON_BOUNDS.maxLng;
 }
 
-function normalizeCoordinates(first, second) {
+function isKoreaCoordinate(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= KOREA_BOUNDS.minLat && lat <= KOREA_BOUNDS.maxLat
+    && lng >= KOREA_BOUNDS.minLng && lng <= KOREA_BOUNDS.maxLng;
+}
+
+function normalizeCoordinatePair(first, second, isValid) {
   const a = toNumber(first);
   const b = toNumber(second);
   if (a === null || b === null) return { latitude: null, longitude: null };
-  if (isDaejeonCoordinate(a, b)) return { latitude: a, longitude: b };
-  if (isDaejeonCoordinate(b, a)) return { latitude: b, longitude: a };
+  if (isValid(a, b)) return { latitude: a, longitude: b };
+  if (isValid(b, a)) return { latitude: b, longitude: a };
   return { latitude: null, longitude: null };
+}
+
+function normalizeCoordinates(first, second) {
+  return normalizeCoordinatePair(first, second, isDaejeonCoordinate);
+}
+
+function normalizeKoreaCoordinates(first, second) {
+  return normalizeCoordinatePair(first, second, isKoreaCoordinate);
 }
 
 function decodeXml(value) {
@@ -262,8 +277,10 @@ module.exports = {
   haversineKm,
   isAuthorizedCron,
   isDaejeonCoordinate,
+  isKoreaCoordinate,
   methodNotAllowed,
   normalizeCoordinates,
+  normalizeKoreaCoordinates,
   normalizedServiceKey,
   parkingTypeLabel,
   parseParkingXml,

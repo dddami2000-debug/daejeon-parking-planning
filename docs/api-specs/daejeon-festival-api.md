@@ -84,7 +84,7 @@ GET /getfestv?serviceKey=<server-only-key>&pageNo=1&numOfRows=100
 
 이 API 명세에는 지도 좌표와 세부 운영 시간이 없다.
 
-- `latitude`, `longitude`: 주소를 네이버 Geocoding으로 변환하거나, 한국관광공사 TourAPI의 축제·관광지 상세 정보와 매칭해 보강한다.
+- `latitude`, `longitude`: 한국관광공사 TourAPI 좌표를 사용하고, 좌표가 없으면 주소를 네이버 Geocoding으로 변환해 보강한다.
 - `start_date`, `end_date`: `festvPrid`의 표기 형식이 일정하지 않을 수 있으므로 파싱 실패 시 원문만 보존한다.
 - 행사 운영 시간·이미지·상세 소개: 한국관광공사 TourAPI 상세 정보 또는 공식 홈페이지에서 보강한다.
 
