@@ -255,6 +255,54 @@ function mergeUpdate(place, officialResult, aiResult) {
   };
 }
 
+async function enrichCandidate(place, dryRun) {
+  try {
+    const officialResult = await fetchTourApiDetails(place);
+    const needsOpenAi = !officialResult.content.summary || !officialResult.content.programs.length;
+    let aiResult = null;
+    let aiError = null;
+    if (needsOpenAi) {
+      try { aiResult = await callOpenAiFestivalSearch(place, officialResult.content); }
+      catch (error) { aiError = cleanText(error.message).slice(0, 180); }
+    }
+    const update = mergeUpdate(place, officialResult, aiResult);
+    const content = update.metadata.festival_content;
+    if (!content.summary && !content.programs.length) throw new Error(aiError || officialResult.error || 'festival_content_empty');
+    if (!dryRun) {
+      await supabaseRequest(`places?id=eq.${encodeURIComponent(place.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(update)
+      });
+    }
+    return {
+      id: place.id,
+      name: place.name,
+      ok: true,
+      summarySource: content.summary_source,
+      programsSource: content.programs_source,
+      programs: content.programs.length,
+      tourApiOverview: content.tourapi_available.overview,
+      tourApiProgram: content.tourapi_available.program,
+      aiUsed: Boolean(aiResult),
+      aiModel: aiResult?.model || null,
+      aiError,
+      preview: dryRun ? {
+        summary: content.summary,
+        programs: content.programs,
+        tags: content.tags,
+        audience: content.audience,
+        venue: content.venue,
+        admission: content.admission,
+        operatingHours: content.operating_hours,
+        sourceUrls: content.source_urls
+      } : undefined
+    };
+  } catch (error) {
+    return { id: place.id, name: place.name, ok: false, error: cleanText(error.message).slice(0, 200) };
+  }
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
   const force = cleanText(req.query?.force) === 'true';
@@ -266,54 +314,7 @@ async function handler(req, res) {
     const rows = await supabaseRequest('places?select=id,external_id,name,address,start_date,end_date,description,homepage_url,operating_hours,metadata&source=eq.kto_festival&category=eq.festival&order=updated_at.asc&limit=100');
     const pending = (Array.isArray(rows) ? rows : []).filter((place) => shouldEnrich(place, force));
     const candidates = pending.slice(0, limit);
-    const results = [];
-    for (const place of candidates) {
-      try {
-        const officialResult = await fetchTourApiDetails(place);
-        const needsOpenAi = !officialResult.content.summary || !officialResult.content.programs.length;
-        let aiResult = null;
-        let aiError = null;
-        if (needsOpenAi) {
-          try { aiResult = await callOpenAiFestivalSearch(place, officialResult.content); }
-          catch (error) { aiError = cleanText(error.message).slice(0, 180); }
-        }
-        const update = mergeUpdate(place, officialResult, aiResult);
-        const content = update.metadata.festival_content;
-        if (!content.summary && !content.programs.length) throw new Error(aiError || officialResult.error || 'festival_content_empty');
-        if (!dryRun) {
-          await supabaseRequest(`places?id=eq.${encodeURIComponent(place.id)}`, {
-            method: 'PATCH',
-            headers: { Prefer: 'return=minimal' },
-            body: JSON.stringify(update)
-          });
-        }
-        results.push({
-          id: place.id,
-          name: place.name,
-          ok: true,
-          summarySource: content.summary_source,
-          programsSource: content.programs_source,
-          programs: content.programs.length,
-          tourApiOverview: content.tourapi_available.overview,
-          tourApiProgram: content.tourapi_available.program,
-          aiUsed: Boolean(aiResult),
-          aiModel: aiResult?.model || null,
-          aiError,
-          preview: dryRun ? {
-            summary: content.summary,
-            programs: content.programs,
-            tags: content.tags,
-            audience: content.audience,
-            venue: content.venue,
-            admission: content.admission,
-            operatingHours: content.operating_hours,
-            sourceUrls: content.source_urls
-          } : undefined
-        });
-      } catch (error) {
-        results.push({ id: place.id, name: place.name, ok: false, error: cleanText(error.message).slice(0, 200) });
-      }
-    }
+    const results = await Promise.all(candidates.map((place) => enrichCandidate(place, dryRun)));
     const validated = results.filter((result) => result.ok).length;
     const updated = dryRun ? 0 : validated;
     return sendJson(res, 200, {
@@ -332,6 +333,7 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports.callOpenAiFestivalSearch = callOpenAiFestivalSearch;
+module.exports.enrichCandidate = enrichCandidate;
 module.exports.fetchTourApiDetails = fetchTourApiDetails;
 module.exports.mergeUpdate = mergeUpdate;
 module.exports.shouldEnrich = shouldEnrich;
