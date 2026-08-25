@@ -30,7 +30,10 @@ function existingEnrichment(place) {
 function shouldEnrich(place, force) {
   if (force) return true;
   const enrichment = existingEnrichment(place);
-  return !enrichment?.enriched_at || !place.image_url || !cleanText(place.description);
+  // Official images are not available for every public landmark. Once its
+  // text enrichment has completed, a missing image must not make the item
+  // eligible forever; otherwise an automatic run continually re-processes it.
+  return !enrichment?.enriched_at || !cleanText(place.description);
 }
 
 async function callOpenAiLandmarkSearch(place) {

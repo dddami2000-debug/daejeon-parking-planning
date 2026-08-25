@@ -9,6 +9,7 @@ const {
   pickOfficialImage,
   sourceUrlsFromResponse
 } = require('../api/_landmark-enrichment');
+const { shouldEnrich } = require('../api/enrich-landmarks');
 
 const response = {
   output: [{
@@ -78,4 +79,12 @@ test('prompt contains the public dataset context and prohibits guessing', () => 
   assert.match(prompt, /한밭수목원/);
   assert.match(prompt, /추측하지/);
   assert.match(prompt, /도심 수목원/);
+});
+
+test('does not endlessly re-enrich a landmark only because no official image was found', () => {
+  assert.equal(shouldEnrich({
+    description: '황톳길 산책 명소',
+    image_url: null,
+    metadata: { landmark_enrichment: { enriched_at: '2026-08-25T00:00:00.000Z' } }
+  }, false), false);
 });
