@@ -6,6 +6,7 @@ const path = require('node:path');
 const prototypeRoot = path.resolve(__dirname, '..');
 const appSource = fs.readFileSync(path.join(prototypeRoot, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(prototypeRoot, 'index.html'), 'utf8');
+const recommenderSource = fs.readFileSync(path.join(prototypeRoot, 'festival-recommender.js'), 'utf8');
 
 test('offers explicit distance, price, and large-lot parking priorities', () => {
   assert.match(indexSource, /TOP 3 PARKING/);
@@ -39,4 +40,34 @@ test('contains no landmark fallback, search, or detail UI', () => {
   assert.doesNotMatch(appSource, /landmark|랜드마크/);
   assert.doesNotMatch(indexSource, /landmark|랜드마크/);
   assert.match(indexSource, /축제 이름이나 지역 검색/);
+});
+
+test('personalizes festivals from views and favorites without using parking behavior', () => {
+  assert.match(indexSource, /festival-recommender\.js/);
+  assert.match(indexSource, /나를 위한 추천 축제/);
+  assert.match(indexSource, /맞춤 추천 축제/);
+  assert.match(appSource, /daejeonMap\.festivalPreferences\.v1/);
+  assert.match(appSource, /recordFestivalView\(activePlace\)/);
+  assert.match(appSource, /festivalRecommender\.setFavorite/);
+  assert.match(appSource, /주제·지역·즐겨찾기·조회 반영/);
+  assert.match(appSource, /if\(!festivalRecommender\|\|place\?\.type!=='festival'\)return/);
+  assert.match(recommenderSource, /candidate\.type !== 'festival'/);
+  assert.match(recommenderSource, /FAVORITE_WEIGHT = 8/);
+
+  const plannerBlock = appSource.match(/function openPlanner\(\)[\s\S]*?\n}/)?.[0] || '';
+  const parkingBlock = appSource.match(/function renderParkings\(\)[\s\S]*?\n}\n\nfunction openPlanner/)?.[0] || '';
+  assert.doesNotMatch(plannerBlock, /festivalPreferences|recordFestivalView|setFavorite|festivalBehaviorFor/);
+  assert.doesNotMatch(parkingBlock, /festivalPreferences|recordFestivalView|setFavorite|festivalBehaviorFor/);
+});
+
+test('offers a favorite-only festival list and favorite-only map mode', () => {
+  assert.match(indexSource, /data-ranking-filter="favorites"/);
+  assert.match(indexSource, /id="favoriteMapButton"/);
+  assert.match(indexSource, /aria-pressed="false"/);
+  assert.match(appSource, /rankingFilter==='favorites'/);
+  assert.match(appSource, /즐겨찾기한 축제/);
+  assert.match(appSource, /showFavoritePinsOnly\?allVisible\.filter/);
+  assert.match(appSource, /favorite-place-pin/);
+  assert.match(appSource, /marker-favorite-badge/);
+  assert.match(appSource, /favorite-place-cluster/);
 });

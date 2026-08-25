@@ -3497,3 +3497,276 @@ textarea {
   min-height: calc(100% - 96px);
   padding-top: 0;
 }
+
+/* Festival favorites: one persistent state across cards, rankings and details. */
+.festival-card-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.festival-card:has(.festival-card-open:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--seed-color-fg-brand) 55%, white);
+  outline-offset: 3px;
+}
+
+.festival-favorite-button {
+  position: absolute;
+  z-index: 9;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .82);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 5px 16px rgba(23, 35, 29, .16);
+  color: #8a918e;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 140ms var(--app-ease-out),
+    color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.festival-favorite-button span {
+  transform: translateY(-1px);
+}
+
+.festival-favorite-button:active {
+  transform: scale(.9);
+}
+
+.festival-favorite-button.is-favorite {
+  border-color: #ffe29a;
+  background: #fff7dc;
+  box-shadow: 0 5px 16px rgba(196, 133, 0, .2);
+  color: #f4a900;
+}
+
+.festival-favorite-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, #f4a900 46%, white);
+  outline-offset: 2px;
+}
+
+.festival-card-favorite {
+  top: 10px;
+  right: 10px;
+}
+
+.ranking-item-shell {
+  position: relative;
+}
+
+.ranking-favorite {
+  top: 18px;
+  right: 7px;
+  width: 30px;
+  height: 30px;
+  font-size: 17px;
+}
+
+.place-hero-favorite {
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  font-size: 23px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .festival-favorite-button {
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .festival-favorite-button:active {
+    transform: none;
+  }
+}
+
+/* Favorite discovery: compact list tab, map filter and unmistakable saved pins. */
+.ranking-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.festival-date-trigger[hidden] {
+  display: none !important;
+}
+
+.ranking-empty b,
+.ranking-empty span {
+  display: block;
+}
+
+.ranking-empty b {
+  margin-bottom: 6px;
+  color: var(--seed-color-fg-neutral);
+  font-size: 14px;
+}
+
+.map-favorite-filter {
+  position: absolute;
+  z-index: 12;
+  top: 94px;
+  right: 12px;
+  display: grid;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(24, 31, 28, .1);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 5px 16px rgba(25, 35, 30, .18);
+  color: #717875;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 140ms var(--app-ease-out),
+    color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.map-favorite-filter > span {
+  transform: translateY(-1px);
+}
+
+.map-favorite-filter > b {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: var(--seed-radius-full);
+  background: #ff6b35;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.map-favorite-filter > b[hidden] {
+  display: none !important;
+}
+
+.map-favorite-filter:active {
+  transform: scale(.92);
+}
+
+.map-favorite-filter[aria-pressed="true"] {
+  border-color: #ffd86b;
+  background: #fff8d9;
+  box-shadow: 0 5px 18px rgba(205, 146, 0, .28);
+  color: #f2a900;
+}
+
+.map-favorite-filter:focus-visible {
+  outline: 3px solid color-mix(in srgb, #f2a900 48%, white);
+  outline-offset: 2px;
+}
+
+.app-shell.is-place-focused .map-favorite-filter {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-marker.favorite-place-pin .marker-bubble {
+  border-color: #fff7d2;
+  background: #ffbd2e;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, .96),
+    0 6px 16px rgba(91, 61, 0, .3);
+}
+
+.marker-favorite-badge {
+  position: absolute;
+  z-index: 4;
+  top: -5px;
+  right: -3px;
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ffb800;
+  box-shadow: 0 2px 6px rgba(91, 61, 0, .28);
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.place-cluster-marker.favorite-place-cluster {
+  border-color: rgba(255, 193, 7, .88);
+  background: rgba(79, 74, 62, .82);
+  box-shadow:
+    0 0 0 3px rgba(255, 249, 223, .92),
+    0 7px 18px rgba(35, 31, 20, .25);
+}
+
+.place-cluster-marker.favorite-place-cluster > i {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ffb800;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .map-favorite-filter:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 760px) {
+  .map-favorite-filter {
+    top: 88px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-favorite-filter {
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .map-favorite-filter:active {
+    transform: none;
+  }
+}
