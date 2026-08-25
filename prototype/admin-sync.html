@@ -18,15 +18,17 @@
       <form id="syncForm">
         <label for="token">ENRICH_ADMIN_TOKEN</label>
         <input id="token" type="password" autocomplete="off" required />
-        <label for="limit">이번 실행 건수</label>
-        <select id="limit"><option value="4">4개</option><option value="2">2개</option><option value="1">1개</option></select>
+        <label for="limit">실행 방식</label>
+        <select id="limit"><option value="auto">전체 자동 보강 (4개씩)</option><option value="4">이번 4개만</option><option value="2">이번 2개만</option><option value="1">이번 1개만</option></select>
         <button id="submitButton" type="submit">공식 정보 보강 시작</button>
       </form>
       <pre class="result" id="result" aria-live="polite"></pre>
     </main>
     <script>
       const form=document.querySelector('#syncForm');const token=document.querySelector('#token');const limit=document.querySelector('#limit');const button=document.querySelector('#submitButton');const result=document.querySelector('#result');
-      form.addEventListener('submit',async(event)=>{event.preventDefault();button.disabled=true;button.textContent='공식 정보 검색 중…';result.className='result show';result.textContent='요청을 시작했어요. 최대 1분 정도 걸릴 수 있어요.';try{const response=await fetch(`/api/enrich-landmarks?limit=${encodeURIComponent(limit.value)}`,{method:'POST',headers:{Authorization:`Bearer ${token.value}`}});const payload=await response.json();result.textContent=JSON.stringify(payload,null,2);result.className=`result show${response.ok?'':' error'}`;if(response.ok)token.value='';}catch(error){result.textContent=`요청 실패: ${error.message}`;result.className='result show error';}finally{button.disabled=false;button.textContent='공식 정보 보강 시작';}});
+      const pause=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
+      async function enrichBatch(batchSize,secret){const response=await fetch(`/api/enrich-landmarks?limit=${encodeURIComponent(batchSize)}`,{method:'POST',headers:{Authorization:`Bearer ${secret}`}});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error||`HTTP ${response.status}`);return payload;}
+      form.addEventListener('submit',async(event)=>{event.preventDefault();const secret=token.value;const automatic=limit.value==='auto';button.disabled=true;limit.disabled=true;button.textContent=automatic?'전체 자동 보강 중…':'공식 정보 검색 중…';result.className='result show';let completed=0;let lastPayload=null;try{do{result.textContent=automatic?`랜드마크 ${completed}개 처리 완료. 다음 4개를 공식 출처로 확인 중이에요…\n탭을 닫지 말아주세요.`:'요청을 시작했어요. 최대 1분 정도 걸릴 수 있어요.';lastPayload=await enrichBatch(automatic?4:limit.value,secret);completed+=lastPayload.updated||0;if(!automatic)break;if((lastPayload.requested||0)===0||(lastPayload.remaining||0)===0)break;if((lastPayload.updated||0)<(lastPayload.requested||0))throw new Error('일부 항목 보강에 실패해 자동 실행을 멈췄어요. 결과를 확인한 뒤 다시 실행해 주세요.');await pause(350);}while(true);result.textContent=automatic?`전체 자동 보강 완료: ${completed}개 저장\n\n${JSON.stringify(lastPayload,null,2)}`:JSON.stringify(lastPayload,null,2);token.value='';}catch(error){result.textContent=`${automatic?`자동 보강 중 ${completed}개 저장\n\n`:''}요청 실패: ${error.message}`;result.className='result show error';}finally{button.disabled=false;limit.disabled=false;button.textContent='공식 정보 보강 시작';}});
     </script>
   </body>
 </html>
