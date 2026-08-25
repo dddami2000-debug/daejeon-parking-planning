@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=83/);
-  assert.match(indexSource, /app\.js\?v=78/);
+  assert.match(indexSource, /seed-theme\.css\?v=86/);
+  assert.match(indexSource, /app\.js\?v=85/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=78/);
+  assert.match(indexSource, /app\.js\?v=85/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -190,13 +190,36 @@ test('replaces clipped recommendation-card descriptions with up to two topic tag
   const festivalCards = appSource.match(/function renderFestivals\(\)[\s\S]*?\n}\n\nfunction renderRankings/)?.[0] || '';
   assert.match(festivalCards, /festivalTopicTagsFor\(place\)\.slice\(0,2\)/);
   assert.match(festivalCards, /class="compact-place-tags"/);
-  assert.match(festivalCards, /const cardAriaLabel=\[place\.name,countdown,valueLine,topicTags\.length\?`주제 \$\{topicTags\.join\(', '\)\}`:''/);
+  assert.match(festivalCards, /const cardAriaLabel=\[place\.name,countdown\.label,valueLine,topicTags\.length\?`주제 \$\{topicTags\.join\(', '\)\}`:''/);
   assert.doesNotMatch(festivalCards, /<span class="compact-place-value">\$\{escapeHtml\(valueLine\)\}<\/span><span class="compact-place-location">/);
   assert.match(themeSource, /\.compact-place-tags > span/);
   const compactTagStyles = themeSource.match(/\.compact-place-tags > span \{[\s\S]*?\n}/)?.[0] || '';
   assert.match(compactTagStyles, /background: var\(--seed-color-bg-neutral-weak\)/);
   assert.match(compactTagStyles, /color: var\(--seed-color-fg-neutral\)/);
   assert.doesNotMatch(compactTagStyles, /--festival-accent/);
+});
+
+test('uses the PR 5 compact filled countdown badge without changing the card layout', () => {
+  const festivalCards = appSource.match(/function renderFestivals\(\)[\s\S]*?\n}\n\nfunction renderRankings/)?.[0] || '';
+  assert.match(appSource, /function festivalCardCountdown\(place\)/);
+  assert.match(appSource, /if\(label\.startsWith\('시작까지 '\)\)return \{label,tone:'upcoming'\}/);
+  assert.match(appSource, /if\(label\.startsWith\('종료까지 '\)\)return \{label:`진행 중 · \$\{label\}`,tone:'ongoing'\}/);
+  assert.match(festivalCards, /festivalCardCountdownMarkup\(countdown\)/);
+  assert.doesNotMatch(festivalCards, /class="compact-place-kind"/);
+  assert.match(themeSource, /\.compact-festival-countdown \{[\s\S]*?min-height: 18px;[\s\S]*?padding: 4px 7px;[\s\S]*?background: #23854d;[\s\S]*?color: var\(--seed-color-palette-static-white\);[\s\S]*?font-size: 8px;/);
+  assert.match(themeSource, /\.compact-festival-countdown\.is-ongoing \{[\s\S]*?background: #d45320;/);
+  assert.match(themeSource, /\.compact-festival-countdown\.is-neutral \{[\s\S]*?background: var\(--seed-color-bg-neutral-weak\);/);
+  assert.match(themeSource, /\.festival-content-compact \{[\s\S]*?padding: 13px 17px;/);
+});
+
+test('labels deadline rankings with start and end countdowns before an event begins', () => {
+  assert.match(appSource, /function festivalDeadlineCardLabel\(place\)/);
+  assert.match(appSource, /return `\$\{countdown\} · \$\{deadline\}`/);
+  assert.match(appSource, /return `종료까지 D-\$\{days\}`/);
+  assert.match(appSource, /const deadlineLabel=isDeadline\?festivalDeadlineCardLabel\(place\):''/);
+  assert.match(appSource, /if\(day>0\)return `시작까지 D-\$\{day\}`/);
+  assert.match(appSource, /if\(countdown\.startsWith\('종료까지 '\)\)return `진행 중 · \$\{deadline\}`/);
+  assert.match(appSource, /return remaining===0\?'오늘 종료':`진행 중 · 종료까지 D-\$\{remaining\}`/);
 });
 
 test('keeps long recommendation-card titles to two lines without pushing metadata away', () => {
@@ -286,6 +309,16 @@ test('collapses the fully scrolled-up home recommendation sheet without overscro
   assert.match(appSource, /isRecommendSheetTopPullTarget\(event,section\)/);
   assert.match(appSource, /\.recommend-section'\)\.addEventListener\('pointerdown',beginRecommendSheetDrag\)/);
   assert.match(themeSource, /\.recommend-section\.is-expanded \{[\s\S]*?overscroll-behavior-y: none;/);
+});
+
+test('keeps recommendation ranking tabs out of sheet pull gestures', () => {
+  assert.match(appSource, /function isRecommendSheetInteractiveTarget\(target\)/);
+  assert.match(appSource, /target\.closest\('button, a, input, select, textarea, \[contenteditable="true"\]'\)/);
+  assert.match(appSource, /!isRecommendSheetInteractiveTarget\(target\)/);
+  assert.match(appSource, /\|\|isRecommendSheetInteractiveTarget\(target\)/);
+  assert.match(indexSource, /data-ranking-filter="popular"/);
+  assert.match(indexSource, /data-ranking-filter="deadline"/);
+  assert.match(indexSource, /data-ranking-filter="favorites"/);
 });
 
 test('shows readable festival dates and recommendation reasons before visit facts without rain cancellation copy', () => {

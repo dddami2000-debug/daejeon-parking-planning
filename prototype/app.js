@@ -499,9 +499,17 @@ function festivalDeadlineLabel(place){
   if(!Number.isFinite(end))return '마감일 확인';
   const endDate=koreaDateTime(place.endDate);
   const days=Math.max(0,Math.ceil((endDate-todayInKorea())/86400000));
-  if(days===0)return '오늘 마감';
-  if(days<=7)return `마감 D-${days}`;
-  return `${shortKoreanDate(place.endDate)} 마감`;
+  if(days===0)return '오늘 종료';
+  return `종료까지 D-${days}`;
+}
+function festivalDeadlineCardLabel(place){
+  const countdown=festivalCountdownLabel(place);
+  const deadline=festivalDeadlineLabel(place);
+  if(countdown.startsWith('시작까지 ')&&deadline.startsWith('종료까지 ')){
+    return `${countdown} · ${deadline}`;
+  }
+  if(countdown.startsWith('종료까지 '))return `진행 중 · ${deadline}`;
+  return deadline;
 }
 function distanceRecommendationScore(place){
   const distance=Number(place.distance);
@@ -586,10 +594,10 @@ function festivalDateBadge(place){
   const todayLabel=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});
   const today=Date.parse(`${todayLabel}T00:00:00+09:00`);
   const day=Math.ceil((start-today)/86400000);
-  if(day>0)return `시작 D-${day}`;
+  if(day>0)return `시작까지 D-${day}`;
   if(today<=end){
     const remaining=Math.max(0,Math.ceil((end-today)/86400000));
-    return remaining===0?'오늘 종료':`진행 중 · 종료 D-${remaining}`;
+    return remaining===0?'오늘 종료':`진행 중 · 종료까지 D-${remaining}`;
   }
   return '종료된 축제';
 }
@@ -671,6 +679,18 @@ function compactPlaceCategory(place){
 
 function festivalCountdownLabel(place){
   return window.FestivalTiming?.festivalCountdownLabel(place)||'일정 확인';
+}
+
+function festivalCardCountdown(place){
+  const label=festivalCountdownLabel(place);
+  if(label.startsWith('시작까지 '))return {label,tone:'upcoming'};
+  if(label.startsWith('종료까지 '))return {label:`진행 중 · ${label}`,tone:'ongoing'};
+  if(label==='종료됨')return {label:'종료된 축제',tone:'neutral'};
+  return {label,tone:['일정 확인','종료일 확인'].includes(label)?'neutral':'upcoming'};
+}
+
+function festivalCardCountdownMarkup(countdown){
+  return `<span class="compact-festival-countdown is-${countdown.tone}">${escapeHtml(countdown.label)}</span>`;
 }
 
 function compactPlaceArea(place){
@@ -843,7 +863,7 @@ function renderFestivals(){
   $('#festivalDateTrigger').classList.toggle('has-value',Boolean(festivalDateFilter.start||festivalDateFilter.end));
   $('#placeDataStatus').innerHTML=placeDataNotice();
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
-    const countdown=festivalCountdownLabel(place);
+    const countdown=festivalCardCountdown(place);
     const area=compactPlaceArea(place);
     const valueLine=placeValueLine(place);
     const topicTags=festivalTopicTagsFor(place).slice(0,2);
@@ -851,8 +871,8 @@ function renderFestivals(){
     const cardTopicMarkup=topicTags.length
       ? `<span class="compact-place-tags">${topicTags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</span>`
       : `<span class="compact-place-value">${escapeHtml(valueLine)}</span>`;
-    const cardAriaLabel=[place.name,countdown,valueLine,topicTags.length?`주제 ${topicTags.join(', ')}`:'',recommendationFitLabel(place),`${area} 상세 보기`].filter(Boolean).join(', ');
-    return `<article class="festival-card" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><button class="festival-card-open" type="button" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(cardAriaLabel)}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(countdown)}</span><h3 class="compact-place-title ${titleDensity}"><span>${escapeHtml(place.name)}</span></h3><span class="compact-place-details">${cardTopicMarkup}<span class="compact-place-location">${escapeHtml(area)}</span></span></span></button>${favoriteButtonMarkup(place,'festival-card-favorite')}</article>`;
+    const cardAriaLabel=[place.name,countdown.label,valueLine,topicTags.length?`주제 ${topicTags.join(', ')}`:'',recommendationFitLabel(place),`${area} 상세 보기`].filter(Boolean).join(', ');
+    return `<article class="festival-card" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><button class="festival-card-open" type="button" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(cardAriaLabel)}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact">${festivalCardCountdownMarkup(countdown)}<h3 class="compact-place-title ${titleDensity}"><span>${escapeHtml(place.name)}</span></h3><span class="compact-place-details">${cardTopicMarkup}<span class="compact-place-location">${escapeHtml(area)}</span></span></span></button>${favoriteButtonMarkup(place,'festival-card-favorite')}</article>`;
   }).join(''):`<div class="festival-filter-empty"><b>선택한 날짜에 열리는 축제가 없어요.</b><span>기간을 넓히거나 ‘전체’를 눌러보세요.</span></div>`;
   document.querySelectorAll('.festival-card-open').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
   bindFavoriteButtons($('#festivalSlider'));
@@ -880,8 +900,10 @@ function renderRankings(){
     .slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const area=compactPlaceArea(place);
-    const deadline=isDeadline?`<em>${escapeHtml(festivalDeadlineLabel(place))}</em>`:isFavorites?`<em>${escapeHtml(festivalCountdownLabel(place))}</em>`:'';
-    return `<article class="ranking-item-shell"><button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${area}${isDeadline?`, ${festivalDeadlineLabel(place)}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>${favoriteButtonMarkup(place,'ranking-favorite')}</article>`;
+    const deadlineLabel=isDeadline?festivalDeadlineCardLabel(place):'';
+    const favoriteCountdown=festivalCardCountdown(place).label;
+    const deadline=isDeadline?`<em>${escapeHtml(deadlineLabel)}</em>`:isFavorites?`<em>${escapeHtml(favoriteCountdown)}</em>`:'';
+    return `<article class="ranking-item-shell"><button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${area}${isDeadline?`, ${deadlineLabel}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>${favoriteButtonMarkup(place,'ranking-favorite')}</article>`;
   }).join(''):isFavorites?'<p class="ranking-empty"><b>아직 즐겨찾기한 축제가 없어요.</b><span>카드의 별표를 누르면 여기에 모아볼 수 있어요.</span></p>':'<p class="ranking-empty">선택한 날짜에 순위를 표시할 축제가 없어요.</p>';
   document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
   bindFavoriteButtons($('#rankingList'));
@@ -2064,12 +2086,18 @@ function blockRecommendSheetGestureClick(event){
   event.stopImmediatePropagation();
 }
 
+function isRecommendSheetInteractiveTarget(target){
+  return target instanceof Element
+    && Boolean(target.closest('button, a, input, select, textarea, [contenteditable="true"]'));
+}
+
 function isRecommendSheetTopPullTarget(event,section){
   const target=event.target;
   return section.classList.contains('is-expanded')
     && section.scrollTop<=1
     && target instanceof Element
-    && !target.closest('.recommend-sheet-grabber, input, select, textarea, [contenteditable="true"]');
+    && !target.closest('.recommend-sheet-grabber')
+    && !isRecommendSheetInteractiveTarget(target);
 }
 
 function collapseRecommendationsOnWheel(event){
@@ -2086,7 +2114,7 @@ function beginRecommendSheetTopPull(event){
     return;
   }
   const target=event.target;
-  if(!(target instanceof Element)||target.closest('.recommend-sheet-grabber, input, select, textarea, [contenteditable="true"]')){
+  if(!(target instanceof Element)||target.closest('.recommend-sheet-grabber')||isRecommendSheetInteractiveTarget(target)){
     recommendSheetTopPull=null;
     return;
   }

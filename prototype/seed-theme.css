@@ -2901,7 +2901,6 @@ textarea {
   line-height: 1.28;
 }
 
-.compact-place-kind,
 .compact-place-location {
   display: block;
   max-width: 150px;
@@ -2914,7 +2913,34 @@ textarea {
   white-space: nowrap;
 }
 
-.compact-place-kind { color: var(--seed-color-fg-neutral-subtle); }
+.compact-festival-countdown {
+  display: inline-flex;
+  min-height: 18px;
+  max-width: 150px;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--seed-radius-full);
+  align-items: center;
+  align-self: flex-start;
+  overflow: hidden;
+  background: #23854d;
+  color: var(--seed-color-palette-static-white);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-festival-countdown.is-ongoing {
+  background: #d45320;
+}
+
+.compact-festival-countdown.is-neutral {
+  border-color: var(--seed-color-stroke-neutral-weak);
+  background: var(--seed-color-bg-neutral-weak);
+  color: var(--seed-color-fg-neutral-muted);
+}
 
 .compact-place-details {
   display: flex;
