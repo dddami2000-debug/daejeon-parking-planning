@@ -178,6 +178,14 @@ test('shows the official TourAPI overview before core programs when available', 
   assert.ok(detailBlock.indexOf('${overviewMarkup}') < detailBlock.indexOf('<section class="place-programs">'));
 });
 
+test('uses recommendation topics selected from the official overview as detail chips', () => {
+  const detailBlock = appSource.match(/function openPlace\(id\)[\s\S]*?\n}\n\nfunction setPlaceSheetHeights/)?.[0] || '';
+  assert.match(appSource, /officialOverview:content\.official_overview\|\|''/);
+  assert.match(appSource, /festivalRecommender\.topicTagLabels\(topicSource,3\)/);
+  assert.match(detailBlock, /const topicTags=festivalTopicTagsFor\(activePlace\)/);
+  assert.doesNotMatch(detailBlock, /experience\.tags\.slice/);
+});
+
 test('chooses between the festival and the algorithm top parking before opening navigation apps', () => {
   assert.match(indexSource, /id="festivalTravelBack"/);
   assert.match(appSource, /어디까지 안내할까요\?/);

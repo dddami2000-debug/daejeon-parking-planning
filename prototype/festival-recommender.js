@@ -13,19 +13,35 @@
   const genericValues = new Set(['지역축제', '지역 정보 확인', '공식 일정 확인 필요', '친구 · 연인 · 가족']);
   const topicGroups = {
     alcohol: ['와인', '술', '주류', '맥주', '막걸리', '소주', '칵테일', '시음', '양조', '브루어리'],
-    local_produce: ['농산물', '농업', '농촌', '로컬푸드', '특산물', '수확', '과수', '과일', '사과', '배', '포도', '복숭아', '딸기', '수박', '토마토', '인삼', '고추', '마늘', '쌀', '감자', '고구마', '옥수수', '버섯', '밤', '대추'],
-    food: ['먹거리', '미식', '음식', '요리', '빵', '디저트', '커피', '푸드', '맛집', '쿠킹'],
-    seafood: ['수산물', '해산물', '생선', '회', '새우', '게', '굴', '조개', '오징어', '낙지'],
+    local_produce: ['농산물', '농업', '농촌', '로컬푸드', '특산물', '수확', '과수', '과일', '사과', '배축제', '포도', '복숭아', '딸기', '수박', '토마토', '인삼', '고추', '마늘', '쌀', '쌀축제', '감자', '고구마', '옥수수', '버섯', '알밤', '밤축제', '대추'],
+    food: ['먹거리', '미식', '음식', '요리', '빵', '빵축제', '디저트', '커피', '푸드', '맛집', '쿠킹'],
+    seafood: ['수산물', '해산물', '생선', '회', '회센터', '횟감', '새우', '게', '대게', '꽃게', '게장', '굴', '굴축제', '조개', '오징어', '낙지'],
     science: ['과학', '로봇', '인공지능', 'ai', '우주', '천문', '기술', '실험'],
     performance: ['공연', '콘서트', '라이브', '음악', '댄스', '퍼레이드', '무대'],
-    night: ['야간', '밤', '야시장', '불꽃', '빛', '조명'],
+    night: ['야간', '야행', '밤', '밤축제', '밤거리', '밤공연', '야시장', '불꽃', '빛', '빛축제', '별빛', '조명'],
     family: ['가족', '어린이', '아이', '키즈', '학생', '체험', '교육'],
-    nature: ['꽃', '정원', '숲', '산', '바다', '생태', '자연', '산책', '단풍', '벚꽃', '철쭉'],
+    nature: ['꽃', '꽃축제', '꽃박람회', '정원', '숲', '숲길', '산', '산림', '산행', '바다', '생태', '자연', '산책', '단풍', '벚꽃', '철쭉'],
     culture: ['역사', '전통', '문화', '예술', '공예', '박물관', '전시', '유산', '민속'],
     wellness: ['힐링', '건강', '웰니스', '명상', '온천', '치유', '요가'],
     sports: ['스포츠', '마라톤', '걷기', '자전거', '등산', '레저', '경기'],
     pet: ['반려동물', '반려견', '강아지', '고양이', '펫'],
     eco: ['환경', '친환경', '재활용', '탄소', '기후', '업사이클']
+  };
+  const topicLabels = {
+    alcohol: '주류',
+    local_produce: '농산물',
+    food: '먹거리',
+    seafood: '수산물',
+    science: '과학',
+    performance: '공연',
+    night: '야간',
+    family: '가족·체험',
+    nature: '자연',
+    culture: '문화·예술',
+    wellness: '힐링',
+    sports: '스포츠',
+    pet: '반려동물',
+    eco: '친환경'
   };
   const regionSearchAliases = {
     서울: ['서울특별시'], 부산: ['부산광역시'], 대구: ['대구광역시'], 인천: ['인천광역시'], 광주: ['광주광역시'], 대전: ['대전광역시'], 울산: ['울산광역시'], 세종: ['세종특별자치시'],
@@ -51,17 +67,51 @@
     return union ? intersection / union : 0;
   }
 
-  function placeText(place = {}) {
-    return [place.name, place.category, place.area, place.summary, place.audience, ...(place.tags || [])]
-      .join(' ')
-      .toLowerCase();
+  function searchableText(value) {
+    if (value == null) return '';
+    if (typeof value === 'string' || typeof value === 'number') return String(value).toLowerCase();
+    try { return JSON.stringify(value).toLowerCase(); } catch { return ''; }
+  }
+
+  function topicSources(place = {}) {
+    return [
+      {value: place.name, weight: 7},
+      {value: place.category, weight: 5},
+      {value: place.officialOverview || place.overview, weight: 4},
+      {value: place.programs || place.officialProgram, weight: 4},
+      {value: place.summary, weight: 3},
+      {value: place.audience, weight: 2},
+      {value: place.tags, weight: 1}
+    ].map(source => ({text: searchableText(source.value), weight: source.weight}));
+  }
+
+  function aliasMatches(text, alias) {
+    const keyword = searchableText(alias);
+    if (!keyword) return false;
+    if ([...keyword].length > 1) return text.includes(keyword);
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const particle = '(?:은|는|이|가|을|를|과|와|도|에|의|로|으로|에서|부터|까지|만|이나|나)?';
+    return new RegExp(`(^|[^0-9a-z가-힣])${escaped}${particle}(?=$|[^0-9a-z가-힣])`, 'u').test(text);
+  }
+
+  function topicEvidence(place = {}) {
+    return Object.entries(topicGroups).map(([topic, aliases], order) => {
+      const score = topicSources(place).reduce((total, source) => total + aliases.reduce(
+        (sourceScore, alias) => aliasMatches(source.text, alias) ? sourceScore + source.weight : sourceScore,
+        0
+      ), 0);
+      return {topic, score, order};
+    }).filter(item => item.score > 0)
+      .sort((left, right) => right.score - left.score || left.order - right.order);
   }
 
   function topicTokens(place) {
-    const text = placeText(place);
-    return new Set(Object.entries(topicGroups)
-      .filter(([, aliases]) => aliases.some(alias => text.includes(alias)))
-      .map(([topic]) => topic));
+    return new Set(topicEvidence(place).map(item => item.topic));
+  }
+
+  function topicTagLabels(place, limit = 3) {
+    const max = Math.max(0, Math.floor(Number(limit) || 0));
+    return topicEvidence(place).slice(0, max).map(item => topicLabels[item.topic]);
   }
 
   function matchesTopicQuery(place, query) {
@@ -255,6 +305,7 @@
     regionTokens,
     recordView,
     setFavorite,
+    topicTagLabels,
     topicTokens
   };
 });
