@@ -1,0 +1,41 @@
+name: Sync deployment fork
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-deployment-fork
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync main to deployment fork
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out original main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure deployment key
+        env:
+          FORK_DEPLOY_KEY: ${{ secrets.FORK_DEPLOY_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$FORK_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Push original main to deployment fork
+        env:
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes
+        run: |
+          git remote add deployment-fork git@github.com:sjndox/daejeon-parking-planning.git
+          git push deployment-fork HEAD:refs/heads/main
