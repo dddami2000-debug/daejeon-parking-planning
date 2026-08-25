@@ -1261,6 +1261,47 @@ button:focus-visible, input:focus-visible {
 }
 
 .entry-actions { display: grid; gap: 10px; margin-top: 26px; }
+.onboarding-card.showing-guide .onboarding-brand { margin-bottom: 24px; }
+.onboarding-card.showing-guide .question-progress { display: none; }
+.usage-guide { animation: usage-guide-in 320ms ease both; }
+.usage-steps {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.usage-steps li {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 14px;
+  background: var(--seed-color-bg-neutral-weak);
+}
+.usage-step-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px 13px 13px 5px;
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand);
+  font-size: 14px;
+  font-weight: 900;
+}
+.usage-steps li:nth-child(2) .usage-step-icon { background: #ffecef; color: #c23f62; }
+.usage-steps li:nth-child(3) .usage-step-icon { background: #fff3c4; color: #8a6500; }
+.usage-steps b { display: block; color: var(--seed-color-fg-neutral); font-size: 14px; }
+.usage-steps p { margin: 4px 0 0; color: var(--seed-color-fg-neutral-muted); font-size: 11px; line-height: 1.5; }
+.usage-guide > .primary-button { margin-top: 18px; }
+@keyframes usage-guide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .secondary-button {
   min-height: 48px;
   border: 1px solid var(--seed-color-stroke-neutral-weak);
@@ -1271,6 +1312,16 @@ button:focus-visible, input:focus-visible {
   font-size: 14px;
   font-weight: 750;
   cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .onboarding-card.showing-guide { padding-top: 36px; }
+  .onboarding-card.showing-guide .onboarding-brand { margin: 16px 0 18px; }
+  .onboarding-card.showing-guide h2 { font-size: 27px; }
+  .usage-steps { gap: 8px; margin-top: 16px; }
+  .usage-steps li { grid-template-columns: 38px 1fr; gap: 10px; padding: 10px 12px; }
+  .usage-step-icon { width: 38px; height: 38px; }
+  .usage-guide > .primary-button { margin-top: 14px; }
 }
 
 .result-trust-copy {

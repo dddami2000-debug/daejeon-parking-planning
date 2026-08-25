@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" />
-    <title>대전콕 | 갈 곳부터 주차까지 한 번에</title>
+    <title>축제콕 | 내 취향 축제를 한눈에</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⭐</text></svg>" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=55" />
+    <link rel="stylesheet" href="seed-theme.css?v=58" />
     <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
@@ -85,17 +85,38 @@
       </main>
 
     <div class="modal onboarding show" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
-      <div class="onboarding-card">
+      <div class="onboarding-card showing-guide">
         <button class="skip-button" id="skipTest">나중에 설정</button>
-        <div class="onboarding-brand" aria-hidden="true"><span>콕</span><b>대전콕</b></div>
+        <div class="onboarding-brand" aria-hidden="true"><span>콕</span><b>축제콕</b></div>
         <div class="question-progress"><span id="questionStep">START</span><div><i id="progressBar"></i></div></div>
         <div id="questionArea">
-          <p class="test-kicker">이번 주말 갈 곳부터 주차까지 한 번에</p>
-          <h2 id="onboardingTitle">대전에서 어디 갈지,<br />주차까지 같이 정해요.</h2>
-          <p class="test-description">목적지가 없어도 괜찮아요. 세 가지 방문 조건으로 오늘 갈 수 있는 곳을 고르고, 실제 이용 가능한 주차장까지 이어드려요.</p>
-          <div class="entry-actions">
-            <button class="primary-button" id="startTest">갈 곳 추천받기 <span>→</span></button>
-            <button class="secondary-button" id="destinationEntry">목적지가 정해졌어요</button>
+          <section class="usage-guide" id="usageGuide" aria-labelledby="onboardingTitle">
+            <p class="test-kicker">축제콕은 이렇게 사용해요</p>
+            <h2 id="onboardingTitle">내 취향 축제를 찾는 법,<br />세 단계면 충분해요.</h2>
+            <ol class="usage-steps">
+              <li>
+                <span class="usage-step-icon" aria-hidden="true">✓</span>
+                <div><b>방문 조건을 골라요</b><p>누구와 무엇을 즐길지, 이동 범위와 장소 환경을 알려주세요.</p></div>
+              </li>
+              <li>
+                <span class="usage-step-icon" aria-hidden="true">♥</span>
+                <div><b>나에게 맞는 축제를 발견해요</b><p>추천 이유와 마감 일정을 한눈에 확인해요.</p></div>
+              </li>
+              <li>
+                <span class="usage-step-icon" aria-hidden="true">★</span>
+                <div><b>상세 정보를 보고 저장해요</b><p>마음에 들면 즐겨찾기해요. 저장할수록 추천이 내 취향에 가까워져요.</p></div>
+              </li>
+            </ol>
+            <button class="primary-button" id="continueToEntry">시작하기 <span>→</span></button>
+          </section>
+          <div id="entryIntro" hidden>
+            <p class="test-kicker">이번 주말 갈 축제를 취향에 맞게</p>
+            <h2 id="entryTitle">전국의 어떤 축제가 좋을지,<br />취향에 맞게 골라봐요.</h2>
+            <p class="test-description">목적지가 없어도 괜찮아요. 네 가지 방문 조건으로 오늘 갈 수 있는 축제를 고르고, 상세 일정과 프로그램까지 한눈에 확인해요.</p>
+            <div class="entry-actions">
+              <button class="primary-button" id="startTest">갈 곳 추천받기 <span>→</span></button>
+              <button class="secondary-button" id="destinationEntry">목적지가 정해졌어요</button>
+            </div>
           </div>
         </div>
       </div>
@@ -183,6 +204,6 @@
     <script src="festival-timing.js?v=1"></script>
     <script src="festival-recommender.js?v=2"></script>
     <script src="map-clustering.js?v=1"></script>
-    <script src="app.js?v=51"></script>
+    <script src="app.js?v=55"></script>
   </body>
 </html>
