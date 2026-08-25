@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=68/);
-  assert.match(indexSource, /app\.js\?v=63/);
+  assert.match(indexSource, /seed-theme\.css\?v=83/);
+  assert.match(indexSource, /app\.js\?v=78/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=63/);
+  assert.match(indexSource, /app\.js\?v=78/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -184,6 +184,136 @@ test('uses recommendation topics selected from the official overview as detail c
   assert.match(appSource, /festivalRecommender\.topicTagLabels\(topicSource,3\)/);
   assert.match(detailBlock, /const topicTags=festivalTopicTagsFor\(activePlace\)/);
   assert.doesNotMatch(detailBlock, /experience\.tags\.slice/);
+});
+
+test('replaces clipped recommendation-card descriptions with up to two topic tags', () => {
+  const festivalCards = appSource.match(/function renderFestivals\(\)[\s\S]*?\n}\n\nfunction renderRankings/)?.[0] || '';
+  assert.match(festivalCards, /festivalTopicTagsFor\(place\)\.slice\(0,2\)/);
+  assert.match(festivalCards, /class="compact-place-tags"/);
+  assert.match(festivalCards, /const cardAriaLabel=\[place\.name,countdown,valueLine,topicTags\.length\?`주제 \$\{topicTags\.join\(', '\)\}`:''/);
+  assert.doesNotMatch(festivalCards, /<span class="compact-place-value">\$\{escapeHtml\(valueLine\)\}<\/span><span class="compact-place-location">/);
+  assert.match(themeSource, /\.compact-place-tags > span/);
+  const compactTagStyles = themeSource.match(/\.compact-place-tags > span \{[\s\S]*?\n}/)?.[0] || '';
+  assert.match(compactTagStyles, /background: var\(--seed-color-bg-neutral-weak\)/);
+  assert.match(compactTagStyles, /color: var\(--seed-color-fg-neutral\)/);
+  assert.doesNotMatch(compactTagStyles, /--festival-accent/);
+});
+
+test('keeps long recommendation-card titles to two lines without pushing metadata away', () => {
+  const festivalCards = appSource.match(/function renderFestivals\(\)[\s\S]*?\n}\n\nfunction renderRankings/)?.[0] || '';
+  assert.match(appSource, /function festivalCardTitleDensity\(name\)/);
+  assert.match(appSource, /if\(length>=20\)return 'is-title-compact'/);
+  assert.match(appSource, /if\(length>=13\)return 'is-title-long'/);
+  assert.match(festivalCards, /class="compact-place-title \$\{titleDensity\}"><span>\$\{escapeHtml\(place\.name\)\}<\/span><\/h3>/);
+  assert.match(festivalCards, /class="compact-place-details"/);
+  const compactTitleStyles = themeSource.match(/\.festival-content-compact h3,[\s\S]*?\n}/)?.[0] || '';
+  assert.match(compactTitleStyles, /height: 45px/);
+  assert.match(compactTitleStyles, /align-items: center/);
+  assert.match(compactTitleStyles, /width: 150px/);
+  assert.match(compactTitleStyles, /overflow: hidden/);
+  const compactTitleTextStyles = themeSource.match(/\.festival-content-compact h3 > span \{[\s\S]*?\n}/)?.[0] || '';
+  assert.match(compactTitleTextStyles, /-webkit-line-clamp: 2/);
+  assert.match(compactTitleTextStyles, /display: -webkit-box/);
+  const compactDetailsStyles = themeSource.match(/\.compact-place-details \{[\s\S]*?\n}/)?.[0] || '';
+  assert.match(compactDetailsStyles, /margin-top: auto/);
+});
+
+test('keeps festival card borders inside the horizontal scroll viewport', () => {
+  const festivalSliderStyles = [...themeSource.matchAll(/\.festival-slider \{[\s\S]*?\n}/g)]
+    .map(match => match[0])
+    .find(block => block.includes('padding-inline: 4px')) || '';
+  assert.match(festivalSliderStyles, /padding-inline: 4px/);
+  assert.match(festivalSliderStyles, /scroll-padding-inline: 4px/);
+});
+
+test('keeps the festival carousel and personalized ranking visually separated without a divider line', () => {
+  const rankingSectionStyles = themeSource.match(/\.recommend-rankings \{[\s\S]*?\n}/)?.[0] || '';
+  assert.match(rankingSectionStyles, /padding: 18px 1px 26px/);
+  assert.match(rankingSectionStyles, /border-top: 0/);
+});
+
+test('uses one continuous festival detail sheet that expands from content gestures', () => {
+  assert.doesNotMatch(indexSource, /placeSheetBack|placeSheetDismiss|place-sheet-header-action/);
+  assert.doesNotMatch(appSource, /placeSheetBack|placeSheetDismiss/);
+  assert.match(appSource, /if\(sheet\.id==='placeSheet'\)return !sheet\.classList\.contains\('is-expanded'\)/);
+  assert.match(appSource, /function expandPlaceSheetOnWheel\(event\)/);
+  assert.match(appSource, /screenHeight-expandedTopInset/);
+  const beginPlaceDrag = appSource.match(/function beginPlaceSheetDrag\(event\)[\s\S]*?\n}/)?.[0] || '';
+  assert.doesNotMatch(beginPlaceDrag, /event\.preventDefault\(\)/);
+  assert.doesNotMatch(beginPlaceDrag, /setPointerCapture/);
+  assert.match(beginPlaceDrag, /fromGrabber:Boolean/);
+  const movePlaceDrag = appSource.match(/function movePlaceSheetDrag\(event\)[\s\S]*?\n}/)?.[0] || '';
+  assert.match(movePlaceDrag, /!placeSheetDrag\.moved/);
+  assert.match(movePlaceDrag, /captureTarget\?\.setPointerCapture/);
+  const endPlaceDrag = appSource.match(/function endPlaceSheetDrag\(event\)[\s\S]*?\n}/)?.[0] || '';
+  assert.match(endPlaceDrag, /!drag\.moved&&drag\.fromGrabber/);
+  assert.match(endPlaceDrag, /setPlaceSheetExpanded\(!drag\.expanded\)/);
+  assert.match(themeSource, /#placeSheet:not\(\.is-expanded\) \{[\s\S]*?overflow-y: hidden;[\s\S]*?touch-action: none;/);
+  assert.match(themeSource, /#placeSheet\.is-expanded \{[\s\S]*?overflow-y: auto;[\s\S]*?touch-action: pan-y;/);
+  assert.match(themeSource, /#placeSheet\.is-expanded \.place-sheet-grabber \.sheet-handle \{[\s\S]*?opacity: 1;[\s\S]*?pointer-events: auto;/);
+});
+
+test('sizes the initial festival detail peek to end after the topic tags', () => {
+  assert.match(appSource, /id="placeSheetPeekEnd"/);
+  assert.match(appSource, /const peekEnd=\$\('#placeSheetPeekEnd'\)/);
+  assert.match(appSource, /const actionReserve=actions\?Math\.ceil\(actions\.getBoundingClientRect\(\)\.height\):0/);
+  assert.match(appSource, /peekEndRect\.bottom-sheetRect\.top\+actionReserve\+12/);
+  assert.match(appSource, /const peekHeight=Math\.min\(fullHeight-56,Math\.max\(260,measuredPeekHeight\)\)/);
+  assert.match(appSource, /setPlaceSheetHeights\(\);[\s\S]*?classList\.add\('show'\);[\s\S]*?focusMapOn\(targetPosition,15,'place',750\)/);
+  assert.match(themeSource, /\.place-peek-end \{[\s\S]*?height: 0;[\s\S]*?pointer-events: none;/);
+});
+
+test('collapses a fully scrolled-up festival detail without overscroll whitespace or an extra close action', () => {
+  assert.doesNotMatch(indexSource, /placeSheetClose|place-sheet-close/);
+  assert.doesNotMatch(appSource, /placeSheetClose/);
+  assert.match(appSource, /function beginPlaceSheetTopPull\(event\)/);
+  assert.match(appSource, /function isPlaceSheetTopPullTarget\(event,sheet\)/);
+  assert.match(appSource, /sheet\.scrollTop>1/);
+  assert.match(appSource, /if\(event\.cancelable\)event\.preventDefault\(\)/);
+  assert.match(appSource, /if\(pullDistance<10\)return;[\s\S]*?setPlaceSheetExpanded\(false\)/);
+  assert.match(appSource, /if\(placeSheetDrag\.topPullCandidate\)[\s\S]*?if\(delta>-10\)return;[\s\S]*?setPlaceSheetExpanded\(false\)/);
+  assert.match(themeSource, /#placeSheet \{[\s\S]*?overscroll-behavior-y: none;/);
+  assert.doesNotMatch(themeSource, /place-sheet-close/);
+});
+
+test('collapses the fully scrolled-up home recommendation sheet without overscroll whitespace', () => {
+  assert.match(appSource, /function beginRecommendSheetTopPull\(event\)/);
+  assert.match(appSource, /function moveRecommendSheetTopPull\(event\)/);
+  assert.match(appSource, /section\.scrollTop>1/);
+  assert.match(appSource, /if\(pullDistance<10\)return;[\s\S]*?setRecommendationsState\('preview'\)/);
+  assert.match(appSource, /function collapseRecommendationsOnWheel\(event\)/);
+  assert.match(appSource, /event\.deltaY>=0/);
+  assert.match(appSource, /isRecommendSheetTopPullTarget\(event,section\)/);
+  assert.match(appSource, /\.recommend-section'\)\.addEventListener\('pointerdown',beginRecommendSheetDrag\)/);
+  assert.match(themeSource, /\.recommend-section\.is-expanded \{[\s\S]*?overscroll-behavior-y: none;/);
+});
+
+test('shows readable festival dates and recommendation reasons before visit facts without rain cancellation copy', () => {
+  assert.match(appSource, /function festivalPeriodMarkup\(place\)/);
+  assert.match(appSource, /class="festival-period"/);
+  assert.match(appSource, /topicTagsMarkup,[\s\S]*?id="placeSheetPeekEnd"[\s\S]*?recommendationMarkup,\s*'<section class="place-intro"/);
+  assert.match(appSource, /class="recommend-reason"[\s\S]*?<ul>/);
+  assert.doesNotMatch(appSource, /placeRainNotice|우천·취소/);
+  assert.match(themeSource, /#placeSheet\.festival-detail \.festival-period span \{[\s\S]*?white-space: nowrap;/);
+  assert.match(themeSource, /#placeSheet\.festival-detail \.recommend-reason li span \{[\s\S]*?word-break: keep-all;/);
+});
+
+test('loads a cached TMAP driving time only after the user location is available', () => {
+  assert.match(appSource, /const drivingRouteCache = new Map\(\)/);
+  assert.match(appSource, /function loadDrivingRouteForActivePlace\(\)/);
+  assert.match(appSource, /fetch\(`\/api\/tmap-route\?\$\{params\.toString\(\)\}`/);
+  assert.match(appSource, /도로 \$\{normalized\.distanceKm\}km · 차로 약 \$\{normalized\.durationMinutes\}분/);
+  assert.match(appSource, /현재 위치로 계산하기/);
+  assert.match(appSource, /직선거리 \$\{place\.distance\}km/);
+  assert.match(appSource, /if\(isPlaceFocused\)loadDrivingRouteForActivePlace\(\)/);
+  assert.match(appSource, /id="placeRouteRequest"/);
+  assert.match(appSource, /id="placeRouteEstimate"/);
+  assert.match(appSource, /id="placeRouteSource"/);
+  assert.match(appSource, /requestCurrentLocation\(\{focusMap:false,announce:false\}\)/);
+  assert.match(appSource, /\$\('#placeRouteRequest'\)\.addEventListener\('click',requestCurrentLocationForRoute\)/);
+  assert.doesNotMatch(appSource, /현재 위치에서 차로 약 \$\{place\.eta\}분/);
+  assert.match(themeSource, /\.festival-facts \.festival-route-fact small \{[\s\S]*?word-break: keep-all;/);
+  assert.match(themeSource, /\.festival-facts \.festival-route-request \{[\s\S]*?background: transparent;[\s\S]*?text-align: left;/);
 });
 
 test('chooses between the festival and the algorithm top parking before opening navigation apps', () => {

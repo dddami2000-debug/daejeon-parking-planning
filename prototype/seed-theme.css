@@ -967,6 +967,12 @@ button:focus-visible, input:focus-visible {
 .festival-chip-row > span { flex: none; min-height: 28px; padding: 0 10px; font-size: 9px; }
 .festival-chip-row > span:first-child { background: var(--seed-color-bg-brand-weak); color: var(--seed-color-fg-brand-contrast); }
 
+.place-peek-end {
+  width: 100%;
+  height: 0;
+  pointer-events: none;
+}
+
 .place-intro,
 .festival-section-title {
   margin-top: 18px;
@@ -1022,7 +1028,36 @@ button:focus-visible, input:focus-visible {
   color: var(--seed-color-fg-neutral);
   font-size: 10px;
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.festival-facts .festival-route-fact small {
+  display: block;
+  margin-top: 4px;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 8px;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.festival-facts .festival-route-request {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.festival-facts .festival-route-request:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--seed-color-stroke-brand-solid);
+  outline-offset: 3px;
 }
 
 #placeSheet .recommend-reason {
@@ -1938,7 +1973,7 @@ button:focus-visible, input:focus-visible {
   height: var(--place-sheet-peek-height, 60dvh) !important;
   max-height: var(--place-sheet-peek-height, 60dvh) !important;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: none;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   transition: transform .3s ease, height .28s ease, max-height .28s ease, opacity .18s ease, visibility 0s linear 0s;
@@ -1946,10 +1981,16 @@ button:focus-visible, input:focus-visible {
 
 #placeSheet::-webkit-scrollbar { display: none; }
 
+#placeSheet:not(.is-expanded) {
+  overflow-y: hidden;
+  touch-action: none;
+}
+
 #placeSheet.is-expanded {
   height: var(--place-sheet-full-height, calc(100dvh - 12px)) !important;
   max-height: var(--place-sheet-full-height, calc(100dvh - 12px)) !important;
   overflow-y: auto;
+  touch-action: pan-y;
 }
 
 #placeSheet.is-dragging {
@@ -2126,13 +2167,13 @@ button:focus-visible, input:focus-visible {
 .recommend-rankings {
   display: none;
   padding: 18px 1px 26px;
-  border-top: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-top: 0;
 }
 
 .recommend-section.is-expanded {
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: none;
   scrollbar-width: none;
 }
 
@@ -2817,23 +2858,53 @@ textarea {
 }
 
 .festival-content-compact {
-  justify-content: center;
-  padding: 17px;
+  justify-content: flex-start;
+  padding: 13px 17px;
   background: linear-gradient(90deg, color-mix(in srgb, white 93%, transparent) 0 56%, transparent 78%);
 }
 
 .festival-content-compact h3,
 .festival-card .festival-content-compact h3 {
-  max-width: 160px;
-  margin: 6px 0 7px;
-  font-size: 20px;
-  line-height: 1.25;
+  display: flex;
+  flex: 0 0 45px;
+  width: 150px;
+  height: 45px;
+  max-width: 150px;
+  align-items: center;
+  margin: 3px 0 2px;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1.22;
+}
+
+.festival-content-compact h3 > span {
+  display: -webkit-box;
+  width: 100%;
+  max-height: 45px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.festival-content-compact h3.is-title-long,
+.festival-card .festival-content-compact h3.is-title-long {
+  font-size: 17.5px;
+  line-height: 1.24;
+}
+
+.festival-content-compact h3.is-title-compact,
+.festival-card .festival-content-compact h3.is-title-compact {
+  font-size: 15.5px;
+  line-height: 1.28;
 }
 
 .compact-place-kind,
 .compact-place-location {
   display: block;
-  max-width: 160px;
+  max-width: 150px;
   overflow: hidden;
   color: var(--seed-color-fg-neutral-muted);
   font-size: 11.5px;
@@ -2845,15 +2916,50 @@ textarea {
 
 .compact-place-kind { color: var(--seed-color-fg-neutral-subtle); }
 
+.compact-place-details {
+  display: flex;
+  flex: none;
+  max-width: 150px;
+  margin-top: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
 .compact-place-value {
   display: block;
   max-width: 150px;
-  margin-bottom: 5px;
   overflow: hidden;
   color: var(--seed-color-fg-neutral);
   font-size: 11.5px;
   font-weight: 700;
   line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-place-tags {
+  display: flex;
+  max-width: 150px;
+  min-height: 22px;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.compact-place-tags > span {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 6px;
+  background: var(--seed-color-bg-neutral-weak);
+  color: var(--seed-color-fg-neutral);
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3473,88 +3579,19 @@ textarea {
   transition: opacity var(--app-duration-press) var(--app-ease-out);
 }
 
-.place-sheet-header-action {
-  position: absolute;
-  top: 12px;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--seed-color-fg-neutral);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(-4px);
-  cursor: pointer;
-  transition:
-    transform var(--app-duration-press) var(--app-ease-out),
-    opacity var(--app-duration-press) var(--app-ease-out),
-    visibility 0s linear var(--app-duration-press);
-}
-
-.place-sheet-header-action:active {
-  transform: scale(.94);
-}
-
-.place-sheet-back {
-  left: 12px;
-}
-
-.place-sheet-back::before {
-  content: "";
-  width: 15px;
-  height: 15px;
-  border-bottom: 2.5px solid currentColor;
-  border-left: 2.5px solid currentColor;
-  transform: rotate(45deg);
-}
-
-.place-sheet-dismiss {
-  right: 12px;
-}
-
-.place-sheet-dismiss::before,
-.place-sheet-dismiss::after {
-  content: "";
-  position: absolute;
-  width: 24px;
-  height: 2.5px;
-  border-radius: var(--seed-radius-full);
-  background: currentColor;
-}
-
-.place-sheet-dismiss::before {
-  transform: rotate(45deg);
-}
-
-.place-sheet-dismiss::after {
-  transform: rotate(-45deg);
-}
-
 #placeSheet.is-expanded .place-sheet-grabber {
-  min-height: 96px;
-  margin-bottom: 12px;
-  padding-top: 18px;
-}
-
-#placeSheet.is-expanded .place-sheet-header-action {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
-  transition-delay: 80ms, 80ms, 0s;
+  min-height: 32px;
+  margin-bottom: 8px;
+  padding-top: 12px;
 }
 
 #placeSheet.is-expanded .place-sheet-grabber .sheet-handle {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 #placeSheet.is-expanded #placeSheetContent {
-  min-height: calc(100% - 96px);
+  min-height: calc(100% - 32px);
   padding-top: 0;
 }
 
@@ -3865,6 +3902,8 @@ textarea {
 }
 
 .festival-slider {
+  padding-inline: 4px;
+  scroll-padding-inline: 4px;
   scroll-behavior: smooth;
   overscroll-behavior-x: contain;
 }
@@ -4197,6 +4236,78 @@ textarea {
 #placeSheet.festival-detail .place-section-heading h3 { font-size: 18px; }
 #placeSheet.festival-detail .festival-facts span { font-size: 11px; }
 #placeSheet.festival-detail .festival-facts b { font-size: 13px; }
+#placeSheet.festival-detail .festival-route-fact small { font-size: 10px; }
+#placeSheet.festival-detail .festival-period {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+#placeSheet.festival-detail .festival-period span {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+#placeSheet.festival-detail .festival-period i {
+  margin-right: 5px;
+  color: var(--seed-color-fg-neutral-muted);
+  font-style: normal;
+}
+#placeSheet.festival-detail .recommend-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 13px;
+}
+#placeSheet.festival-detail .recommend-reason > i {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  font-style: normal;
+}
+#placeSheet.festival-detail .recommend-reason > div {
+  min-width: 0;
+  flex: 1;
+}
+#placeSheet.festival-detail .recommend-reason strong {
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+#placeSheet.festival-detail .recommend-reason ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#placeSheet.festival-detail .recommend-reason li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 13px minmax(0, 1fr);
+  gap: 5px;
+  align-items: start;
+}
+#placeSheet.festival-detail .recommend-reason li em {
+  color: var(--seed-color-fg-brand);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.55;
+  text-align: center;
+}
+#placeSheet.festival-detail .recommend-reason li span {
+  margin: 0;
+  color: var(--seed-color-fg-brand-contrast);
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
 #placeSheet.festival-detail .place-program-list li b { font-size: 13.5px; }
 #placeSheet.festival-detail .place-program-list li small { font-size: 11.5px; }
 #placeSheet.festival-detail .visit-verification span { font-size: 11px; }
