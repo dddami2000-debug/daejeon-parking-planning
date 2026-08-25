@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=64/);
-  assert.match(indexSource, /app\.js\?v=59/);
+  assert.match(indexSource, /seed-theme\.css\?v=65/);
+  assert.match(indexSource, /app\.js\?v=60/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=59/);
+  assert.match(indexSource, /app\.js\?v=60/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -177,10 +177,12 @@ test('chooses between the festival and the algorithm top parking before opening 
   assert.match(appSource, /data-festival-destination="festival"/);
   assert.match(appSource, /data-festival-destination="parking"/);
   assert.match(appSource, /const parking=currentParkingList\(\)\[0\]\|\|null/);
+  assert.match(appSource, /const algorithmTop=parkingTemplates\.find\(candidate=>festivalDestination\(candidate\)\)/);
   assert.match(appSource, /가장 추천하는 공영주차장이에요/);
   assert.match(appSource, /축제장까지 도보 \$\{Number\(parking\.walk\)\|\|0\}분/);
   assert.doesNotMatch(appSource, /추천 1순위/);
   assert.match(appSource, /renderFestivalProviderStep\(festivalDestination\(choice\.parking\)\)/);
+  assert.match(themeSource, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
 test('shows but does not navigate regional parking mock data', () => {

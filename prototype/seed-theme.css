@@ -4003,17 +4003,18 @@ textarea {
 }
 
 .festival-travel-options.festival-destination-options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .festival-travel-options.festival-destination-options .festival-destination-choice {
-  min-height: 112px;
-  padding: 16px;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
+  min-width: 0;
+  min-height: 194px;
+  padding: 15px 13px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   text-align: left;
 }
 
@@ -4042,11 +4043,16 @@ textarea {
 }
 
 .destination-choice-copy b {
+  display: -webkit-box;
+  min-height: 38px;
   overflow: hidden;
   color: var(--seed-color-fg-neutral);
   font-size: 14px;
+  line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .destination-choice-copy em {
@@ -4063,7 +4069,18 @@ textarea {
   font-size: 11.5px;
 }
 
+.destination-choice-copy u {
+  display: block;
+  margin-top: 8px;
+  color: var(--seed-color-fg-neutral-muted);
+  font-size: 9.5px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
 .destination-choice-arrow {
+  align-self: flex-end;
+  margin-top: auto;
   color: #c74408;
   font-size: 20px;
   font-weight: var(--seed-font-weight-bold);

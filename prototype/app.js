@@ -1539,6 +1539,8 @@ function festivalNavigationParkingChoice(){
   const parking=currentParkingList()[0]||null;
   if(parkingDataState==='live'){
     if(parking&&festivalDestination(parking))return {status:'available',parking};
+    const algorithmTop=parkingTemplates.find(candidate=>festivalDestination(candidate));
+    if(algorithmTop)return {status:'available',parking:algorithmTop,visitTimeFallback:true};
     return {status:'unavailable',parking:null};
   }
   return {
@@ -1553,7 +1555,7 @@ function parkingChoiceMarkup(choice){
   if(choice.status==='unavailable')return '<button type="button" class="festival-destination-choice parking unavailable" data-festival-destination="parking" data-destination-available="false" aria-disabled="true"><span class="destination-choice-copy"><small>공영주차장</small><b>추천할 수 있는 주차장이 없어요</b><em>현재 조건에 맞는 공영주차장을 찾지 못했어요</em></span></button>';
   const parking=choice.parking;
   const mock=choice.status==='mock';
-  return `<button type="button" class="festival-destination-choice parking${mock?' mock':''}" data-festival-destination="parking" data-destination-available="${String(!mock)}"${mock?' aria-disabled="true"':''}><span class="destination-choice-copy"><small>공영주차장${mock?' · 목업 데이터':''}</small><b>${escapeHtml(parking.name)}</b><em>가장 추천하는 공영주차장이에요</em><strong>축제장까지 도보 ${Number(parking.walk)||0}분</strong></span><span class="destination-choice-arrow" aria-hidden="true">→</span></button>`;
+  return `<button type="button" class="festival-destination-choice parking${mock?' mock':''}" data-festival-destination="parking" data-destination-available="${String(!mock)}"${mock?' aria-disabled="true"':''}><span class="destination-choice-copy"><small>공영주차장${mock?' · 목업 데이터':''}</small><b>${escapeHtml(parking.name)}</b><em>가장 추천하는 공영주차장이에요</em><strong>축제장까지 도보 ${Number(parking.walk)||0}분</strong>${choice.visitTimeFallback?`<u>운영 ${escapeHtml(parkingHours(parking))} · 출발 전 확인</u>`:''}</span><span class="destination-choice-arrow" aria-hidden="true">→</span></button>`;
 }
 
 function renderFestivalNavigationDestinations(){
@@ -1569,7 +1571,9 @@ function renderFestivalNavigationDestinations(){
     ?choice.reason==='regional'
       ?'대전 외 지역의 주차장 정보는 화면 확인용 목업이며 실제 길안내를 제공하지 않아요.'
       :'현재 주차장 정보는 샘플 데이터라 실제 길안내를 제공하지 않아요.'
-    :'주차장은 현재 방문 조건을 반영한 기존 추천 결과의 첫 번째 후보예요.';
+    :choice.visitTimeFallback
+      ?'기본 방문시간에 운영하는 후보가 없어 알고리즘 1위 주차장을 보여드려요. 운영시간을 확인해 주세요.'
+      :'주차장은 현재 방문 조건을 반영한 기존 추천 결과의 첫 번째 후보예요.';
   const options=$('#festivalTravelOptions');
   options.classList.add('festival-destination-options');
   options.innerHTML=`<button type="button" class="festival-destination-choice festival" data-festival-destination="festival" data-destination-available="true"><span class="destination-choice-copy"><small>축제 위치</small><b>${escapeHtml(destination.name)}</b><em>축제 위치로 바로 안내해요</em></span><span class="destination-choice-arrow" aria-hidden="true">→</span></button>${parkingChoiceMarkup(choice)}`;
