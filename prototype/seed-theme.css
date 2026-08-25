@@ -909,6 +909,21 @@ button:focus-visible, input:focus-visible {
   border-radius: var(--seed-radius-r5);
   align-items: flex-end;
   background: var(--hero);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+#placeSheet .place-hero-rich.has-photo {
+  background: #20352b;
+}
+
+#placeSheet .place-hero-photo {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 #placeSheet .place-hero-rich::before {
@@ -916,6 +931,7 @@ button:focus-visible, input:focus-visible {
   position: absolute;
   inset: 0;
   background: linear-gradient(0deg, rgba(18, 20, 22, .62), rgba(18, 20, 22, .02) 72%);
+  z-index: 1;
 }
 
 #placeSheet .place-hero-rich::after {
@@ -924,11 +940,20 @@ button:focus-visible, input:focus-visible {
   font-size: 76px;
   opacity: .82;
   filter: drop-shadow(0 8px 15px rgba(0,0,0,.12));
+  z-index: 2;
+}
+
+#placeSheet .place-hero-rich.has-photo::after {
+  opacity: .24;
+}
+
+#placeSheet .place-hero-rich .place-hero-badges {
+  z-index: 3;
 }
 
 .place-hero-copy {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   max-width: 305px;
   color: var(--seed-color-palette-static-white);
 }

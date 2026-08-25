@@ -10,6 +10,15 @@ const fallbackPlaces = [
   {id:'sungsimdang',type:'landmark',name:'성심당 본점',address:'대전 중구 대종로480번길 15',date:'오늘 추천',period:'연중 운영',hours:'매장 운영시간 확인',distance:0,eta:0,taste:92,emoji:'🥐',imageUrl:'https://daejeontour.co.kr/data/editor/2508/1754106290_b7912a409f72cfea_clipboard_image_1754106288205.png',color:'#bd6f3f',tile:'#fff1e8',lat:36.3277,lng:127.4274,summary:'대전역과 은행동을 함께 둘러보며 대표 빵과 도심 분위기를 즐길 수 있어요.',reason:'대전다운 먹거리 코스로 추천해요',gradient:'linear-gradient(135deg,#bd6f3f,#e3a06f)'}
 ];
 
+const landmarkPhotoOverrides = [
+  {match:['한밭수목원'], imageUrl:'https://daejeontour.co.kr/data/file/sights_djt/3068043556_6890dd6f8ab93_1______-_________-_________________2021_.jpg'},
+  {match:['엑스포과학공원','엑스포 과학공원'], imageUrl:'https://daejeontour.co.kr/data/file/sights_djt/3068043556_6890dd1e8e472_13-____________________________2022_.jpg'},
+  {match:['대전근현대사전시관','근현대사전시관'], imageUrl:'https://daejeontour.co.kr/data/file/sights_djt/3068043556_6890db2c06474_________________.jpg'},
+  {match:['대전시청'], imageUrl:'https://cdn.irobotnews.com/news/photo/202504/38177_79807_174.jpg'},
+  {match:['충남대학교'], imageUrl:'https://plus.cnu.ac.kr/Upl/_board/sub07_0703/sub07_0703_0_1619134485.jpg'},
+  {match:['성심당'], imageUrl:'https://daejeontour.co.kr/data/editor/2508/1754106290_b7912a409f72cfea_clipboard_image_1754106288205.png'}
+];
+
 const curatedExperiences = [
   {
     match:['0시 축제'],venue:'중앙로·은행동 일대',admission:'무료 프로그램 중심',audience:'친구 · 연인 · 가족',
@@ -291,7 +300,29 @@ function photoVisual(place){
   if(!place.imageUrl)return fallback;
   return `<img src="${escapeHtml(place.imageUrl)}" alt="${escapeHtml(place.name)} 대표 사진" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />${fallback}`;
 }
-function placeVisual(type,name){
+function landmarkCategoryFor(name,details=''){
+  const text=`${name||''} ${details||''}`.replace(/\s+/g,'').toLowerCase();
+  const categories=[
+    {key:'market',keywords:['시장','장터','오일장','5일장','상점','상가'],emoji:'🧺',color:'#d7793b',tile:'#fff0e4',gradient:'linear-gradient(135deg,#d7793b,#efb65b)'},
+    {key:'food',keywords:['성심당','빵','베이커리','카페','음식','맛집'],emoji:'🥐',color:'#bd6f3f',tile:'#fff1e8',gradient:'linear-gradient(135deg,#bd6f3f,#e3a06f)'},
+    {key:'science',keywords:['과학','엑스포','천문','우주','로봇','기술'],emoji:'🔭',color:'#5d8ee8',tile:'#eaf1ff',gradient:'linear-gradient(135deg,#4c8ef2,#77c8e9)'},
+    {key:'art',keywords:['미술','예술','공연','극장','문화예술','갤러리'],emoji:'🎨',color:'#9b6bd6',tile:'#f4edff',gradient:'linear-gradient(135deg,#9b6bd6,#d28ddb)'},
+    {key:'history',keywords:['박물관','전시관','역사','기념관','문화재','고택','사적'],emoji:'🏛️',color:'#c27b3c',tile:'#fff3e4',gradient:'linear-gradient(135deg,#c27b3c,#e7b65e)'},
+    {key:'education',keywords:['대학교','대학','학교','도서관','교육'],emoji:'🎓',color:'#3f8a68',tile:'#e8f6ee',gradient:'linear-gradient(135deg,#3f8a68,#7ab98f)'},
+    {key:'nature',keywords:['수목원','공원','호수','산','숲','둘레길','휴양림','생태','정원','온천'],emoji:'🌿',color:'#55b98a',tile:'#e8f8ef',gradient:'linear-gradient(135deg,#58bd8e,#90d19a)'},
+    {key:'city',keywords:['시청','구청','청사','시민','도시'],emoji:'🏢',color:'#5c83c6',tile:'#edf3ff',gradient:'linear-gradient(135deg,#5c83c6,#82abd9)'}
+  ];
+  return categories.find(category=>category.keywords.some(keyword=>text.includes(keyword)))||null;
+}
+
+function landmarkPhotoFor(name){
+  const label=String(name||'').replace(/\s+/g,'');
+  return landmarkPhotoOverrides.find(item=>item.match.some(keyword=>label.includes(keyword.replace(/\s+/g,''))))?.imageUrl||null;
+}
+
+function placeVisual(type,name,details=''){
+  const landmarkCategory=type==='landmark'?landmarkCategoryFor(name,details):null;
+  if(landmarkCategory)return landmarkCategory;
   const seed=[...String(name)].reduce((sum,char)=>sum+char.charCodeAt(0),0);
   const palettes=type==='festival'
     ? [['🎆','#ff7657','#fff0eb','linear-gradient(135deg,#ff7657,#ed4e7a)'],['🎪','#8d72e1','#f0edff','linear-gradient(135deg,#8d72e1,#5f78e9)'],['🎵','#a64f72','#faeaf1','linear-gradient(135deg,#a64f72,#e58580)']]
@@ -303,9 +334,10 @@ function distanceFromOverview(lat,lng){
   return Number(haversineDistance(overviewPosition.lat,overviewPosition.lng,lat,lng).toFixed(1));
 }
 function normalizeApiPlace(place){
-  const visual=placeVisual(place.type,place.name);
+  const visual=placeVisual(place.type,place.name,[place.summary,place.address,place.metadata?.ancillary_facilities,place.metadata?.convenience_facilities].filter(Boolean).join(' '));
   const distance=hasCoordinates(place)?distanceFromOverview(Number(place.lat),Number(place.lng)):null;
-  return {...place,...visual,imageUrl:place.imageUrl||place.metadata?.image_url||null,lat:Number(place.lat),lng:Number(place.lng),distance:distance??0,eta:distance===null?0:Math.max(2,Math.round(distance*5))};
+  const curatedImage=place.type==='landmark'?landmarkPhotoFor(place.name):null;
+  return {...place,...visual,imageUrl:place.imageUrl||place.metadata?.image_url||curatedImage||null,lat:Number(place.lat),lng:Number(place.lng),distance:distance??0,eta:distance===null?0:Math.max(2,Math.round(distance*5))};
 }
 
 function updateDistancesFromCurrentLocation(lat,lng){
@@ -654,8 +686,10 @@ function openPlace(id){
   const experience=experienceFor(activePlace);
   const sourceCopy=placeSourceAttribution?`<p class="data-source-note">${escapeHtml(placeSourceAttribution)}</p>`:'';
   const officialLink=experience.officialUrl?`<a class="official-link" href="${escapeHtml(experience.officialUrl)}" target="_blank" rel="noopener">공식 일정 확인 <span>↗</span></a>`:'';
+  const hasHeroImage=Boolean(activePlace.imageUrl);
+  const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.toggle('festival-detail',activePlace.type==='festival');
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'"><div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
+  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}<div class="place-hero-badges"><span>${placeLabel}</span><span>${escapeHtml(festivalDateBadge(activePlace))}</span></div><div class="place-hero-copy"><span class="place-hero-kicker">DAEJEON WEEKEND</span><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(activePlace.summary)}</p></div></div><div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><span>${placeLabel.toUpperCase()} GUIDE</span><h3>한눈에 보는 방문 정보</h3></section><div class="festival-facts"><div><span>일정</span><b>${escapeHtml(activePlace.period)}</b></div><div><span>운영 시간</span><b>${escapeHtml(activePlace.hours)}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장</span><b>${escapeHtml(experience.admission)}</b></div><div><span>추천 대상</span><b>${escapeHtml(experience.audience)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><div class="recommend-reason"><i>★</i><span>꿈돌이의 추천 이유<b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="festival-enjoy"><div class="festival-section-title"><span>ENJOY</span><h3>${activePlace.type==='festival'?'이렇게 즐겨보세요':'이렇게 둘러보세요'}</h3></div><div class="festival-activity-grid">${experience.highlights.map(item=>`<article><span class="activity-icon">${escapeHtml(item.icon)}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p></div></article>`).join('')}</div></section><aside class="festival-tip"><span class="festival-tip-icon">💡</span><div><b>방문 전에 잠깐</b><p>${escapeHtml(experience.tip)}</p></div></aside><div class="festival-actions">${officialLink}<button class="primary-button" id="openPlanner">주차 플랜 보기 <span>→</span></button></div>${sourceCopy}`;
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
