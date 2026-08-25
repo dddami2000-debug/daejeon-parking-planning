@@ -15,9 +15,9 @@
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <button class="header-search" id="searchButton" type="button" aria-label="대전 장소 검색 열기">
+        <button class="header-search" id="searchButton" type="button" aria-label="축제 검색 열기">
           <span class="header-search-icon" aria-hidden="true"></span>
-          <span>대전 장소 검색</span>
+          <span>축제 검색</span>
         </button>
         <button class="profile-button" id="retestButton" aria-label="방문 조건 다시 설정하기">
           <span>✦</span><b id="profileLabel">방문 조건</b>
@@ -69,7 +69,7 @@
         <section class="explore-section">
           <div class="map-layout">
             <div class="map-card">
-              <div class="map" id="map" aria-label="대전 축제와 랜드마크 지도"></div>
+              <div class="map" id="map" aria-label="대전과 근교 축제 지도"></div>
               <div class="daejeon-focus-mask" aria-hidden="true"></div>
               <button class="current-location-fab" id="currentButton" aria-label="현재 위치로 이동"><span aria-hidden="true"></span></button>
             </div>
@@ -159,17 +159,17 @@
     <div class="modal search-modal" id="searchModal" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
       <div class="search-card">
         <button class="modal-close" id="closeSearch" aria-label="검색 닫기">×</button>
-        <p>SEARCH DAEJEON</p>
-        <h2 id="searchTitle">대전 어디로 갈까요?</h2>
+        <p>SEARCH FESTIVAL</p>
+        <h2 id="searchTitle">대전과 근교, 어디로 갈까요?</h2>
         <form class="place-search-form" id="placeSearchForm">
           <span>⌕</span>
-          <input id="placeSearchInput" type="search" placeholder="성심당, 충남대, 축제 이름 검색" autocomplete="off" />
+          <input id="placeSearchInput" type="search" placeholder="축제 이름이나 지역 검색" autocomplete="off" />
           <button type="submit">검색</button>
         </form>
-        <div class="search-quick" aria-label="빠른 장소 검색">
-          <button data-search-query="성심당">🥐 성심당</button>
-          <button data-search-query="충남대학교">🎓 충남대</button>
-          <button data-search-query="대전시청">🏢 대전시청</button>
+        <div class="search-quick" aria-label="빠른 축제 검색">
+          <button data-search-query="대전">대전</button>
+          <button data-search-query="충청남도">충남</button>
+          <button data-search-query="전북">전북</button>
         </div>
         <div class="search-results" id="searchResults"></div>
       </div>
@@ -177,6 +177,7 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="app.js?v=44"></script>
+    <script src="region.js?v=1"></script>
+    <script src="app.js?v=45"></script>
   </body>
 </html>

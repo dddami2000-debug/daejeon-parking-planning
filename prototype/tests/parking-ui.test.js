@@ -34,3 +34,9 @@ test('uses capacity only for the explicit large-lot priority', () => {
   assert.match(appSource, /Number\(b\.capacity\)-Number\(a\.capacity\)/);
   assert.match(appSource, /주차면수 확인 필요/);
 });
+
+test('contains no landmark fallback, search, or detail UI', () => {
+  assert.doesNotMatch(appSource, /landmark|랜드마크/);
+  assert.doesNotMatch(indexSource, /landmark|랜드마크/);
+  assert.match(indexSource, /축제 이름이나 지역 검색/);
+});
