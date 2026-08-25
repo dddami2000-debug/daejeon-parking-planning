@@ -29,9 +29,12 @@ function parseLimit(value) {
 
 function isAuthorizedEnrichment(req) {
   if (isAuthorizedCron(req)) return true;
-  const token = cleanText(process.env.ENRICH_ADMIN_TOKEN);
+  const adminToken = cleanText(process.env.ENRICH_ADMIN_TOKEN);
+  const cronToken = cleanText(process.env.CRON_SECRET);
   const authorization = cleanText(req.headers?.authorization);
-  return Boolean(token) && authorization === `Bearer ${token}`;
+  const enrichmentToken = cleanText(req.headers?.['x-enrich-token']);
+  return (Boolean(adminToken) && (authorization === `Bearer ${adminToken}` || enrichmentToken === adminToken))
+    || (Boolean(cronToken) && enrichmentToken === cronToken);
 }
 
 function festivalApiKeys() {
