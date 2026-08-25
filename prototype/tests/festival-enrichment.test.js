@@ -6,6 +6,7 @@ const {
   mergeFestivalContent,
   normalizeOpenAiContent,
   officialFestivalContent,
+  parseModelJson,
   responseOutputText,
   sourceUrlsFromResponse
 } = require('../api/_festival-enrichment');
@@ -81,6 +82,11 @@ test('parses Responses API output text and web sources', () => {
   };
   assert.match(responseOutputText(response), /축제 소개/);
   assert.deepEqual(sourceUrlsFromResponse(response), ['https://www.example.go.kr/festival']);
+});
+
+test('extracts structured JSON even when web-search text wraps it', () => {
+  const parsed = parseModelJson('확인한 공식 정보입니다.\n```json\n{"summary":"축제 소개","tags":[],"highlights":[],"recommended_for":null}\n```');
+  assert.equal(parsed.summary, '축제 소개');
 });
 
 test('asks OpenAI to avoid invented program names', () => {

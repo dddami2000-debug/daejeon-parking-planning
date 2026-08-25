@@ -91,8 +91,18 @@ function officialFestivalContent(common = {}, intro = {}) {
 }
 
 function parseModelJson(value) {
-  const text = cleanText(value).replace(/^```json\s*|```$/g, '').trim();
-  try { return JSON.parse(text); } catch { return null; }
+  const raw = String(value || '').trim();
+  const withoutFence = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const objectStart = withoutFence.indexOf('{');
+  const objectEnd = withoutFence.lastIndexOf('}');
+  const candidates = [
+    withoutFence,
+    objectStart >= 0 && objectEnd > objectStart ? withoutFence.slice(objectStart, objectEnd + 1) : ''
+  ];
+  for (const candidate of [...new Set(candidates)].filter(Boolean)) {
+    try { return JSON.parse(candidate); } catch { /* try the extracted object */ }
+  }
+  return null;
 }
 
 function responseOutputText(response = {}) {
