@@ -140,11 +140,22 @@ let suppressPlannerSheetGestureClick = false;
 let plannerDismissTimer = null;
 let recommendSheetDrag = null;
 let suppressRecommendSheetGestureClick = false;
+let festivalAutoplayTimer = null;
+let festivalAutoplayResumeTimer = null;
+let festivalAutoplayDirection = 1;
+let favoriteVisualRefreshFrame = null;
+let recommendationRefreshTimer = null;
+let recommendationLastRefreshedAt = 0;
+let recommendationScoreCache = new Map();
 let tasteProfile = readTasteProfile();
 const FESTIVAL_PREFERENCE_KEY = 'daejeonMap.festivalPreferences.v1';
 const festivalRecommender = window.FestivalRecommender || null;
 let festivalPreferences = readFestivalPreferences();
 const GESTURE_VELOCITY_THRESHOLD = .11;
+const FESTIVAL_AUTOPLAY_INTERVAL_MS = 5000;
+const FESTIVAL_AUTOPLAY_RESUME_MS = 10000;
+const RECOMMENDATION_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+const festivalMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
 function gestureVelocity(distance,startTime){return distance/Math.max(1,performance.now()-startTime);}
@@ -241,6 +252,27 @@ function festivalBehaviorFor(place){
   const catalog=places.filter(item=>item.type==='festival').map(behaviorPlaceFor);
   return festivalRecommender.behaviorAffinity(behaviorPlaceFor(place),catalog,festivalPreferences);
 }
+function refreshRecommendationScoreCache(){
+  const catalog=places.filter(item=>item.type==='festival').map(behaviorPlaceFor);
+  recommendationScoreCache=new Map(places.map(place=>{
+    const baseScore=baseRecommendationScoreFor(place);
+    if(place?.type!=='festival')return [place.id,baseScore];
+    const behavior=festivalRecommender?.behaviorAffinity(behaviorPlaceFor(place),catalog,festivalPreferences);
+    return [place.id,festivalRecommender?.combineScore(baseScore,behavior)??baseScore];
+  }));
+  recommendationLastRefreshedAt=Date.now();
+}
+function refreshFestivalRecommendations(){
+  refreshRecommendationScoreCache();
+  renderFestivals();
+  renderRankings();
+}
+function startRecommendationRefreshSchedule(){
+  window.clearInterval(recommendationRefreshTimer);
+  recommendationRefreshTimer=window.setInterval(()=>{
+    if(!document.hidden)refreshFestivalRecommendations();
+  },RECOMMENDATION_REFRESH_INTERVAL_MS);
+}
 function isFestivalFavorite(placeId){return Boolean(festivalRecommender?.isFavorite(festivalPreferences,placeId));}
 function hasFestivalPreferenceHistory(){return Boolean(festivalRecommender?.hasHistory(festivalPreferences));}
 function favoriteFestivalCount(){return places.filter(place=>place.type==='festival'&&isFestivalFavorite(place.id)).length;}
@@ -250,8 +282,6 @@ function recordFestivalView(place){
   festivalPreferences=festivalRecommender.recordView(festivalPreferences,place.id);
   if(JSON.stringify(festivalPreferences)===previous)return;
   persistFestivalPreferences();
-  renderFestivals();
-  renderRankings();
 }
 function syncFavoriteButtons(){
   document.querySelectorAll('[data-favorite]').forEach(button=>{
@@ -269,11 +299,10 @@ function toggleFestivalFavorite(placeId){
   const nextFavorite=!isFestivalFavorite(placeId);
   festivalPreferences=festivalRecommender.setFavorite(festivalPreferences,placeId,nextFavorite);
   persistFestivalPreferences();
-  renderFestivals();
-  renderRankings();
-  renderMap();
   syncFavoriteButtons();
+  updateFavoriteMapButton();
   toast(nextFavorite?`즐겨찾기에 저장했어요: ${place.name}`:`즐겨찾기에서 해제했어요: ${place.name}`);
+  scheduleFavoriteVisualRefresh();
 }
 function favoriteButtonMarkup(place,extraClass=''){
   const active=isFestivalFavorite(place.id);
@@ -285,6 +314,68 @@ function bindFavoriteButtons(root=document){
     event.stopPropagation();
     toggleFestivalFavorite(button.dataset.favorite);
   }));
+}
+function scheduleFavoriteVisualRefresh(){
+  if(favoriteVisualRefreshFrame!==null)window.cancelAnimationFrame(favoriteVisualRefreshFrame);
+  favoriteVisualRefreshFrame=window.requestAnimationFrame(()=>{
+    favoriteVisualRefreshFrame=window.requestAnimationFrame(()=>{
+      favoriteVisualRefreshFrame=null;
+      if(rankingFilter==='favorites')renderRankings();
+      renderMap();
+    });
+  });
+}
+function stopFestivalAutoplay(){
+  window.clearTimeout(festivalAutoplayTimer);
+  festivalAutoplayTimer=null;
+}
+function stopFestivalAutoplayResume(){
+  window.clearTimeout(festivalAutoplayResumeTimer);
+  festivalAutoplayResumeTimer=null;
+}
+function festivalAutoplayAllowed(){
+  const slider=$('#festivalSlider');
+  return Boolean(
+    slider
+    && !festivalMotionPreference.matches
+    && document.visibilityState==='visible'
+    && !isPlaceFocused
+    && recommendationState()!=='collapsed'
+    && !slider.matches(':hover')
+    && !slider.contains(document.activeElement)
+    && slider.querySelectorAll('.festival-card').length>1
+  );
+}
+function advanceFestivalSlider(){
+  const slider=$('#festivalSlider');
+  const cards=[...slider.querySelectorAll('.festival-card')];
+  if(cards.length<2)return;
+  const origin=cards[0].offsetLeft;
+  const positions=cards.map(card=>card.offsetLeft-origin);
+  const current=positions.reduce((best,position,index)=>Math.abs(position-slider.scrollLeft)<Math.abs(positions[best]-slider.scrollLeft)?index:best,0);
+  let next=current+festivalAutoplayDirection;
+  if(next>=cards.length){festivalAutoplayDirection=-1;next=Math.max(0,cards.length-2);}
+  if(next<0){festivalAutoplayDirection=1;next=Math.min(1,cards.length-1);}
+  slider.scrollTo({left:positions[next],behavior:'smooth'});
+}
+function scheduleFestivalAutoplay(delay=FESTIVAL_AUTOPLAY_INTERVAL_MS){
+  stopFestivalAutoplay();
+  if(!festivalAutoplayAllowed())return;
+  festivalAutoplayTimer=window.setTimeout(()=>{
+    advanceFestivalSlider();
+    scheduleFestivalAutoplay();
+  },delay);
+}
+function restartFestivalAutoplay(){
+  stopFestivalAutoplay();
+  stopFestivalAutoplayResume();
+  scheduleFestivalAutoplay();
+}
+function deferFestivalAutoplay(delay=FESTIVAL_AUTOPLAY_RESUME_MS){
+  stopFestivalAutoplay();
+  stopFestivalAutoplayResume();
+  if(festivalMotionPreference.matches)return;
+  festivalAutoplayResumeTimer=window.setTimeout(()=>scheduleFestivalAutoplay(),delay);
 }
 function updateFavoriteMapButton(){
   const button=$('#favoriteMapButton');
@@ -397,6 +488,7 @@ function baseRecommendationScoreFor(place){
   return weightTotal?Math.round(signals.reduce((sum,[score,weight])=>sum+score*weight,0)/weightTotal):0;
 }
 function recommendationScoreFor(place){
+  if(recommendationScoreCache.has(place?.id))return recommendationScoreCache.get(place.id);
   const baseScore=baseRecommendationScoreFor(place);
   if(place?.type!=='festival')return baseScore;
   return festivalRecommender?.combineScore(baseScore,festivalBehaviorFor(place))??baseScore;
@@ -483,6 +575,7 @@ function updateDistancesFromCurrentLocation(lat,lng){
     return {...place,distance,eta:Math.max(2,Math.round(distance*5))};
   });
   activePlace=places.find(place=>place.id===activePlace.id)||places[0];
+  refreshRecommendationScoreCache();
   renderFestivals();
   renderRankings();
   renderMap();
@@ -617,6 +710,7 @@ async function loadPlaces(){
     placeSourceAttribution=payload.sourceAttribution||'';
     placeDataState='live';
     placeDataUpdatedAt=payload.generatedAt||new Date().toISOString();
+    refreshRecommendationScoreCache();
     renderFestivals();renderRankings();renderMap();
     toast('대전 공공데이터를 불러왔어요.');
   }catch{
@@ -625,6 +719,7 @@ async function loadPlaces(){
     placeDataState='demo';
     placeDataUpdatedAt=null;
     placeSourceAttribution='샘플 데이터 · 공식 운영 정보는 출발 전 확인 필요';
+    refreshRecommendationScoreCache();
     renderFestivals();renderRankings();renderMap();
     toast('공공데이터 연결이 어려워 샘플 화면을 표시해요.');
   }
@@ -663,6 +758,7 @@ async function loadParkingForActivePlace(){
 
 function renderFestivals(){
   if(placeDataState==='loading'){
+    stopFestivalAutoplay();
     $('#festivalFilterStatus').textContent='확인 중';
     $('#placeDataStatus').innerHTML='';
     $('#festivalSlider').innerHTML=placeLoadingMarkup();
@@ -681,6 +777,8 @@ function renderFestivals(){
   }).join(''):`<div class="festival-filter-empty"><b>선택한 날짜에 열리는 축제가 없어요.</b><span>기간을 넓히거나 ‘전체’를 눌러보세요.</span></div>`;
   document.querySelectorAll('.festival-card-open').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
   bindFavoriteButtons($('#festivalSlider'));
+  festivalAutoplayDirection=1;
+  restartFestivalAutoplay();
 }
 
 function renderRankings(){
@@ -971,6 +1069,7 @@ function openPlace(id){
   activePlace=places.find(place=>place.id===id)||places[0];
   recordFestivalView(activePlace);
   isPlaceFocused=true;
+  stopFestivalAutoplay();
   excludedParkings=[];
   parkingWeather=null;
   $('.app-shell').classList.add('is-place-focused');
@@ -1185,6 +1284,7 @@ function resetMapFocus(){
   $('#placeSheet').classList.remove('show');
   $('#sheetBackdrop').classList.remove('show');
   renderMap();
+  scheduleFestivalAutoplay();
   morphToOverview();
 }
 
@@ -1365,6 +1465,7 @@ function showResult(){
   localStorage.setItem('daejeonMap.personalityResult',tasteProfile.primary);
   localStorage.setItem('daejeonMap.onboardingCompleted','true');
   applyTasteProfileUI();
+  refreshRecommendationScoreCache();
   renderFestivals();
   renderRankings();
   $('.onboarding-card').classList.add('showing-result');
@@ -1404,6 +1505,8 @@ function setRecommendationsState(state){
     section.scrollTop=0;
     setFestivalDateFilterOpen(false);
   }
+  if(collapsed)stopFestivalAutoplay();
+  else scheduleFestivalAutoplay();
 }
 
 function beginRecommendSheetDrag(event){
@@ -1488,11 +1591,24 @@ function cancelRecommendSheetDrag(event){
 }
 
 function searchablePlaces(query=''){
-  const keyword=query.trim().toLowerCase().replace(/\s+/g,'');
-  const source=keyword?places:[...places].sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a));
+  const terms=String(query||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const source=terms.length?places:[...places].sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a));
   return source.filter(place=>{
-    if(!keyword)return true;
-    return [place.name,place.address,place.region,compactPlaceArea(place),place.summary,experienceFor(place).venue].some(value=>String(value||'').toLowerCase().replace(/\s+/g,'').includes(keyword));
+    if(!terms.length)return true;
+    const experience=experienceFor(place);
+    const searchPlace=behaviorPlaceFor(place);
+    const corpus=[
+      place.name,place.address,place.region,compactPlaceArea(place),place.summary,place.description,
+      experience.venue,experience.audience,...(experience.tags||[]),
+      ...(experience.highlights||[]).flatMap(item=>[item.title,item.description]),
+      JSON.stringify(place.metadata||{})
+    ].map(value=>String(value||'').toLowerCase().replace(/\s+/g,'')).join(' ');
+    return terms.every(term=>{
+      const normalized=term.replace(/\s+/g,'');
+      const topicQuery=Boolean(festivalRecommender?.topicTokens({name:term}).size);
+      if(topicQuery)return Boolean(festivalRecommender.matchesTopicQuery(searchPlace,term));
+      return Boolean(festivalRecommender?.matchesRegionQuery(searchPlace,term))||corpus.includes(normalized);
+    });
   }).slice(0,8);
 }
 
@@ -1517,7 +1633,7 @@ function toast(message){
   clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),2400);
 }
 
-applyTasteProfileUI();renderFestivals();renderRankings();initNaverMap();loadPlaces();
+applyTasteProfileUI();refreshRecommendationScoreCache();renderFestivals();renderRankings();initNaverMap();loadPlaces();startRecommendationRefreshSchedule();
 $('#visitDate').value=new Date().toISOString().slice(0,10);
 if(localStorage.getItem('daejeonMap.onboardingCompleted')==='true')$('#onboardingModal').classList.remove('show');
 $('#startTest').addEventListener('click',startTest);
@@ -1554,6 +1670,18 @@ $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remo
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
 $('#currentButton').addEventListener('click',moveToCurrentLocation);
 $('#favoriteMapButton').addEventListener('click',toggleFavoriteMapFilter);
+$('#festivalSlider').addEventListener('pointerdown',()=>deferFestivalAutoplay());
+$('#festivalSlider').addEventListener('wheel',()=>deferFestivalAutoplay(),{passive:true});
+$('#festivalSlider').addEventListener('mouseenter',stopFestivalAutoplay);
+$('#festivalSlider').addEventListener('mouseleave',()=>scheduleFestivalAutoplay());
+$('#festivalSlider').addEventListener('focusin',stopFestivalAutoplay);
+$('#festivalSlider').addEventListener('focusout',()=>deferFestivalAutoplay(FESTIVAL_AUTOPLAY_INTERVAL_MS));
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){stopFestivalAutoplay();return;}
+  scheduleFestivalAutoplay();
+  if(Date.now()-recommendationLastRefreshedAt>=RECOMMENDATION_REFRESH_INTERVAL_MS)refreshFestivalRecommendations();
+});
+festivalMotionPreference.addEventListener?.('change',event=>event.matches?stopFestivalAutoplay():scheduleFestivalAutoplay());
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&isPlaceFocused){event.preventDefault();resetMapFocus();}});
 $('#searchButton').addEventListener('click',openSearch);
 $('#closeSearch').addEventListener('click',()=>$('#searchModal').classList.remove('show'));

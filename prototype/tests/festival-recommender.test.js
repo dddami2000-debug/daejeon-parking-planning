@@ -88,6 +88,32 @@ test('connects produce interest to other agricultural and harvest festivals', ()
   );
 });
 
+test('matches broad search words to related festival topics', () => {
+  const seafood = {
+    ...science,
+    id: 'seafood',
+    name: '서해 수산물 축제',
+    category: '먹거리축제',
+    summary: '새우와 굴, 조개 등 지역 해산물을 맛보는 행사',
+    tags: ['수산물', '해산물', '새우']
+  };
+
+  assert.equal(recommender.matchesTopicQuery(wine, '술'), true);
+  assert.equal(recommender.matchesTopicQuery(beer, '주류'), true);
+  assert.equal(recommender.matchesTopicQuery(seafood, '수산물'), true);
+  assert.equal(recommender.matchesTopicQuery(science, '술'), false);
+  assert.equal(recommender.matchesTopicQuery(wine, '충북'), false);
+});
+
+test('matches province abbreviations to their full administrative names', () => {
+  const chungbuk = {...science, id: 'chungbuk', area: '충청북도 제천시'};
+
+  assert.equal(recommender.matchesRegionQuery(chungbuk, '충북'), true);
+  assert.equal(recommender.matchesRegionQuery(chungbuk, '충청북도'), true);
+  assert.equal(recommender.matchesRegionQuery(chungbuk, '제천시'), true);
+  assert.equal(recommender.matchesRegionQuery(chungbuk, '충남'), false);
+});
+
 test('repeated views raise festivals from the same administrative region', () => {
   const viewed = {
     ...science,

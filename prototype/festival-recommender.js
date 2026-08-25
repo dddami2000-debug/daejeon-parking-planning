@@ -27,6 +27,10 @@
     pet: ['반려동물', '반려견', '강아지', '고양이', '펫'],
     eco: ['환경', '친환경', '재활용', '탄소', '기후', '업사이클']
   };
+  const regionSearchAliases = {
+    서울: ['서울특별시'], 부산: ['부산광역시'], 대구: ['대구광역시'], 인천: ['인천광역시'], 광주: ['광주광역시'], 대전: ['대전광역시'], 울산: ['울산광역시'], 세종: ['세종특별자치시'],
+    경기: ['경기도'], 강원: ['강원특별자치도', '강원도'], 충북: ['충청북도'], 충남: ['충청남도'], 전북: ['전북특별자치도', '전라북도'], 전남: ['전라남도'], 경북: ['경상북도'], 경남: ['경상남도'], 제주: ['제주특별자치도', '제주도']
+  };
 
   function clamp(value, min = 0, max = 100) {
     return Math.min(max, Math.max(min, Number(value) || 0));
@@ -58,6 +62,31 @@
     return new Set(Object.entries(topicGroups)
       .filter(([, aliases]) => aliases.some(alias => text.includes(alias)))
       .map(([topic]) => topic));
+  }
+
+  function matchesTopicQuery(place, query) {
+    const queryTopics = topicTokens({name: String(query || '')});
+    if (!queryTopics.size) return false;
+    const placeTopics = topicTokens(place);
+    return [...queryTopics].some(topic => placeTopics.has(topic));
+  }
+
+  function normalizedSearchValue(value) {
+    return String(value || '').toLowerCase().replace(/\s+/g, '');
+  }
+
+  function regionQueryVariants(query) {
+    const normalized = normalizedSearchValue(query);
+    const aliases = Object.entries(regionSearchAliases)
+      .filter(([short, longNames]) => normalizedSearchValue(short) === normalized
+        || longNames.some(name => normalizedSearchValue(name) === normalized))
+      .flatMap(([short, longNames]) => [short, ...longNames]);
+    return [...new Set([normalized, ...aliases.map(normalizedSearchValue)])].filter(Boolean);
+  }
+
+  function matchesRegionQuery(place, query) {
+    const region = normalizedSearchValue(place?.area || place?.region || place?.address);
+    return Boolean(region) && regionQueryVariants(query).some(keyword => region.includes(keyword));
   }
 
   function regionTokens(place = {}) {
@@ -218,6 +247,8 @@
     combineScore,
     hasHistory,
     isFavorite,
+    matchesRegionQuery,
+    matchesTopicQuery,
     normalizeHistory,
     placeSimilarity,
     regionSimilarity,

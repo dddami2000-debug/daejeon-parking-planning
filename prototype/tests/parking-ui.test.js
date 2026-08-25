@@ -39,7 +39,7 @@ test('uses capacity only for the explicit large-lot priority', () => {
 test('contains no landmark fallback, search, or detail UI', () => {
   assert.doesNotMatch(appSource, /landmark|랜드마크/);
   assert.doesNotMatch(indexSource, /landmark|랜드마크/);
-  assert.match(indexSource, /축제 이름이나 지역 검색/);
+  assert.match(indexSource, /축제 이름·지역·주제 검색/);
 });
 
 test('personalizes festivals from views and favorites without using parking behavior', () => {
@@ -70,4 +70,41 @@ test('offers a favorite-only festival list and favorite-only map mode', () => {
   assert.match(appSource, /favorite-place-pin/);
   assert.match(appSource, /marker-favorite-badge/);
   assert.match(appSource, /favorite-place-cluster/);
+});
+
+test('auto-advances recommendation cards without overriding user or reduced-motion preferences', () => {
+  assert.match(appSource, /FESTIVAL_AUTOPLAY_INTERVAL_MS = 5000/);
+  assert.match(appSource, /festivalAutoplayDirection/);
+  assert.match(appSource, /scrollTo\(\{left:positions\[next\],behavior:'smooth'\}\)/);
+  assert.match(appSource, /festivalMotionPreference\.matches/);
+  assert.match(appSource, /!slider\.matches\(':hover'\)/);
+  assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
+  assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
+  assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
+  assert.match(indexSource, /seed-theme\.css\?v=55/);
+  assert.match(indexSource, /app\.js\?v=55/);
+});
+
+test('searches by province aliases and related festival topics', () => {
+  assert.match(indexSource, /data-search-query="충청북도">충북/);
+  assert.doesNotMatch(indexSource, /data-search-query="수산물"/);
+  assert.doesNotMatch(indexSource, /data-search-query="술"/);
+  assert.match(indexSource, /축제 이름·지역·주제 검색/);
+  assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
+  assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
+  assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
+  assert.match(indexSource, /app\.js\?v=55/);
+});
+
+test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
+  assert.match(appSource, /RECOMMENDATION_REFRESH_INTERVAL_MS = 10 \* 60 \* 1000/);
+  assert.match(appSource, /refreshRecommendationScoreCache\(\);renderFestivals\(\);renderRankings\(\)/);
+  assert.match(appSource, /startRecommendationRefreshSchedule\(\)/);
+  const favoriteBlock=appSource.match(/function toggleFestivalFavorite\(placeId\)[\s\S]*?\n}/)?.[0]||'';
+  assert.match(favoriteBlock, /syncFavoriteButtons\(\)/);
+  assert.match(favoriteBlock, /updateFavoriteMapButton\(\)/);
+  assert.match(favoriteBlock, /scheduleFavoriteVisualRefresh\(\)/);
+  assert.doesNotMatch(favoriteBlock, /renderFestivals\(\)|renderRankings\(\)|renderMap\(\)/);
+  const viewBlock=appSource.match(/function recordFestivalView\(place\)[\s\S]*?\n}/)?.[0]||'';
+  assert.doesNotMatch(viewBlock, /renderFestivals\(\)|renderRankings\(\)/);
 });

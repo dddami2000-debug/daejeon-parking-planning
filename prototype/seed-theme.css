@@ -3623,7 +3623,7 @@ textarea {
 .map-favorite-filter {
   position: absolute;
   z-index: 12;
-  top: 94px;
+  top: 154px;
   right: 12px;
   display: grid;
   width: 46px;
@@ -3755,7 +3755,7 @@ textarea {
 
 @media (max-width: 760px) {
   .map-favorite-filter {
-    top: 88px;
+    top: 148px;
     right: 10px;
     width: 44px;
     height: 44px;
@@ -3763,7 +3763,20 @@ textarea {
   }
 }
 
+.festival-slider {
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+
+.festival-slider .festival-card {
+  scroll-snap-stop: always;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .festival-slider {
+    scroll-behavior: auto;
+  }
+
   .map-favorite-filter {
     transition-property: color, background-color, box-shadow;
   }
