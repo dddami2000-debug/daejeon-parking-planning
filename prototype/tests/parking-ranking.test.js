@@ -40,12 +40,13 @@ test('uses a neutral weather weight and uncertainty penalty when data is missing
   assert.equal(ranking.breakdown.uncertaintyPenalty, 0.12);
 });
 
-test('explains a recommendation with the weather, walk and expected cost', () => {
+test('explains a recommendation without repeating the shared temperature', () => {
   const reason = recommendationReason(
     { walk: 5, distance: 0.35, estimatedCost: 4000 },
     { available: true, apparentTemperature: 34 }
   );
-  assert.match(reason, /체감온도 34\.0℃/);
+  assert.match(reason, /더운 날씨/);
+  assert.doesNotMatch(reason, /34\.0℃/);
   assert.match(reason, /350m/);
   assert.match(reason, /도보 5분/);
   assert.match(reason, /4,000원/);

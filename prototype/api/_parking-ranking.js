@@ -62,13 +62,13 @@ function recommendationReason(candidate, weather) {
       ? '무료로 이용할 수 있어'
       : `예상 요금이 ${cost.toLocaleString('ko-KR')}원이라`;
   if (Number.isFinite(temperature) && heatSeverity >= 0.65) {
-    return `체감온도 ${temperature.toFixed(1)}℃에 목적지까지 ${distanceCopy}이고 ${costCopy} 종합점수가 높아요`;
+    return `더운 날씨를 반영해 목적지까지 ${distanceCopy}이고 ${costCopy} 종합점수가 높아요`;
   }
   if (Number.isFinite(temperature) && heatSeverity > 0) {
-    return `체감온도 ${temperature.toFixed(1)}℃와 목적지까지 ${distanceCopy}, ${costCopy} 추천 순위에 반영했어요`;
+    return `따뜻한 날씨와 목적지까지 ${distanceCopy}, ${costCopy} 추천 순위에 반영했어요`;
   }
   if (Number.isFinite(temperature)) {
-    return `체감온도 ${temperature.toFixed(1)}℃로 무난해 목적지까지 ${distanceCopy}와 요금을 균형 있게 비교했어요`;
+    return `체감온도가 높지 않아 목적지까지 ${distanceCopy}와 요금을 균형 있게 비교했어요`;
   }
   return cost === null
     ? `목적지까지 ${distanceCopy}와 요금 데이터의 불확실성을 함께 반영했어요`

@@ -602,6 +602,15 @@ button:focus-visible, input:focus-visible {
   background: var(--seed-color-bg-layer-default);
 }
 .time-form input { color: var(--seed-color-fg-neutral); font-family: inherit; }
+.parking-summary { align-items: center; }
+.parking-summary b {
+  padding: 5px 8px;
+  border-radius: var(--seed-radius-full);
+  background: var(--seed-color-bg-brand-weak);
+  color: var(--seed-color-fg-brand-contrast);
+  font-size: 9px;
+}
+.parking-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .recommend-reason, .place-parking-preview {
   border-color: var(--seed-color-stroke-brand-weak);

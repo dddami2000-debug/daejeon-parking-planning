@@ -494,7 +494,7 @@ function parkingHours(parking){const schedule=scheduleForVisit(parking);return s
 
 function weatherTemperatureCopy(){
   const temperature=Number(parkingWeatherContext?.apparentTemperature);
-  return parkingWeatherContext?.available&&Number.isFinite(temperature)?`체감 ${temperature.toFixed(1)}℃`:'날씨 미반영';
+  return parkingWeatherContext?.available&&Number.isFinite(temperature)?`체감온도 ${temperature.toFixed(1)}℃`:'체감온도 정보 없음';
 }
 
 function currentParkingList(){
@@ -543,9 +543,9 @@ function renderParkings(){
   const start=$('#startTime').value,end=$('#endTime').value;
   const duration=Math.max(0,(minutes(end)||0)-(minutes(start)||0));
   $('#parkingSummary').textContent=`${Math.floor(duration/60)}시간 ${duration%60?duration%60+'분 ':''}주차 기준`;
-  $('.parking-summary b').textContent=parkingWeatherContext?.available?`${weatherTemperatureCopy()} · 거리·가격 종합`:'거리·가격·데이터 신뢰도 종합';
+  $('.parking-summary b').textContent=weatherTemperatureCopy();
   const list=currentParkingList();
-  $('#parkingList').innerHTML=list.length?list.map(parking=>`<article class="parking-item parking-plan-rank-${parking.recommendationRank}"><div class="parking-plan-head"><span class="parking-plan-option">${escapeHtml(parking.rankLabel)}</span><span class="parking-plan-reason"><b>선정 이유</b><small>${escapeHtml(rankedSelectionReason(parking))}</small></span></div><span class="parking-type">${escapeHtml(parking.type)} 주차장</span><h3>${escapeHtml(parking.name)}</h3><div class="parking-meta"><span>차로 ${parking.drive}분</span><span>도보 ${parking.walk}분</span><span>${escapeHtml(parkingHours(parking))} 운영</span></div><div class="parking-stats"><div class="criterion-stat"><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>예상 요금</span><b>${formatCost(parking)}</b></div><div><span>날씨 반영</span><b>${escapeHtml(weatherTemperatureCopy())}</b></div></div><div class="parking-actions"><button class="route-button" data-route="${escapeHtml(parking.name)}">이곳으로 길안내</button><button class="full-button" data-full="${escapeHtml(parking.name)}">만차로 제외</button></div></article>`).join(''):`<div class="parking-item"><h3>준비한 후보를 모두 확인했어요</h3><p class="place-description">검색 반경을 넓혀 주변 주차장을 다시 찾아볼게요.</p><button class="primary-button" id="resetParking">주변 후보 다시 계산</button></div>`;
+  $('#parkingList').innerHTML=list.length?list.map(parking=>`<article class="parking-item parking-plan-rank-${parking.recommendationRank}"><div class="parking-plan-head"><span class="parking-plan-option">${escapeHtml(parking.rankLabel)}</span><span class="parking-plan-reason"><b>선정 이유</b><small>${escapeHtml(rankedSelectionReason(parking))}</small></span></div><span class="parking-type">${escapeHtml(parking.type)} 주차장</span><h3>${escapeHtml(parking.name)}</h3><div class="parking-meta"><span>차로 ${parking.drive}분</span><span>도보 ${parking.walk}분</span><span>${escapeHtml(parkingHours(parking))} 운영</span></div><div class="parking-stats"><div class="criterion-stat"><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>예상 요금</span><b>${formatCost(parking)}</b></div></div><div class="parking-actions"><button class="route-button" data-route="${escapeHtml(parking.name)}">이곳으로 길안내</button><button class="full-button" data-full="${escapeHtml(parking.name)}">만차로 제외</button></div></article>`).join(''):`<div class="parking-item"><h3>준비한 후보를 모두 확인했어요</h3><p class="place-description">검색 반경을 넓혀 주변 주차장을 다시 찾아볼게요.</p><button class="primary-button" id="resetParking">주변 후보 다시 계산</button></div>`;
   document.querySelectorAll('[data-route]').forEach(button=>button.addEventListener('click',()=>selectNavigation(button.dataset.route)));
   document.querySelectorAll('[data-full]').forEach(button=>button.addEventListener('click',()=>markFull(button.dataset.full)));
   if($('#resetParking'))$('#resetParking').addEventListener('click',()=>{excludedParkings=[];renderParkings();toast('새로운 후보를 다시 계산했어요.');});
