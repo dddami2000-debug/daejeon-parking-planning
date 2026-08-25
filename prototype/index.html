@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" />
-    <title>대전콕 | 취향 따라 가는 대전 나들이</title>
+    <title>대전콕 | 갈 곳부터 주차까지 한 번에</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⭐</text></svg>" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=49" />
+    <link rel="stylesheet" href="seed-theme.css?v=51" />
     <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
@@ -19,8 +19,8 @@
           <span class="header-search-icon" aria-hidden="true"></span>
           <span>대전 장소 검색</span>
         </button>
-        <button class="profile-button" id="retestButton" aria-label="취향 다시 검사하기">
-          <span>✦</span><b id="profileLabel">취향 다시 찾기</b>
+        <button class="profile-button" id="retestButton" aria-label="방문 조건 다시 설정하기">
+          <span>✦</span><b id="profileLabel">방문 조건</b>
         </button>
       </header>
 
@@ -31,17 +31,18 @@
           </div>
           <div class="section-heading">
             <div>
-              <div class="dream-copy"><span class="mini-dream">★</span> 꿈돌이가 골라봤어요</div>
-              <h1 id="recommendTitle">오늘, 여기 어때요?</h1>
+              <div class="dream-copy"><span class="mini-dream">★</span> 오늘 갈 수 있는 곳을 골랐어요</div>
+              <h1 id="recommendTitle">이번 주말, 대전 어디로 갈까요?</h1>
             </div>
           </div>
+          <div id="placeDataStatus"></div>
           <div class="festival-slider" id="festivalSlider"></div>
           <section class="recommend-rankings" aria-labelledby="rankingTitle">
             <div class="ranking-heading">
               <div>
                 <p id="rankingEyebrow">DAEJEON FESTIVAL</p>
                 <h2 id="rankingTitle">축제 인기 순위</h2>
-                <span id="rankingMetric">취향·거리 반영</span>
+                <span id="rankingMetric">방문 조건·거리 반영</span>
               </div>
               <button class="festival-date-trigger" id="festivalDateTrigger" type="button" aria-controls="festivalDateFilter" aria-expanded="false">
                 <span class="festival-date-trigger-icon" aria-hidden="true"></span>
@@ -83,32 +84,17 @@
 
     <div class="modal onboarding show" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
       <div class="onboarding-card">
-        <button class="skip-button" id="skipTest">건너뛰고 둘러보기</button>
-        <div class="survey-illustration" role="img" aria-label="대전 나들이 취향을 찾아주는 꿈돌이">
-          <svg viewBox="0 0 220 154" aria-hidden="true">
-            <defs>
-              <linearGradient id="surveyCanvas" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eaf7ed"/><stop offset="1" stop-color="#fff7d7"/></linearGradient>
-              <linearGradient id="surveyBody" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd856"/><stop offset="1" stop-color="#ffb735"/></linearGradient>
-            </defs>
-            <rect x="4" y="4" width="212" height="140" rx="32" fill="url(#surveyCanvas)"/>
-            <path d="M20 112C56 77 75 122 111 86s56-29 88-63" fill="none" stroke="#7ab18d" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
-            <circle cx="25" cy="111" r="5" fill="#fff" stroke="#4e8964" stroke-width="3"/><circle cx="197" cy="24" r="5" fill="#fff" stroke="#4e8964" stroke-width="3"/>
-            <path d="M72 51c6-22 53-25 66 2 10 22 2 60-31 65-32 5-53-23-35-67Z" fill="url(#surveyBody)"/>
-            <path d="m105 37 4-12 7 10 12-2-7 10 6 10-12-4-8 9-1-12-11-5Z" fill="#ff9f2f" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
-            <circle cx="91" cy="75" r="4" fill="#374b40"/><circle cx="119" cy="75" r="4" fill="#374b40"/>
-            <path d="M95 89c8 7 17 7 25-1" fill="none" stroke="#744d27" stroke-width="4" stroke-linecap="round"/>
-            <circle cx="81" cy="85" r="6" fill="#ff9f73" opacity=".55"/><circle cx="130" cy="84" r="6" fill="#ff9f73" opacity=".55"/>
-            <g transform="translate(142 78)"><path d="M22 3c12 0 22 9 22 21 0 17-22 36-22 36S0 41 0 24C0 12 10 3 22 3Z" fill="#319b68" stroke="#fff" stroke-width="5"/><path d="m22 14 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1Z" fill="#fff"/></g>
-            <path d="M47 40h14M54 33v14M165 42h12M171 36v12" stroke="#8fc9a4" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-          <span><i></i>대전 취향 탐색 중</span>
-        </div>
+        <button class="skip-button" id="skipTest">나중에 설정</button>
+        <div class="onboarding-brand" aria-hidden="true"><span>콕</span><b>대전콕</b></div>
         <div class="question-progress"><span id="questionStep">START</span><div><i id="progressBar"></i></div></div>
         <div id="questionArea">
-          <p class="test-kicker">꿈돌이의 나들이 취향 연구소</p>
-          <h2 id="onboardingTitle">딱 1분이면<br />오늘 갈 곳이 보여요!</h2>
-          <p class="test-description">재미있는 질문에 답하면 취향에 꼭 맞는<br />대전 축제와 명소를 찾아드릴게요.</p>
-          <button class="primary-button" id="startTest">취향 테스트 시작 <span>→</span></button>
+          <p class="test-kicker">이번 주말 갈 곳부터 주차까지 한 번에</p>
+          <h2 id="onboardingTitle">대전에서 어디 갈지,<br />주차까지 같이 정해요.</h2>
+          <p class="test-description">목적지가 없어도 괜찮아요. 세 가지 방문 조건으로 오늘 갈 수 있는 곳을 고르고, 실제 이용 가능한 주차장까지 이어드려요.</p>
+          <div class="entry-actions">
+            <button class="primary-button" id="startTest">갈 곳 추천받기 <span>→</span></button>
+            <button class="secondary-button" id="destinationEntry">목적지가 정해졌어요</button>
+          </div>
         </div>
       </div>
     </div>
@@ -137,9 +123,15 @@
         <label><span>출차</span><input id="endTime" type="time" value="22:00" /></label>
         <button id="recalculate">다시 계산</button>
       </div>
+      <div class="parking-priority" role="tablist" aria-label="주차장 추천 기준">
+        <button class="active" type="button" data-parking-priority="distance" role="tab" aria-selected="true">거리 우선</button>
+        <button type="button" data-parking-priority="price" role="tab" aria-selected="false">가격 우선</button>
+        <button type="button" data-parking-priority="large" role="tab" aria-selected="false">대형 주차장 우선</button>
+      </div>
       <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>체감온도 확인 중</b></div>
+      <div class="parking-trust-summary" id="parkingTrustSummary" aria-live="polite"></div>
       <div class="parking-list" id="parkingList"></div>
-      <p class="data-note">예상 요금은 운영시간을 반영한 계산값이에요. 실시간 이용면수와 총면수는 추천 조건에 포함하지 않아요.</p>
+      <p class="data-note">확인된 운영시간·요금·주차면 정보를 기준으로 비교해요. 실시간 혼잡도는 제공되지 않습니다.</p>
     </section>
 
     <section class="bottom-sheet parking-info-sheet" id="parkingInfoSheet" aria-label="주차장 정보">
@@ -185,6 +177,6 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="app.js?v=43"></script>
+    <script src="app.js?v=44"></script>
   </body>
 </html>

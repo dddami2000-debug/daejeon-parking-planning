@@ -1228,6 +1228,190 @@ button:focus-visible, input:focus-visible {
   .official-link { min-width: 100%; }
 }
 
+/* 0825 feedback: service entry, trustworthy data states and factual details. */
+.onboarding-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 26px 0 34px;
+}
+.onboarding-card::before { display: none; }
+#placeDataStatus:empty { display: none; }
+#placeDataStatus .data-status-card { margin: 0 0 8px; padding: 9px 11px; }
+#placeDataStatus .data-status-card span { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+
+.onboarding-brand span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 15px 15px 15px 5px;
+  background: var(--seed-color-bg-brand-solid);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.onboarding-brand b {
+  color: var(--seed-color-fg-neutral);
+  font-size: 20px;
+  letter-spacing: -.05em;
+}
+
+.entry-actions { display: grid; gap: 10px; margin-top: 26px; }
+.secondary-button {
+  min-height: 48px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 12px;
+  background: var(--seed-color-bg-layer-floating);
+  color: var(--seed-color-fg-neutral);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.result-trust-copy {
+  display: grid;
+  gap: 6px;
+  margin: 22px 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--seed-color-bg-positive-weak);
+  color: var(--seed-color-fg-neutral);
+}
+.result-trust-copy b { font-size: 14px; }
+.result-trust-copy span { color: var(--seed-color-fg-neutral-muted); font-size: 12px; line-height: 1.55; }
+
+.place-loading,
+.data-status-card {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 100%;
+  border-radius: 16px;
+}
+
+.place-loading {
+  display: grid;
+  min-height: 168px;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  background: var(--seed-color-bg-layer-floating);
+  text-align: center;
+}
+.place-loading b { font-size: 14px; }
+.place-loading > span { color: var(--seed-color-fg-neutral-muted); font-size: 11px; }
+.loading-orbit {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--seed-color-bg-brand-weak);
+  border-top-color: var(--seed-color-fg-brand);
+  border-radius: 50%;
+  animation: loading-spin .75s linear infinite;
+}
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+.loading-skeleton { display: flex; gap: 6px; margin-top: 8px; }
+.loading-skeleton i { width: 48px; height: 5px; border-radius: 10px; background: var(--seed-color-bg-neutral-weak); }
+
+.data-status-card {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, #c67700 30%, transparent);
+  background: #fff8e8;
+  color: #6f4700;
+}
+.data-status-card b { font-size: 12px; }
+.data-status-card span { font-size: 10px; line-height: 1.45; }
+
+.place-programs,
+.visit-verification {
+  margin-top: 14px;
+  padding: 15px;
+  border: 1px solid var(--seed-color-stroke-neutral-weak);
+  border-radius: 12px;
+  background: var(--seed-color-bg-layer-floating);
+}
+.place-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.place-section-heading h3 { margin: 0; font-size: 15px; }
+.place-section-heading span { color: var(--seed-color-fg-neutral-muted); font-size: 10px; }
+.place-program-list { display: grid; gap: 0; margin: 10px 0 0; padding: 0; list-style: none; }
+.place-program-list li { display: flex; min-height: 42px; align-items: center; gap: 10px; border-top: 1px solid var(--seed-color-stroke-neutral-weak); }
+.place-program-list li span { font-size: 17px; }
+.place-program-list li b { font-size: 12px; }
+.missing-data-copy { margin: 12px 0 0; color: var(--seed-color-fg-neutral-muted); font-size: 11px; line-height: 1.5; }
+.visit-verification { display: grid; gap: 12px; background: var(--seed-color-bg-neutral-weak); }
+.visit-verification div { display: grid; gap: 4px; }
+.visit-verification span { color: var(--seed-color-fg-neutral-muted); font-size: 10px; }
+.visit-verification b { font-size: 11px; line-height: 1.5; }
+#placeSheet .recommend-reason strong { display: block; color: var(--seed-color-fg-brand); font-size: 13px; }
+.official-link.unavailable { cursor: default; opacity: .64; }
+.parking-info-grid small,
+.parking-stats small { display: block; margin-top: 4px; color: var(--seed-color-fg-neutral-muted); font-size: 9px; font-weight: 500; line-height: 1.4; }
+
+.parking-priority {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 10px 0;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--seed-color-bg-neutral-weak);
+}
+.parking-priority button {
+  min-height: 44px;
+  padding: 6px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--seed-color-fg-neutral-muted);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.parking-priority button.active { background: #fff; color: var(--seed-color-fg-brand); box-shadow: var(--seed-shadow-s1); }
+.parking-trust-summary {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 12px;
+  padding: 12px 13px;
+  border-radius: 11px;
+  background: var(--seed-color-bg-positive-weak);
+}
+.parking-trust-summary b { color: var(--seed-color-fg-neutral); font-size: 12px; }
+.parking-trust-summary span { color: var(--seed-color-fg-neutral-muted); font-size: 10px; line-height: 1.45; }
+.parking-plan-option {
+  display: grid !important;
+  width: 32px !important;
+  min-width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+.parking-plan-rank-1 .parking-plan-option { background: #ff405e !important; }
+.parking-plan-rank-2 .parking-plan-option { background: #2684ff !important; }
+.parking-plan-rank-3 .parking-plan-option { background: #8b5cf6 !important; }
+.parking-loading,
+.ranking-loading { display: grid; gap: 8px; padding: 12px 0; }
+.parking-loading i,
+.ranking-loading i { height: 88px; border-radius: 12px; background: linear-gradient(90deg,#f1f3f2,#fafbfa,#f1f3f2); background-size: 220% 100%; animation: skeleton-shift 1.2s ease-in-out infinite; }
+@keyframes skeleton-shift { to { background-position: -220% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-orbit { animation: none; }
+  .parking-loading i, .ranking-loading i { animation: none; }
+}
+
 /* Compact reverse-teardrop place pins */
 .map-marker {
   position: relative !important;

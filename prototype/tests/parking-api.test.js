@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-test('returns weather-aware rankings without parking-space fields', async () => {
+test('returns weather-aware rankings with capacity metadata but no live availability count', async () => {
   const lib = require('../api/_lib');
   const weatherModule = require('../api/_weather');
   const originalSupabaseRequest = lib.supabaseRequest;
@@ -58,7 +58,8 @@ test('returns weather-aware rankings without parking-space fields', async () => 
   assert.equal(body.weather.source, 'kma');
   assert.equal(body.parkingLots.length, 1);
   assert.equal(body.parkingLots[0].scoreBreakdown.walkWeight, 0.8);
-  assert.equal('capacity' in body.parkingLots[0], false);
+  assert.equal(body.parkingLots[0].capacity, 999);
+  assert.equal(body.parkingLots[0].availabilityKnown, true);
   assert.equal('available' in body.parkingLots[0], false);
   assert.match(body.parkingLots[0].reason, /더운 날씨/);
   assert.doesNotMatch(body.parkingLots[0].reason, /34\.0℃/);

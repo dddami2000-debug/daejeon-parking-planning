@@ -61,6 +61,12 @@ function mapParking(row, origin, visitDate, startTime, endTime, weather) {
     estimatedCost,
     restrictions: cleanText(row.restrictions) || null,
     reservationUrl: cleanText(row.metadata?.reservation_url) || null,
+    capacity: toInteger(row.total_spaces),
+    availabilityKnown: toInteger(row.available_spaces) !== null,
+    availabilityUpdatedAt: row.availability_updated_at || null,
+    updatedAt: row.updated_at || null,
+    feeVerified: !unknownFee,
+    scheduleVerified: Boolean(cleanText(schedule.open) && cleanText(schedule.close)),
     reason,
     recommendationScore: ranking.score,
     scoreBreakdown: ranking.breakdown
@@ -82,7 +88,7 @@ module.exports = async function handler(req, res) {
   try {
     const origin = { lat, lng };
     const [rows, weather] = await Promise.all([
-      supabaseRequest('parking_lots?select=id,source,name,parking_type,address,latitude,longitude,operating_hours,fee_rules,restrictions,metadata'),
+      supabaseRequest('parking_lots?select=id,source,name,parking_type,address,latitude,longitude,total_spaces,available_spaces,availability_updated_at,operating_hours,fee_rules,restrictions,metadata,updated_at'),
       getWeatherContext({
         lat,
         lng,
