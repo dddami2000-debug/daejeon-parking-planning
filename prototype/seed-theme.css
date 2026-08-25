@@ -150,137 +150,6 @@
 .marker-icon img { z-index: 2; object-fit: cover; border-radius: inherit; }
 .marker-icon .marker-fallback { display: grid; place-items: center; }
 
-.place-choice-layer {
-  position: absolute;
-  z-index: 44;
-  inset: 0;
-  display: grid;
-  align-items: end;
-  padding: 12px 12px calc(12px + var(--seed-safe-area-bottom));
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  background: rgba(17, 24, 20, .22);
-  backdrop-filter: blur(1.5px);
-  transition: opacity 160ms cubic-bezier(.23,1,.32,1), visibility 0s linear 160ms;
-}
-.place-choice-layer.show {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transition-delay: 0s;
-}
-.place-choice-card {
-  width: 100%;
-  max-height: min(56%, 460px);
-  padding: 18px 16px 14px;
-  overflow: hidden;
-  border: 1px solid var(--seed-color-stroke-neutral-weak);
-  border-radius: 24px;
-  background: var(--seed-color-bg-layer-floating);
-  box-shadow: 0 18px 48px rgba(18, 34, 26, .24);
-  opacity: 0;
-  transform: translateY(14px) scale(.98);
-  transform-origin: 50% 100%;
-  transition: transform 210ms cubic-bezier(.23,1,.32,1), opacity 160ms cubic-bezier(.23,1,.32,1);
-}
-.place-choice-layer.show .place-choice-card { opacity: 1; transform: translateY(0) scale(1); }
-.place-choice-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.place-choice-heading small {
-  display: block;
-  margin-bottom: 3px;
-  color: var(--seed-color-fg-brand);
-  font-size: 10px;
-  font-weight: 800;
-}
-.place-choice-heading h2 { margin: 0; color: var(--seed-color-fg-neutral); font-size: 19px; letter-spacing: -.04em; }
-.place-choice-description { margin: 6px 0 12px; color: var(--seed-color-fg-neutral-muted); font-size: 11px; }
-.place-choice-close {
-  position: relative;
-  flex: none;
-  width: 38px;
-  height: 38px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--seed-color-bg-neutral-weak);
-  cursor: pointer;
-  transition: transform 140ms cubic-bezier(.23,1,.32,1), background-color 140ms ease;
-}
-.place-choice-close::before,
-.place-choice-close::after {
-  position: absolute;
-  top: 18px;
-  left: 11px;
-  width: 16px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--seed-color-fg-neutral);
-  content: '';
-}
-.place-choice-close::before { transform: rotate(45deg); }
-.place-choice-close::after { transform: rotate(-45deg); }
-.place-choice-close:active,
-.place-choice-item:active { transform: scale(.97); }
-.place-choice-list {
-  display: grid;
-  gap: 2px;
-  max-height: min(38dvh, 330px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-.place-choice-list::-webkit-scrollbar { display: none; }
-.place-choice-item {
-  display: grid;
-  grid-template-columns: 58px minmax(0,1fr) 20px;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 76px;
-  padding: 9px 4px;
-  border: 0;
-  border-top: 1px solid var(--seed-color-stroke-neutral-weak);
-  background: transparent;
-  color: var(--seed-color-fg-neutral);
-  text-align: left;
-  cursor: pointer;
-  transition: transform 140ms cubic-bezier(.23,1,.32,1), background-color 140ms ease;
-}
-.place-choice-photo {
-  position: relative;
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 14px;
-  background: var(--choice-tile);
-  font-size: 25px;
-}
-.place-choice-photo img,
-.place-choice-photo .photo-fallback { position: absolute; inset: 0; width: 100%; height: 100%; }
-.place-choice-photo img { z-index: 1; object-fit: cover; }
-.place-choice-photo .photo-fallback { display: grid; place-items: center; }
-.place-choice-copy { display: grid; min-width: 0; gap: 3px; }
-.place-choice-copy small { color: var(--seed-color-fg-brand); font-size: 9px; font-weight: 800; }
-.place-choice-copy b { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-.place-choice-copy em {
-  overflow: hidden;
-  color: var(--seed-color-fg-neutral-muted);
-  font-size: 10px;
-  font-style: normal;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.place-choice-item > i { color: var(--seed-color-fg-neutral-subtle); font-size: 24px; font-style: normal; }
-.place-choice-close:focus-visible,
-.place-choice-item:focus-visible { outline: 2px solid var(--seed-color-stroke-brand-solid); outline-offset: -2px; }
-@media (hover: hover) and (pointer: fine) {
-  .place-choice-close:hover,
-  .place-choice-item:hover { background: var(--seed-color-bg-layer-floating-pressed); }
-}
-
 .search-modal { align-items: flex-end; padding: 12px; }
 .search-card {
   position: relative;
@@ -3167,42 +3036,15 @@ textarea {
   background: #fff;
 }
 
-.colocated-map-marker .marker-overlap-count {
-  position: absolute;
-  top: -2px;
-  right: -1px;
-  z-index: 2;
-  display: grid;
-  min-width: 19px;
-  height: 19px;
-  place-items: center;
-  padding: 0 4px;
-  border: 2px solid #fff;
-  border-radius: 999px;
-  background: #202826;
-  color: #fff;
-  box-shadow: 0 3px 8px rgba(18, 29, 25, .28);
-  font-size: 10px;
-  font-weight: 850;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.colocated-map-marker:active .marker-bubble {
-  transform: rotate(-45deg) scale(.97);
-}
-
 .place-cluster-marker {
   border-color: #fff;
-  background: rgba(65, 72, 69, .68);
+  background: color-mix(in srgb, var(--cluster-color, #25465e) 80%, transparent);
   box-shadow: 0 0 0 1.5px rgba(18, 29, 25, .56), 0 7px 17px rgba(18, 29, 25, .3);
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
 }
 
 .place-cluster-marker:hover,
 .place-cluster-marker:focus-visible {
-  background: rgba(65, 72, 69, .78);
+  background: color-mix(in srgb, var(--cluster-color, #25465e) 88%, transparent);
 }
 
 /* The detail sheet stays focused on essential visit information. */
@@ -3350,7 +3192,7 @@ textarea {
   }
 
   .place-cluster-marker:hover {
-    background: rgba(65, 72, 69, .68);
+    background: color-mix(in srgb, var(--cluster-color, #25465e) 80%, transparent);
     transform: none;
   }
 }
@@ -3369,14 +3211,10 @@ textarea {
 
   .modal.show .search-card,
   .modal.show .nav-card,
-  .modal.show .onboarding-card,
-  .place-choice-card {
+  .modal.show .onboarding-card {
     transform: none;
     transition: opacity 120ms ease;
   }
-
-  .place-choice-layer { transition: opacity 120ms ease, visibility 0s linear 120ms; }
-  .place-choice-layer.show { transition-delay: 0s; }
 
   :is(
     .header-search,
@@ -3394,9 +3232,7 @@ textarea {
     .parking-actions button,
     .parking-info-actions button,
     .nav-options button,
-    .official-link,
-    .place-choice-close,
-    .place-choice-item
+    .official-link
   ):active {
     transform: none;
   }

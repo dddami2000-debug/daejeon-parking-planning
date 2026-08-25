@@ -148,13 +148,10 @@ let placeMarkers = [];
 let parkingMarkers = [];
 let currentLocationMarker = null;
 let userPosition = null;
-let placeChoiceReturnFocus = null;
 let isPlaceFocused = false;
 let rankingFilter = 'popular';
 let parkingPriority = 'distance';
 let festivalDateFilter = {start:null,end:null};
-const MAP_MAX_ZOOM = 18;
-const SAME_LOCATION_RADIUS_KM = .015;
 const overviewPosition = {lat:36.3515,lng:127.4050,zoom:13};
 let previousMapView = {...overviewPosition};
 let placeSourceAttribution = '';
@@ -173,9 +170,6 @@ let plannerDismissTimer = null;
 let recommendSheetDrag = null;
 let suppressRecommendSheetGestureClick = false;
 let tasteProfile = readTasteProfile();
-const FESTIVAL_INTERACTION_KEY = 'daejeonMap.festivalInteractions.v2';
-const festivalRecommender = window.FestivalRecommender || null;
-let festivalInteractions = readFestivalInteractions();
 const GESTURE_VELOCITY_THRESHOLD = .11;
 
 function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
@@ -242,45 +236,6 @@ function tasteMatchFor(place,profile=tasteProfile){
   if(!profile||!validTasteScores(profile.scores))return null;
   const affinities=tasteAffinitiesFor(place);
   return Math.round(tasteTypes.reduce((score,type)=>score+(profile.scores[type]/100)*affinities[type],0));
-}
-function readFestivalInteractions(){
-  if(!festivalRecommender)return {};
-  try{return festivalRecommender.normalizeHistory(JSON.parse(localStorage.getItem(FESTIVAL_INTERACTION_KEY)||'{}'));}
-  catch{return {};}
-}
-function behaviorPlaceFor(place){
-  const experience=experienceFor(place);
-  const genericValues=new Set(['지역축제','대전광역시','공식 일정 확인 필요','친구·연인·가족']);
-  const useful=value=>genericValues.has(String(value||'').trim())?'':value;
-  const explicitAffinities=curatedTasteAffinities[place.id]||(validTasteAffinities(place.metadata?.taste_affinities)?place.metadata.taste_affinities:{});
-  return {
-    id:place.id,
-    type:place.type,
-    name:place.name,
-    category:useful(compactPlaceCategory(place)),
-    area:useful(compactPlaceArea(place)),
-    summary:[place.summary,place.description,placeValueLine(place)].map(useful).filter(Boolean).join(' '),
-    tags:experience.tags||[],
-    audience:useful(experience.audience||''),
-    affinities:explicitAffinities,
-    lat:Number(place.lat),
-    lng:Number(place.lng)
-  };
-}
-function festivalBehaviorFor(place){
-  if(!festivalRecommender||place.type!=='festival')return null;
-  const catalog=places.filter(item=>item.type==='festival').map(behaviorPlaceFor);
-  return festivalRecommender.behaviorAffinity(behaviorPlaceFor(place),catalog,festivalInteractions);
-}
-function hasFestivalInteractionHistory(){return Boolean(festivalRecommender?.hasHistory(festivalInteractions));}
-function recordFestivalInteraction(place,kind){
-  if(!festivalRecommender||place?.type!=='festival')return;
-  const previous=JSON.stringify(festivalInteractions);
-  festivalInteractions=festivalRecommender.recordInteraction(festivalInteractions,place.id,kind);
-  if(JSON.stringify(festivalInteractions)===previous)return;
-  try{localStorage.setItem(FESTIVAL_INTERACTION_KEY,JSON.stringify(festivalInteractions));}catch{}
-  renderFestivals();
-  renderRankings();
 }
 function todayInKorea(){return Date.parse(`${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})}T00:00:00+09:00`);}
 function festivalTimingScore(place){
@@ -365,7 +320,7 @@ function genderSuitabilityFor(place,profile=tasteProfile){
   if(!femaleTarget&&!maleTarget)return null;
   return (femaleTarget&&gender==='female')||(maleTarget&&gender==='male')?100:30;
 }
-function baseRecommendationScoreFor(place){
+function recommendationScoreFor(place){
   const signals=[
     [tasteMatchFor(place),62],
     [distanceRecommendationScore(place),23],
@@ -374,20 +329,12 @@ function baseRecommendationScoreFor(place){
   const weightTotal=signals.reduce((sum,[,weight])=>sum+weight,0);
   return weightTotal?Math.round(signals.reduce((sum,[score,weight])=>sum+score*weight,0)/weightTotal):0;
 }
-function recommendationScoreFor(place){return baseRecommendationScoreFor(place);}
-function personalizedFestivalScoreFor(place){
-  const baseScore=recommendationScoreFor(place);
-  return festivalRecommender?.combineScore(baseScore,festivalBehaviorFor(place))??baseScore;
-}
 function recommendationFitLabel(place){
   const score=recommendationScoreFor(place);
   return score>=82?'매우 잘 맞아요':score>=68?'잘 맞아요':'방문 조건에 맞아요';
 }
 function recommendationSignalsFor(place){
   const signals=[];
-  const behavior=festivalBehaviorFor(place);
-  const reference=behavior&&places.find(item=>item.id===behavior.referenceId);
-  if(reference)signals.push(`✓ 최근 본 ${reference.name} 취향을 일부 반영했어요`);
   if(place.type==='festival')signals.push(festivalTimingScore(place)>=90?'✓ 선택한 날짜에 열리는 행사':'✓ 일정이 확인된 행사');
   if(Number.isFinite(Number(place.distance)))signals.push(`✓ 현재 위치에서 차로 약 ${place.eta}분`);
   const activityLabels={festival:'축제',experience:'체험',mood:'감성',rest:'휴식'};
@@ -401,9 +348,11 @@ function recommendationReasonFor(place){
 }
 function applyTasteProfileUI(){
   if(!tasteProfile)return;
+  const activityLabels={festival:'축제',experience:'체험',mood:'감성',rest:'휴식'};
+  const activity=activityLabels[tasteProfile.conditions?.activity];
   $('#profileLabel').textContent='방문 조건';
   $('#retestButton').setAttribute('title','방문 조건 다시 설정');
-  $('#recommendTitle').textContent='나를 위한 추천 축제';
+  $('#recommendTitle').textContent=activity?`${activity} 중심 추천`:'이번 주말, 대전 어디로 갈까요?';
   $('.dream-copy').innerHTML='<span class="mini-dream">★</span> 오늘 갈 수 있는 곳을 골랐어요';
 }
 function hasCoordinates(place){return Number.isFinite(Number(place?.lat))&&Number.isFinite(Number(place?.lng));}
@@ -626,7 +575,7 @@ function renderFestivals(){
     return;
   }
   const festivalPlaces = filteredFestivals()
-    .sort((a,b)=>personalizedFestivalScoreFor(b)-personalizedFestivalScoreFor(a)||a.distance-b.distance);
+    .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||a.distance-b.distance);
   $('#festivalFilterStatus').textContent=festivalFilterLabel(festivalPlaces.length);
   $('#festivalDateTrigger').classList.toggle('has-value',Boolean(festivalDateFilter.start||festivalDateFilter.end));
   $('#placeDataStatus').innerHTML=placeDataNotice();
@@ -636,7 +585,7 @@ function renderFestivals(){
     const valueLine=placeValueLine(place);
     return `<button class="festival-card" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${category}, ${valueLine}, ${recommendationFitLabel(place)}, ${area} 상세 보기`)}" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(category)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-value">${escapeHtml(valueLine)}</span><span class="compact-place-location">${escapeHtml(area)}</span></span></button>`;
   }).join(''):`<div class="festival-filter-empty"><b>선택한 날짜에 열리는 축제가 없어요.</b><span>기간을 넓히거나 ‘전체’를 눌러보세요.</span></div>`;
-  document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place,'select')));
+  document.querySelectorAll('.festival-card').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
 }
 
 function renderRankings(){
@@ -645,12 +594,12 @@ function renderRankings(){
     return;
   }
   const isDeadline=rankingFilter==='deadline';
-  $('#rankingTitle').textContent=isDeadline?'마감 임박 순위':'맞춤 추천 축제';
-  $('#rankingMetric').textContent=isDeadline?'종료일 가까운 순':hasFestivalInteractionHistory()?'축제 조회·선택 취향 반영':'방문 조건·거리 반영';
+  $('#rankingTitle').textContent=isDeadline?'마감 임박 순위':'축제 인기 순위';
+  $('#rankingMetric').textContent=isDeadline?'종료일 가까운 순':'방문 조건·거리 반영';
   const ranked=filteredFestivals()
     .sort((a,b)=>isDeadline
-      ? festivalDeadlineValue(a)-festivalDeadlineValue(b)||personalizedFestivalScoreFor(b)-personalizedFestivalScoreFor(a)
-      : personalizedFestivalScoreFor(b)-personalizedFestivalScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99))
+      ? festivalDeadlineValue(a)-festivalDeadlineValue(b)||recommendationScoreFor(b)-recommendationScoreFor(a)
+      : recommendationScoreFor(b)-recommendationScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99))
     .slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const category=compactPlaceCategory(place);
@@ -659,7 +608,7 @@ function renderRankings(){
     const deadline=isDeadline?`<em>${escapeHtml(festivalDeadlineLabel(place))}</em>`:'';
     return `<button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${category}, ${scoreCopy}, ${area}${isDeadline?`, ${festivalDeadlineLabel(place)}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><small>${escapeHtml(`${category} · ${scoreCopy}`)}</small><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>`;
   }).join(''):'<p class="ranking-empty">선택한 날짜에 순위를 표시할 축제가 없어요.</p>';
-  document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace,'select')));
+  document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
 }
 
 function applyFestivalDateFilter(changedField){
@@ -692,27 +641,13 @@ function setFestivalDateFilterOpen(open){
   trigger.setAttribute('aria-expanded',String(open));
 }
 
-function centeredPlaceGroup(places){
-  return {
+function groupPlacesForZoom(visible,zoom){
+  const withCenter=places=>({
     places,
     lat:places.reduce((sum,place)=>sum+Number(place.lat),0)/places.length,
     lng:places.reduce((sum,place)=>sum+Number(place.lng),0)/places.length
-  };
-}
-
-function groupPlacesBySharedLocation(visible){
-  const groups=[];
-  visible.forEach(place=>{
-    const matchingGroup=groups.find(group=>group.places.every(member=>haversineDistance(member.lat,member.lng,place.lat,place.lng)<=SAME_LOCATION_RADIUS_KM));
-    if(matchingGroup)matchingGroup.places.push(place);
-    else groups.push({places:[place]});
   });
-  return groups.map(group=>centeredPlaceGroup(group.places));
-}
-
-function groupPlacesForZoom(visible,zoom){
-  if(zoom>=MAP_MAX_ZOOM)return groupPlacesBySharedLocation(visible);
-  let groups=visible.map(place=>centeredPlaceGroup([place]));
+  let groups=visible.map(place=>withCenter([place]));
   if(!naverMap?.getProjection||!groups.length)return groups;
   const minGap=zoom<=12?78:68;
   const projection=naverMap.getProjection();
@@ -736,7 +671,7 @@ function groupPlacesForZoom(visible,zoom){
       merged.set(root,[...(merged.get(root)||[]),...group.places]);
     });
     if(merged.size===groups.length)break;
-    groups=[...merged.values()].map(centeredPlaceGroup);
+    groups=[...merged.values()].map(withCenter);
   }
   return groups;
 }
@@ -745,49 +680,6 @@ function clusterTypeLabel(places){
   const types=new Set(places.map(place=>place.type));
   if(types.size>1)return '';
   return types.has('festival')?'축제':'명소';
-}
-
-function placesShareMapLocation(groupPlaces){
-  const [reference,...others]=groupPlaces;
-  if(!reference||!others.length)return false;
-  return others.every(place=>haversineDistance(reference.lat,reference.lng,place.lat,place.lng)<=SAME_LOCATION_RADIUS_KM);
-}
-
-function handlePlaceGroupClick(group){
-  if(!naverMap)return;
-  const currentZoom=naverMap.getZoom();
-  if(currentZoom>=MAP_MAX_ZOOM){renderMap();return;}
-  const nextZoom=Math.min(MAP_MAX_ZOOM,currentZoom+2);
-  focusMapOn(new naver.maps.LatLng(group.lat,group.lng),nextZoom,'overview',260);
-}
-
-function closePlaceChoice({restoreFocus=true}={}){
-  const layer=$('#placeChoiceLayer');
-  if(!layer.classList.contains('show'))return;
-  layer.classList.remove('show');
-  layer.setAttribute('aria-hidden','true');
-  if(restoreFocus&&placeChoiceReturnFocus?.isConnected)placeChoiceReturnFocus.focus({preventScroll:true});
-  placeChoiceReturnFocus=null;
-}
-
-function openPlaceChoice(groupPlaces){
-  const choices=[...new Map(groupPlaces.map(place=>[place.id,place])).values()];
-  if(choices.length===1){openPlace(choices[0].id);return;}
-  placeChoiceReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
-  $('#placeChoiceTitle').textContent=`이 위치에 장소가 ${choices.length}곳 있어요`;
-  $('#placeChoiceList').innerHTML=choices.map(place=>{
-    const image=photoVisual(place);
-    return `<button class="place-choice-item" type="button" data-place-choice="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name} 상세 보기`)}"><span class="place-choice-photo" style="--choice-tile:${place.tile||'#f2f4f3'}">${image}</span><span class="place-choice-copy"><small>${escapeHtml(compactPlaceCategory(place))}</small><b>${escapeHtml(place.name)}</b><em>${escapeHtml(placeValueLine(place))}</em></span><i aria-hidden="true">›</i></button>`;
-  }).join('');
-  const layer=$('#placeChoiceLayer');
-  layer.classList.add('show');
-  layer.setAttribute('aria-hidden','false');
-  document.querySelectorAll('[data-place-choice]').forEach(button=>button.addEventListener('click',()=>{
-    const id=button.dataset.placeChoice;
-    closePlaceChoice({restoreFocus:false});
-    openPlace(id,'select');
-  }));
-  requestAnimationFrame(()=>document.querySelector('[data-place-choice]')?.focus({preventScroll:true}));
 }
 
 function renderMap(){
@@ -820,14 +712,9 @@ function renderMap(){
     if(group.places.length>1){
       const label=clusterTypeLabel(group.places);
       const accessibleLabel=label||'축제·명소';
-      const sharedLocation=placesShareMapLocation(group.places);
-      const representative=group.places[0];
-      const pinClass=representative.type==='festival'?'place-pin-festival':'place-pin-landmark';
-      const content=sharedLocation
-        ? `<button class="map-marker colocated-map-marker ${pinClass}" style="--pin:${representative.color}" aria-label="같은 위치의 ${escapeHtml(accessibleLabel)} ${group.places.length}곳 중에서 선택"><span class="marker-bubble"><span class="marker-icon">${markerVisual(representative)}</span></span><b class="marker-overlap-count" aria-hidden="true">${group.places.length}</b></button>`
-        : `<button class="place-cluster-marker" aria-label="${escapeHtml(accessibleLabel)} ${group.places.length}곳 보려면 지도 확대"><span>${escapeHtml(label)}</span><b>${group.places.length}</b></button>`;
-      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`${accessibleLabel} ${group.places.length}곳`,zIndex:24,icon:{content,anchor:new naver.maps.Point(sharedLocation?24:31,sharedLocation?46:31)}});
-      naver.maps.Event.addListener(marker,'click',()=>sharedLocation?openPlaceChoice(group.places):handlePlaceGroupClick(group));
+      const clusterColor=label==='축제'?'#ff4f64':label==='명소'?'#7454e8':'#25465e';
+      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`${accessibleLabel} ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker" style="--cluster-color:${clusterColor}" aria-label="${escapeHtml(accessibleLabel)} ${group.places.length}곳 확대해서 보기"><span>${escapeHtml(label)}</span><b>${group.places.length}</b></button>`,anchor:new naver.maps.Point(31,31)}});
+      naver.maps.Event.addListener(marker,'click',()=>focusMapOn(new naver.maps.LatLng(group.lat,group.lng),Math.min(18,zoom+2),'overview',600));
       return marker;
     }
     const place=group.places[0];
@@ -863,7 +750,7 @@ function renderNearbyPanel(visible){
   title.textContent='가까운 장소';
   $('#nearbyCount').textContent=`${near.length}곳`;
   $('#nearbyList').innerHTML=near.map(place=>`<button class="nearby-item" data-place="${escapeHtml(place.id)}" style="--tile:${place.tile};--accent:${place.color}"><span class="nearby-emoji">${escapeHtml(place.emoji)}</span><span class="nearby-info"><span>${place.type==='festival'?'대전 축제':'추천 랜드마크'}</span><b>${escapeHtml(place.name)}</b><p>${place.distance}km · ${place.eta}분 · ${escapeHtml(festivalDateBadge(place))}</p></span></button>`).join('');
-  document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place,'select')));
+  document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place)));
 }
 
 function parkingPosition(index,selectedParking){
@@ -955,14 +842,7 @@ function initNaverMap(){
     renderMap();
     return;
   }
-  naverMap=new naver.maps.Map('map',{
-    center:new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),
-    zoom:overviewPosition.zoom,
-    minZoom:10,
-    maxZoom:MAP_MAX_ZOOM,
-    zoomControl:true,
-    zoomControlOptions:{position:naver.maps.Position.RIGHT_CENTER}
-  });
+  naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),zoom:overviewPosition.zoom,minZoom:10,maxZoom:18});
   naver.maps.Event.addListener(naverMap,'idle',()=>{if(!isPlaceFocused)renderMap();});
   renderMap();
   fitAllPlaces();
@@ -1002,14 +882,12 @@ function placeHoursNotice(place){
   return hours&&!/확인/.test(hours)?hours:'공식 데이터에 운영 시간이 제공되지 않았어요. 출발 전에 공식 홈페이지에서 확인해 주세요.';
 }
 
-function openPlace(id,interactionKind='view'){
-  closePlaceChoice({restoreFocus:false});
+function openPlace(id){
   if(naverMap&&!isPlaceFocused){
     const center=naverMap.getCenter();
     previousMapView={lat:center.lat(),lng:center.lng(),zoom:naverMap.getZoom()};
   }
   activePlace=places.find(place=>place.id===id)||places[0];
-  recordFestivalInteraction(activePlace,interactionKind);
   isPlaceFocused=true;
   excludedParkings=[];
   parkingWeather=null;
@@ -1218,7 +1096,6 @@ function closeSheets(){
 }
 
 function resetMapFocus(){
-  closePlaceChoice({restoreFocus:false});
   isPlaceFocused=false;
   $('.app-shell').classList.remove('is-place-focused');
   setPlaceSheetExpanded(false);
@@ -1543,7 +1420,7 @@ function renderSearchResults(query=''){
   $('#searchResults').innerHTML=results.length?results.map(place=>`<button class="search-result" data-search-place="${escapeHtml(place.id)}"><span class="search-result-icon">${escapeHtml(place.emoji)}</span><span><small>${place.type==='festival'?escapeHtml(festivalDateBadge(place)):'대전 장소'}</small><b>${escapeHtml(place.name)}</b><em>${escapeHtml(place.address||experienceFor(place).venue||place.summary)}</em></span><i>→</i></button>`).join(''):`<p class="search-empty">검색 결과가 없어요. 다른 장소 이름을 입력해 보세요.</p>`;
   document.querySelectorAll('[data-search-place]').forEach(button=>button.addEventListener('click',()=>{
     $('#searchModal').classList.remove('show');
-    openPlace(button.dataset.searchPlace,'select');
+    openPlace(button.dataset.searchPlace);
   }));
 }
 
@@ -1595,16 +1472,10 @@ $('#recalculate').addEventListener('click',()=>{parkingWeather=null;renderParkin
 $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remove('show'));
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
 $('#currentButton').addEventListener('click',moveToCurrentLocation);
-document.addEventListener('keydown',event=>{
-  if(event.key!=='Escape')return;
-  if($('#placeChoiceLayer').classList.contains('show')){event.preventDefault();closePlaceChoice();return;}
-  if(isPlaceFocused){event.preventDefault();resetMapFocus();}
-});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&isPlaceFocused){event.preventDefault();resetMapFocus();}});
 $('#searchButton').addEventListener('click',openSearch);
 $('#closeSearch').addEventListener('click',()=>$('#searchModal').classList.remove('show'));
 $('#searchModal').addEventListener('click',event=>{if(event.target===$('#searchModal'))$('#searchModal').classList.remove('show');});
-$('#placeChoiceClose').addEventListener('click',()=>closePlaceChoice());
-$('#placeChoiceLayer').addEventListener('click',event=>{if(event.target===$('#placeChoiceLayer'))closePlaceChoice();});
 $('#placeSearchForm').addEventListener('submit',event=>{event.preventDefault();renderSearchResults($('#placeSearchInput').value);});
 $('#placeSearchInput').addEventListener('input',()=>renderSearchResults($('#placeSearchInput').value));
 document.querySelectorAll('[data-search-query]').forEach(button=>button.addEventListener('click',()=>{$('#placeSearchInput').value=button.dataset.searchQuery;renderSearchResults(button.dataset.searchQuery);}));

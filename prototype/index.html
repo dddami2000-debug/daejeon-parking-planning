@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=54" />
+    <link rel="stylesheet" href="seed-theme.css?v=51" />
     <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
@@ -32,7 +32,7 @@
           <div class="section-heading">
             <div>
               <div class="dream-copy"><span class="mini-dream">★</span> 오늘 갈 수 있는 곳을 골랐어요</div>
-              <h1 id="recommendTitle">나를 위한 추천 축제</h1>
+              <h1 id="recommendTitle">이번 주말, 대전 어디로 갈까요?</h1>
             </div>
           </div>
           <div id="placeDataStatus"></div>
@@ -41,7 +41,7 @@
             <div class="ranking-heading">
               <div>
                 <p id="rankingEyebrow">DAEJEON FESTIVAL</p>
-                <h2 id="rankingTitle">맞춤 추천 축제</h2>
+                <h2 id="rankingTitle">축제 인기 순위</h2>
                 <span id="rankingMetric">방문 조건·거리 반영</span>
               </div>
               <button class="festival-date-trigger" id="festivalDateTrigger" type="button" aria-controls="festivalDateFilter" aria-expanded="false">
@@ -81,20 +81,6 @@
           </div>
         </section>
       </main>
-
-      <div class="place-choice-layer" id="placeChoiceLayer" aria-hidden="true">
-        <section class="place-choice-card" role="dialog" aria-modal="true" aria-labelledby="placeChoiceTitle">
-          <div class="place-choice-heading">
-            <div>
-              <small>겹친 장소</small>
-              <h2 id="placeChoiceTitle">이 위치에 여러 장소가 있어요</h2>
-            </div>
-            <button class="place-choice-close" id="placeChoiceClose" type="button" aria-label="장소 선택창 닫기"></button>
-          </div>
-          <p class="place-choice-description">보고 싶은 장소를 골라주세요.</p>
-          <div class="place-choice-list" id="placeChoiceList"></div>
-        </section>
-      </div>
 
     <div class="modal onboarding show" id="onboardingModal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
       <div class="onboarding-card">
@@ -191,7 +177,6 @@
 
     <div class="toast" id="toast" role="status"></div>
     <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=6yv479g98b"></script>
-    <script src="recommendation-engine.js?v=2"></script>
-    <script src="app.js?v=51"></script>
+    <script src="app.js?v=44"></script>
   </body>
 </html>
