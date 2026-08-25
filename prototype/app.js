@@ -121,6 +121,7 @@ let userPosition = null;
 let isPlaceFocused = false;
 let rankingFilter = 'popular';
 let showFavoritePinsOnly = false;
+let activeMapTopicFilter = null;
 let parkingPriority = 'distance';
 let festivalDateFilter = {start:null,end:null};
 const overviewPosition = {lat:36.3515,lng:127.4050,zoom:13};
@@ -387,13 +388,28 @@ function updateFavoriteMapButton(){
   button.setAttribute('title',showFavoritePinsOnly?'전체 축제 핀 보기':'즐겨찾기 핀만 보기');
   const badge=$('#favoriteMapCount');
   if(badge){badge.textContent=String(count);badge.hidden=count===0;}
+  document.querySelectorAll('[data-map-topic]').forEach(topicButton=>{
+    const active=topicButton.dataset.mapTopic===activeMapTopicFilter;
+    topicButton.classList.toggle('is-active',active);
+    topicButton.setAttribute('aria-pressed',String(active));
+  });
 }
 function toggleFavoriteMapFilter(){
   showFavoritePinsOnly=!showFavoritePinsOnly;
+  if(showFavoritePinsOnly)activeMapTopicFilter=null;
   updateFavoriteMapButton();
   renderMap();
   const count=favoriteFestivalCount();
   toast(showFavoritePinsOnly?(count?`즐겨찾기한 축제 ${count}곳만 지도에 표시해요.`:'아직 즐겨찾기한 축제가 없어요.'):'전체 축제 핀을 표시해요.');
+}
+function toggleMapTopicFilter(topic){
+  activeMapTopicFilter=activeMapTopicFilter===topic?null:topic;
+  showFavoritePinsOnly=false;
+  updateFavoriteMapButton();
+  renderMap();
+  if(!activeMapTopicFilter){toast('전체 축제 핀을 표시해요.');return;}
+  const count=places.filter(place=>place.type==='festival'&&hasCoordinates(place)&&festivalMatchesDateFilter(place)&&festivalRecommender?.matchesTopicQuery(behaviorPlaceFor(place),activeMapTopicFilter)).length;
+  toast(count?`${activeMapTopicFilter} 관련 축제 ${count}곳을 표시해요.`:`${activeMapTopicFilter} 관련 축제를 찾지 못했어요.`);
 }
 function todayInKorea(){return Date.parse(`${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})}T00:00:00+09:00`);}
 function festivalTimingScore(place){
@@ -864,8 +880,12 @@ function groupPlacesForZoom(visible){
 function renderMap(){
   updateFavoriteMapButton();
   const allVisible = placeDataState==='loading'?[]:places.filter(place=>hasCoordinates(place)&&festivalMatchesDateFilter(place));
-  const visible=showFavoritePinsOnly?allVisible.filter(place=>isFestivalFavorite(place.id)):allVisible;
-  renderNearbyPanel(allVisible);
+  const visible=showFavoritePinsOnly
+    ? allVisible.filter(place=>isFestivalFavorite(place.id))
+    : activeMapTopicFilter
+      ? allVisible.filter(place=>festivalRecommender?.matchesTopicQuery(behaviorPlaceFor(place),activeMapTopicFilter))
+      : allVisible;
+  renderNearbyPanel(visible);
   if(!naverMap)return;
   placeMarkers.forEach(marker=>marker.setMap(null));
   parkingMarkers.forEach(marker=>marker.setMap(null));
@@ -1670,6 +1690,7 @@ $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remo
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
 $('#currentButton').addEventListener('click',moveToCurrentLocation);
 $('#favoriteMapButton').addEventListener('click',toggleFavoriteMapFilter);
+document.querySelectorAll('[data-map-topic]').forEach(button=>button.addEventListener('click',()=>toggleMapTopicFilter(button.dataset.mapTopic)));
 $('#festivalSlider').addEventListener('pointerdown',()=>deferFestivalAutoplay());
 $('#festivalSlider').addEventListener('wheel',()=>deferFestivalAutoplay(),{passive:true});
 $('#festivalSlider').addEventListener('mouseenter',stopFestivalAutoplay);

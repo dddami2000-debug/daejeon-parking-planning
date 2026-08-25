@@ -7,6 +7,7 @@ const prototypeRoot = path.resolve(__dirname, '..');
 const appSource = fs.readFileSync(path.join(prototypeRoot, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(prototypeRoot, 'index.html'), 'utf8');
 const recommenderSource = fs.readFileSync(path.join(prototypeRoot, 'festival-recommender.js'), 'utf8');
+const themeSource = fs.readFileSync(path.join(prototypeRoot, 'seed-theme.css'), 'utf8');
 
 test('offers explicit distance, price, and large-lot parking priorities', () => {
   assert.match(indexSource, /TOP 3 PARKING/);
@@ -66,7 +67,7 @@ test('offers a favorite-only festival list and favorite-only map mode', () => {
   assert.match(indexSource, /aria-pressed="false"/);
   assert.match(appSource, /rankingFilter==='favorites'/);
   assert.match(appSource, /즐겨찾기한 축제/);
-  assert.match(appSource, /showFavoritePinsOnly\?allVisible\.filter/);
+  assert.match(appSource, /showFavoritePinsOnly[\s\S]*allVisible\.filter\(place=>isFestivalFavorite/);
   assert.match(appSource, /favorite-place-pin/);
   assert.match(appSource, /marker-favorite-badge/);
   assert.match(appSource, /favorite-place-cluster/);
@@ -81,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=55/);
-  assert.match(indexSource, /app\.js\?v=55/);
+  assert.match(indexSource, /seed-theme\.css\?v=62/);
+  assert.match(indexSource, /app\.js\?v=56/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -93,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=55/);
+  assert.match(indexSource, /app\.js\?v=56/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -107,4 +108,41 @@ test('refreshes recommendation ordering on load and every ten minutes instead of
   assert.doesNotMatch(favoriteBlock, /renderFestivals\(\)|renderRankings\(\)|renderMap\(\)/);
   const viewBlock=appSource.match(/function recordFestivalView\(place\)[\s\S]*?\n}/)?.[0]||'';
   assert.doesNotMatch(viewBlock, /renderFestivals\(\)|renderRankings\(\)/);
+});
+
+test('keeps the smaller ranking favorite pinned over the photo as deadline copy changes height', () => {
+  assert.match(themeSource, /\.ranking-item\s*\{[\s\S]*grid-template-columns:\s*23px minmax\(0, 1fr\) 82px/);
+  assert.match(themeSource, /\.ranking-favorite\s*\{[\s\S]*top:\s*calc\(50% - 28px\)[\s\S]*right:\s*7px[\s\S]*width:\s*28px/);
+});
+
+test('aligns the current-location control with the right-side map controls', () => {
+  assert.match(themeSource, /\.current-location-fab\s*\{[\s\S]*right:\s*12px[\s\S]*left:\s*auto/);
+});
+
+test('filters map festivals with large horizontally scrollable topic chips', () => {
+  const toolbar=indexSource.match(/<div class="map-topic-filters"[\s\S]*?<\/div>/)?.[0]||'';
+  assert.match(toolbar, /id="favoriteMapButton"/);
+  ['술','농산물','먹거리','수산물','과학','공연','야간','가족','자연','문화'].forEach(topic=>{
+    assert.match(toolbar,new RegExp(`data-map-topic="${topic}"`));
+  });
+  assert.ok(toolbar.indexOf('favoriteMapButton')<toolbar.indexOf('data-map-topic="술"'));
+  assert.match(themeSource, /\.map-topic-filters\s*\{[\s\S]*display:\s*flex[\s\S]*overflow-x:\s*auto/);
+  assert.match(themeSource, /\.map-topic-filters\s*\{[\s\S]*top:\s*98px/);
+  assert.match(themeSource, /\.map-topic-filter\s*\{[\s\S]*height:\s*38px/);
+  assert.match(appSource, /activeMapTopicFilter/);
+  assert.match(appSource, /matchesTopicQuery\(behaviorPlaceFor\(place\),activeMapTopicFilter\)/);
+  assert.match(appSource, /toggleMapTopicFilter\(button\.dataset\.mapTopic\)/);
+});
+
+test('expands recommendations below the search bar and labels personalized order clearly', () => {
+  assert.match(indexSource, /data-ranking-filter="popular"[^>]*>추천순위<\/button>/);
+  assert.doesNotMatch(indexSource, />인기순위<\/button>/);
+  assert.match(themeSource, /--recommend-sheet-expanded-height:\s*calc\(100% - 98px\)/);
+  assert.match(themeSource, /--recommend-sheet-expanded-height:\s*calc\(100% - 72px - env\(safe-area-inset-top\)\)/);
+});
+
+test('keeps map filters uniform and festival favorite controls compact', () => {
+  assert.match(themeSource, /\.map-favorite-filter,\s*\.map-topic-filter\s*\{[\s\S]*height:\s*38px[\s\S]*font-size:\s*13px/);
+  assert.match(themeSource, /\.festival-favorite-button\s*\{[\s\S]*width:\s*32px[\s\S]*height:\s*32px[\s\S]*font-size:\s*18px/);
+  assert.match(themeSource, /\.place-hero-favorite\s*\{[\s\S]*width:\s*38px[\s\S]*height:\s*38px[\s\S]*font-size:\s*21px/);
 });

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seed-design/css@2.4.0/all.min.css" />
     <link rel="stylesheet" href="styles.css?v=11" />
     <link rel="stylesheet" href="mobile.css?v=13" />
-    <link rel="stylesheet" href="seed-theme.css?v=55" />
+    <link rel="stylesheet" href="seed-theme.css?v=62" />
     <link rel="stylesheet" href="personalization.css?v=3" />
   </head>
   <body>
@@ -59,7 +59,7 @@
               </div>
             </div>
             <div class="ranking-tabs" role="tablist" aria-label="축제 순위 정렬 방식">
-              <button class="active" type="button" data-ranking-filter="popular" role="tab" aria-selected="true">인기순위</button>
+              <button class="active" type="button" data-ranking-filter="popular" role="tab" aria-selected="true">추천순위</button>
               <button type="button" data-ranking-filter="deadline" role="tab" aria-selected="false">마감순위</button>
               <button type="button" data-ranking-filter="favorites" role="tab" aria-selected="false">즐겨찾기</button>
             </div>
@@ -72,7 +72,19 @@
             <div class="map-card">
               <div class="map" id="map" aria-label="대전과 근교 축제 지도"></div>
               <div class="daejeon-focus-mask" aria-hidden="true"></div>
-              <button class="map-favorite-filter" id="favoriteMapButton" type="button" aria-label="즐겨찾기 축제 핀만 보기, 0개 저장됨" aria-pressed="false" title="즐겨찾기 핀만 보기"><span aria-hidden="true">★</span><b id="favoriteMapCount" hidden>0</b></button>
+              <div class="map-topic-filters" role="toolbar" aria-label="축제 주제 필터">
+                <button class="map-favorite-filter" id="favoriteMapButton" type="button" aria-label="즐겨찾기 축제 핀만 보기, 0개 저장됨" aria-pressed="false" title="즐겨찾기 핀만 보기"><span aria-hidden="true">★</span><strong>즐겨찾기</strong><b id="favoriteMapCount" hidden>0</b></button>
+                <button class="map-topic-filter" type="button" data-map-topic="술" aria-pressed="false"><span aria-hidden="true">🍷</span>술</button>
+                <button class="map-topic-filter" type="button" data-map-topic="농산물" aria-pressed="false"><span aria-hidden="true">🌾</span>농산물</button>
+                <button class="map-topic-filter" type="button" data-map-topic="먹거리" aria-pressed="false"><span aria-hidden="true">🍴</span>먹거리</button>
+                <button class="map-topic-filter" type="button" data-map-topic="수산물" aria-pressed="false"><span aria-hidden="true">🐟</span>수산물</button>
+                <button class="map-topic-filter" type="button" data-map-topic="과학" aria-pressed="false"><span aria-hidden="true">🔬</span>과학</button>
+                <button class="map-topic-filter" type="button" data-map-topic="공연" aria-pressed="false"><span aria-hidden="true">🎭</span>공연</button>
+                <button class="map-topic-filter" type="button" data-map-topic="야간" aria-pressed="false"><span aria-hidden="true">🌙</span>야간</button>
+                <button class="map-topic-filter" type="button" data-map-topic="가족" aria-pressed="false"><span aria-hidden="true">👨‍👩‍👧</span>가족</button>
+                <button class="map-topic-filter" type="button" data-map-topic="자연" aria-pressed="false"><span aria-hidden="true">🌿</span>자연</button>
+                <button class="map-topic-filter" type="button" data-map-topic="문화" aria-pressed="false"><span aria-hidden="true">🏛️</span>문화</button>
+              </div>
               <button class="current-location-fab" id="currentButton" aria-label="현재 위치로 이동"><span aria-hidden="true"></span></button>
             </div>
 
@@ -184,6 +196,6 @@
     <script src="festival-timing.js?v=1"></script>
     <script src="festival-recommender.js?v=3"></script>
     <script src="map-clustering.js?v=1"></script>
-    <script src="app.js?v=55"></script>
+    <script src="app.js?v=56"></script>
   </body>
 </html>
