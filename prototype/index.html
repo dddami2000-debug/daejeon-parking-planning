@@ -115,7 +115,7 @@
       </div>
       <div class="planner-head">
         <div><p>3-WAY PARKING PLAN</p><h2 id="plannerTitle">주차 플랜</h2></div>
-        <div class="dream-tip"><span>★</span> 3가지 기준</div>
+        <div class="dream-tip" id="parkingWeatherBadge"><span>★</span> 3가지 기준</div>
       </div>
       <div class="time-form">
         <label><span>방문 날짜</span><input id="visitDate" type="date" /></label>
@@ -124,6 +124,7 @@
         <button id="recalculate">다시 계산</button>
       </div>
       <div class="parking-summary"><span id="parkingSummary">4시간 주차 기준</span><b>거리 · 가격 · 여유</b></div>
+      <aside class="weather-recommendation" id="weatherRecommendation" hidden></aside>
       <div class="parking-list" id="parkingList"></div>
       <p class="data-note">예상 요금은 운영시간을 반영한 계산값이며, ‘여유’는 실시간 혼잡도가 아닌 주차면 규모 기준이에요.</p>
     </section>
