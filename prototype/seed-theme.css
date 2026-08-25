@@ -653,17 +653,6 @@ button:focus-visible, input:focus-visible {
 }
 .full-button { background: var(--seed-color-bg-critical-weak); color: var(--seed-color-fg-critical-contrast); }
 .parking-info-plan { background: var(--seed-color-bg-neutral-weak); color: var(--seed-color-fg-neutral); }
-.daejeon-focus-mask {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  background: rgba(233, 237, 234, .08);
-  -webkit-backdrop-filter: grayscale(1) saturate(.18) brightness(.9);
-  backdrop-filter: grayscale(1) saturate(.18) brightness(.9);
-  -webkit-mask-image: radial-gradient(ellipse 54% 47% at 50% 48%, transparent 0 57%, rgba(0,0,0,.4) 72%, #000 100%);
-  mask-image: radial-gradient(ellipse 54% 47% at 50% 48%, transparent 0 57%, rgba(0,0,0,.4) 72%, #000 100%);
-}
 .toast {
   border-radius: var(--seed-radius-r3);
   background: var(--seed-color-bg-neutral-inverted);

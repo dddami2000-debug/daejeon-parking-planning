@@ -82,7 +82,7 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=66/);
+  assert.match(indexSource, /seed-theme\.css\?v=67/);
   assert.match(indexSource, /app\.js\?v=62/);
 });
 
@@ -198,6 +198,12 @@ test('does not render ranked or other parking pins on the map', () => {
   assert.doesNotMatch(appSource, /parkingMarkers|parkingPosition\(/);
   assert.doesNotMatch(appSource, /parking-map-marker|parking-rank-dot|parking-dot/);
   assert.doesNotMatch(themeSource, /parking-map-marker|parking-rank-dot/);
+});
+
+test('shows the nationwide festival map without a grayscale regional mask', () => {
+  assert.match(indexSource, /aria-label="전국 축제 지도"/);
+  assert.doesNotMatch(indexSource, /daejeon-focus-mask/);
+  assert.doesNotMatch(themeSource, /\.daejeon-focus-mask/);
 });
 
 test('shows but does not navigate regional parking mock data', () => {
