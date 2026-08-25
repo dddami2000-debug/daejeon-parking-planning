@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=67/);
-  assert.match(indexSource, /app\.js\?v=62/);
+  assert.match(indexSource, /seed-theme\.css\?v=68/);
+  assert.match(indexSource, /app\.js\?v=63/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=62/);
+  assert.match(indexSource, /app\.js\?v=63/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -169,6 +169,13 @@ test('replaces festival detail parking and homepage CTAs with travel guidance ap
     assert.match(appSource, new RegExp(`assets/navigation/${iconFile.replace('.', '\\.')}`));
     assert.equal(fs.existsSync(path.join(prototypeRoot, 'assets/navigation', iconFile)), true);
   }
+});
+
+test('shows the official TourAPI overview before core programs when available', () => {
+  const detailBlock = appSource.match(/function openPlace\(id\)[\s\S]*?\n}\n\nfunction setPlaceSheetHeights/)?.[0] || '';
+  assert.match(detailBlock, /festival_content\?\.official_overview/);
+  assert.match(detailBlock, /<h3>축제 소개<\/h3><span>한국관광공사<\/span>/);
+  assert.ok(detailBlock.indexOf('${overviewMarkup}') < detailBlock.indexOf('<section class="place-programs">'));
 });
 
 test('chooses between the festival and the algorithm top parking before opening navigation apps', () => {

@@ -51,15 +51,15 @@ function dataGovEnvelope(payload) {
 
 function firstTourApiItem(payload) {
   const envelope = dataGovEnvelope(payload);
-  const resultCode = cleanText(envelope?.header?.resultCode);
+  const resultCode = cleanText(envelope?.header?.resultCode || envelope?.resultCode);
   if (resultCode && resultCode !== '0000') {
-    const message = cleanText(envelope?.header?.resultMsg).replace(/[^\w가-힣 -]/g, '').slice(0, 100);
+    const message = cleanText(envelope?.header?.resultMsg || envelope?.resultMsg).replace(/[^\w가-힣 -]/g, '').slice(0, 100);
     throw new Error(`tourapi_result_${resultCode}${message ? `_${message}` : ''}`);
   }
   return asArray(envelope?.body?.items?.item)[0] || {};
 }
 
-async function fetchTourApiItem(endpoint, apiKey, contentId) {
+function tourApiRequestUrl(endpoint, apiKey, contentId) {
   const requestUrl = new URL(`${TOUR_API_BASE}/${endpoint}`);
   const params = {
     serviceKey: apiKey,
@@ -68,20 +68,15 @@ async function fetchTourApiItem(endpoint, apiKey, contentId) {
     MobileOS: 'WEB',
     MobileApp: 'daejeongalkka',
     _type: 'json',
-    contentId,
-    contentTypeId: '15'
+    contentId
   };
-  if (endpoint === 'detailCommon2') Object.assign(params, {
-    defaultYN: 'Y',
-    firstImageYN: 'Y',
-    areacodeYN: 'Y',
-    catcodeYN: 'Y',
-    addrinfoYN: 'Y',
-    mapinfoYN: 'Y',
-    overviewYN: 'Y'
-  });
+  if (endpoint !== 'detailCommon2') params.contentTypeId = '15';
   Object.entries(params).forEach(([key, value]) => requestUrl.searchParams.set(key, value));
-  return firstTourApiItem(await fetchJson(requestUrl));
+  return requestUrl;
+}
+
+async function fetchTourApiItem(endpoint, apiKey, contentId) {
+  return firstTourApiItem(await fetchJson(tourApiRequestUrl(endpoint, apiKey, contentId)));
 }
 
 async function fetchTourApiDetails(place) {
@@ -90,26 +85,25 @@ async function fetchTourApiDetails(place) {
   const keys = festivalApiKeys();
   if (!keys.length) return { content: officialFestivalContent(), error: 'tourapi_key_missing' };
   const errors = [];
+  let common = {};
+  let intro = {};
   for (const apiKey of keys) {
     const [commonResult, introResult] = await Promise.allSettled([
-      fetchTourApiItem('detailCommon2', apiKey, contentId),
-      fetchTourApiItem('detailIntro2', apiKey, contentId)
+      cleanText(common.overview) ? Promise.resolve(common) : fetchTourApiItem('detailCommon2', apiKey, contentId),
+      Object.keys(intro).length ? Promise.resolve(intro) : fetchTourApiItem('detailIntro2', apiKey, contentId)
     ]);
-    const common = commonResult.status === 'fulfilled' ? commonResult.value : {};
-    const intro = introResult.status === 'fulfilled' ? introResult.value : {};
-    if (Object.keys(common).length || Object.keys(intro).length) {
-      return {
-        content: officialFestivalContent(common, intro),
-        error: [commonResult, introResult]
-          .filter((result) => result.status === 'rejected')
-          .map((result) => cleanText(result.reason?.message).slice(0, 120))
-          .join(' | ') || null
-      };
-    }
+    if (commonResult.status === 'fulfilled') common = { ...common, ...commonResult.value };
+    if (introResult.status === 'fulfilled') intro = { ...intro, ...introResult.value };
     [commonResult, introResult]
       .filter((result) => result.status === 'rejected')
       .forEach((result) => errors.push(cleanText(result.reason?.message).slice(0, 120)));
-    if (commonResult.status === 'fulfilled' || introResult.status === 'fulfilled') break;
+    if (cleanText(common.overview) && Object.keys(intro).length) break;
+  }
+  if (Object.keys(common).length || Object.keys(intro).length) {
+    return {
+      content: officialFestivalContent(common, intro),
+      error: [...new Set(errors)].filter(Boolean).join(' | ') || null
+    };
   }
   return { content: officialFestivalContent(), error: [...new Set(errors)].join(' | ') || 'tourapi_detail_empty' };
 }
