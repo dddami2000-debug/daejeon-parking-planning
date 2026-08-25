@@ -17,6 +17,7 @@ const {
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const MAX_BATCH_SIZE = 4;
+const LANDMARK_QUERY = 'places?select=id,name,address,description,homepage_url,image_url,operating_hours,metadata&source=eq.daejeon_tourspot&category=eq.landmark&order=updated_at.asc&limit=500';
 
 function parseLimit(value) {
   const parsed = Number.parseInt(cleanText(value), 10);
@@ -140,8 +141,19 @@ async function handler(req, res) {
   const force = cleanText(req.query?.force) === 'true';
   const limit = parseLimit(req.query?.limit);
   try {
-    const placeQuery = 'places?select=id,name,address,description,homepage_url,image_url,operating_hours,metadata&source=eq.daejeon_tourspot&category=eq.landmark&order=updated_at.asc&limit=500';
-    const rows = await supabaseRequest(placeQuery);
+    const rows = await supabaseRequest(LANDMARK_QUERY);
+    if (cleanText(req.query?.status) === 'true') {
+      const enriched = rows.filter((place) => Boolean(existingEnrichment(place)?.enriched_at));
+      const imageFound = enriched.filter((place) => Boolean(existingEnrichment(place)?.image_source_url));
+      return sendJson(res, 200, {
+        ok: true,
+        total: rows.length,
+        enriched: enriched.length,
+        officialImages: imageFound.length,
+        withoutOfficialImage: enriched.length - imageFound.length,
+        remaining: rows.filter((place) => shouldEnrich(place, false)).length
+      });
+    }
     const candidates = (Array.isArray(rows) ? rows : []).filter((place) => shouldEnrich(place, force)).slice(0, limit);
     const results = [];
     for (const place of candidates) {
@@ -160,7 +172,7 @@ async function handler(req, res) {
     }
     // Read once more after PATCH calls. The earlier `rows` snapshot still has
     // the old metadata, which made the UI report a stale remaining count.
-    const currentRows = await supabaseRequest(placeQuery);
+    const currentRows = await supabaseRequest(LANDMARK_QUERY);
     return sendJson(res, 200, {
       ok: true,
       requested: candidates.length,
