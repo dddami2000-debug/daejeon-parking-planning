@@ -3217,3 +3217,105 @@ textarea {
   background: currentColor;
   transform: translate(-50%, -50%);
 }
+
+/* Leave a calm, draggable header above place details in both real mobile
+   screens and the desktop iPhone preview. */
+#placeSheet .place-sheet-grabber {
+  display: flex;
+  min-height: 32px;
+  margin: -12px -16px 8px;
+  padding: 12px 16px 15px;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--seed-color-bg-layer-default);
+}
+
+#placeSheet .place-sheet-grabber .sheet-handle {
+  margin: 0;
+  transition: opacity var(--app-duration-press) var(--app-ease-out);
+}
+
+.place-sheet-header-action {
+  position: absolute;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--seed-color-fg-neutral);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  cursor: pointer;
+  transition:
+    transform var(--app-duration-press) var(--app-ease-out),
+    opacity var(--app-duration-press) var(--app-ease-out),
+    visibility 0s linear var(--app-duration-press);
+}
+
+.place-sheet-header-action:active {
+  transform: scale(.94);
+}
+
+.place-sheet-back {
+  left: 12px;
+}
+
+.place-sheet-back::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  border-bottom: 2.5px solid currentColor;
+  border-left: 2.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.place-sheet-dismiss {
+  right: 12px;
+}
+
+.place-sheet-dismiss::before,
+.place-sheet-dismiss::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 2.5px;
+  border-radius: var(--seed-radius-full);
+  background: currentColor;
+}
+
+.place-sheet-dismiss::before {
+  transform: rotate(45deg);
+}
+
+.place-sheet-dismiss::after {
+  transform: rotate(-45deg);
+}
+
+#placeSheet.is-expanded .place-sheet-grabber {
+  min-height: 96px;
+  margin-bottom: 12px;
+  padding-top: 18px;
+}
+
+#placeSheet.is-expanded .place-sheet-header-action {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-delay: 80ms, 80ms, 0s;
+}
+
+#placeSheet.is-expanded .place-sheet-grabber .sheet-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#placeSheet.is-expanded #placeSheetContent {
+  min-height: calc(100% - 96px);
+  padding-top: 0;
+}

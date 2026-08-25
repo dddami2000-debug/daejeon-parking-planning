@@ -867,6 +867,7 @@ function setPlaceSheetExpanded(expanded){
 function canStartSheetDrag(event,sheet,grabberSelector){
   const target=event.target;
   if(!(target instanceof Element)||!sheet.contains(target))return false;
+  if(target.closest('[data-no-sheet-drag]'))return false;
   if(target.closest(grabberSelector))return true;
   if(target.closest('button, a, input, select, textarea, label, [role="button"], [contenteditable="true"]'))return false;
   const contentBlock=target.closest([
@@ -1382,6 +1383,8 @@ $('#placeSheetHandle').addEventListener('click',()=>{
   if($('#placeSheet').classList.contains('is-expanded'))setPlaceSheetExpanded(false);
   else setPlaceSheetExpanded(true);
 });
+$('#placeSheetBack').addEventListener('click',()=>setPlaceSheetExpanded(false));
+$('#placeSheetDismiss').addEventListener('click',resetMapFocus);
 $('#plannerSheet').addEventListener('pointerdown',beginPlannerSheetDrag);
 $('#parkingInfoSheet').addEventListener('pointerdown',beginPlannerSheetDrag);
 document.addEventListener('pointermove',movePlannerSheetDrag,{passive:false});
