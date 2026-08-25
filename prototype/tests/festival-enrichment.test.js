@@ -105,9 +105,9 @@ test('asks OpenAI to avoid invented program names', () => {
   assert.match(prompt, /계룡軍문화축제/);
 });
 
-test('uses an accessible search model default in the example environment', () => {
+test('uses GPT-5.6 Luna as the search model default', () => {
   const exampleEnv = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '.env.example'), 'utf8');
-  assert.match(exampleEnv, /^OPENAI_SEARCH_MODEL=gpt-5-mini$/m);
+  assert.match(exampleEnv, /^OPENAI_SEARCH_MODEL=gpt-5\.6-luna$/m);
 });
 
 test('retries stored festival content when its purpose summary is still missing', () => {

@@ -20,7 +20,7 @@ const {
 
 const TOUR_API_BASE = 'https://apis.data.go.kr/B551011/KorService2';
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
-const OPENAI_FALLBACK_MODELS = ['gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini'];
+const OPENAI_FALLBACK_MODELS = ['gpt-5.6-luna', 'gpt-5-mini', 'gpt-4.1-mini', 'gpt-4o-mini'];
 const MAX_BATCH_SIZE = 4;
 
 function parseLimit(value) {
