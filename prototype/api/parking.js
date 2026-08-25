@@ -9,6 +9,11 @@ const {
   toInteger,
   toNumber
 } = require('./_lib');
+const {
+  recommendationReason,
+  scoreParkingCandidate
+} = require('./_parking-ranking');
+const { getWeatherContext } = require('./_weather');
 
 function numberQuery(value) {
   const number = toNumber(value);
@@ -21,7 +26,7 @@ function selectedSchedule(hours, visitDate) {
   return hours?.[key] || hours?.weekday || {};
 }
 
-function mapParking(row, origin, visitDate, startTime, endTime) {
+function mapParking(row, origin, visitDate, startTime, endTime, weather) {
   const latitude = toNumber(row.latitude);
   const longitude = toNumber(row.longitude);
   const fee = row.fee_rules || {};
@@ -29,9 +34,10 @@ function mapParking(row, origin, visitDate, startTime, endTime) {
   const schedule = selectedSchedule(hours, visitDate);
   const distance = haversineKm(origin.lat, origin.lng, latitude, longitude);
   const estimatedCost = estimateParkingCost(row, visitDate, startTime, endTime);
-  const capacity = toInteger(row.total_spaces);
   const unknownFee = estimatedCost === null;
-  const score = distance * 100 + (unknownFee ? 18 : estimatedCost / 200) - Math.min((capacity || 0) / 50, 3);
+  const walk = Math.max(1, Math.round(distance * 13));
+  const ranking = scoreParkingCandidate({ walk, estimatedCost }, weather);
+  const reason = recommendationReason({ walk, estimatedCost, distance }, weather);
   return {
     id: cleanText(row.id),
     name: cleanText(row.name),
@@ -42,8 +48,7 @@ function mapParking(row, origin, visitDate, startTime, endTime) {
     lng: longitude,
     distance: Number(distance.toFixed(2)),
     drive: Math.max(2, Math.round(distance * 5)),
-    walk: Math.max(1, Math.round(distance * 13)),
-    capacity,
+    walk,
     open: cleanText(schedule.open) || '운영시간 확인',
     close: cleanText(schedule.close) || '',
     operatingHours: hours,
@@ -56,8 +61,9 @@ function mapParking(row, origin, visitDate, startTime, endTime) {
     estimatedCost,
     restrictions: cleanText(row.restrictions) || null,
     reservationUrl: cleanText(row.metadata?.reservation_url) || null,
-    reason: unknownFee ? '요금은 현장 또는 예약 페이지에서 확인해 주세요' : '거리·요금·주차면 규모를 함께 비교할 수 있어요',
-    recommendationScore: score
+    reason,
+    recommendationScore: ranking.score,
+    scoreBreakdown: ranking.breakdown
   };
 }
 
@@ -74,17 +80,29 @@ module.exports = async function handler(req, res) {
   const endTime = cleanText(req.query?.endTime) || '22:00';
 
   try {
-    const rows = await supabaseRequest('parking_lots?select=id,source,name,parking_type,address,latitude,longitude,total_spaces,operating_hours,fee_rules,restrictions,metadata');
     const origin = { lat, lng };
+    const [rows, weather] = await Promise.all([
+      supabaseRequest('parking_lots?select=id,source,name,parking_type,address,latitude,longitude,operating_hours,fee_rules,restrictions,metadata'),
+      getWeatherContext({
+        lat,
+        lng,
+        visitDate,
+        startTime,
+        endTime,
+        kmaApiKey: process.env.KMA_WEATHER_API_KEY
+      })
+    ]);
     const parkingLots = (Array.isArray(rows) ? rows : [])
       .filter((row) => toNumber(row.latitude) !== null && toNumber(row.longitude) !== null)
-      .map((row) => mapParking(row, origin, visitDate, startTime, endTime))
+      .map((row) => mapParking(row, origin, visitDate, startTime, endTime, weather))
       .filter((parking) => parking.distance <= radiusKm)
-      .sort((a, b) => a.recommendationScore - b.recommendationScore)
+      .sort((a, b) => a.recommendationScore - b.recommendationScore || a.distance - b.distance)
       .slice(0, 30);
+    const weatherAttribution = weather.available ? ` · ${weather.sourceLabel}` : '';
     return sendJson(res, 200, {
       parkingLots,
-      sourceAttribution: '출처: 대전광역시 주차장 정보 · 공유누리',
+      weather,
+      sourceAttribution: `출처: 대전광역시 주차장 정보 · 공유누리${weatherAttribution}`,
       generatedAt: new Date().toISOString()
     }, 'public, s-maxage=60, stale-while-revalidate=120');
   } catch (error) {
