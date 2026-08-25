@@ -35,6 +35,13 @@ function truncate(value, maxLength) {
   return `${text.slice(0, maxLength - 1).replace(/[\s,;:·ㆍ-]+$/g, '')}…`;
 }
 
+function withoutWebCitations(value) {
+  return cleanText(String(value || '')
+    .replace(/\s*\(\s*\[[^\]]+\]\(https?:\/\/[^)]+\)\s*\)/gi, ' ')
+    .replace(/\s*\[[^\]]+\]\(https?:\/\/[^)]+\)/gi, ' ')
+    .replace(/\s*cite[^]+/g, ' '));
+}
+
 function purposeFromOverview(value) {
   const overview = cleanRichText(value);
   if (!overview) return null;
@@ -149,7 +156,7 @@ function sourceUrlsFromResponse(response = {}) {
 function normalizeOpenAiContent(value = {}) {
   const highlights = Array.isArray(value.highlights) ? value.highlights : [];
   return {
-    summary: truncate(value.summary, 110) || null,
+    summary: truncate(withoutWebCitations(value.summary), 110) || null,
     tags: (Array.isArray(value.tags) ? value.tags : []).map(cleanText).filter(Boolean).slice(0, 4),
     programs: highlights.map((item) => ({
       title: truncate(item?.title, 70),

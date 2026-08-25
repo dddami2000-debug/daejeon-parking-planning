@@ -223,7 +223,10 @@ function shouldEnrich(place, force = false) {
   if (force) return true;
   const enrichment = existingFestivalContent(place);
   if (!enrichment?.enriched_at) return true;
-  if (!cleanText(enrichment.summary) || !Array.isArray(enrichment.programs) || !enrichment.programs.length) return true;
+  if (!cleanText(enrichment.summary)
+    || /https?:\/\/|\[[^\]]+\]\(|cite/.test(enrichment.summary)
+    || !Array.isArray(enrichment.programs)
+    || !enrichment.programs.length) return true;
   const modifiedAt = cleanText(place?.metadata?.modified_at);
   return Boolean(modifiedAt) && enrichment.source_modified_at !== modifiedAt;
 }

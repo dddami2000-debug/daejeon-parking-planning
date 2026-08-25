@@ -114,3 +114,14 @@ test('retries stored festival content when its purpose summary is still missing'
   assert.equal(shouldEnrich({ metadata: { festival_content: { enriched_at: '2026-08-25T00:00:00Z', summary: null, programs: [{ title: '체험' }] } } }), true);
   assert.equal(shouldEnrich({ metadata: { festival_content: { enriched_at: '2026-08-25T00:00:00Z', summary: '축제 목적', programs: [{ title: '체험' }] } } }), false);
 });
+
+test('removes web citations from the purpose shown in the service', () => {
+  const content = normalizeOpenAiContent({
+    summary: '황새 보전 가치를 알리는 축제입니다. ([yesan.go.kr](https://yesan.go.kr/festival))',
+    tags: [],
+    highlights: [],
+    recommended_for: null
+  });
+  assert.equal(content.summary, '황새 보전 가치를 알리는 축제입니다.');
+  assert.equal(shouldEnrich({ metadata: { festival_content: { enriched_at: '2026-08-25T00:00:00Z', summary: '[출처](https://example.com)', programs: [{ title: '체험' }] } } }), true);
+});
