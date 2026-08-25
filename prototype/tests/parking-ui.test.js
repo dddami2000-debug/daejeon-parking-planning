@@ -34,3 +34,54 @@ test('uses capacity only for the explicit large-lot priority', () => {
   assert.match(appSource, /Number\(b\.capacity\)-Number\(a\.capacity\)/);
   assert.match(appSource, /주차면수 확인 필요/);
 });
+
+test('zooms ordinary cluster bubbles and only opens a picker for co-located pins', () => {
+  assert.match(indexSource, /id="placeChoiceLayer"/);
+  assert.match(indexSource, /id="placeChoiceList"/);
+  assert.match(appSource, /function openPlaceChoice\(groupPlaces\)/);
+  assert.match(appSource, /function placesShareMapLocation\(groupPlaces\)/);
+  assert.match(appSource, /SAME_LOCATION_RADIUS_KM/);
+  assert.match(appSource, /function groupPlacesBySharedLocation\(visible\)/);
+  assert.match(appSource, /if\(zoom>=MAP_MAX_ZOOM\)return groupPlacesBySharedLocation\(visible\)/);
+  assert.match(appSource, /function handlePlaceGroupClick\(group\)/);
+  const clusterHandler = appSource.match(/function handlePlaceGroupClick\(group\)[\s\S]*?\n}/)?.[0] || '';
+  assert.doesNotMatch(clusterHandler, /openPlaceChoice/);
+  assert.match(clusterHandler, /if\(currentZoom>=MAP_MAX_ZOOM\)\{renderMap\(\);return;}/);
+  assert.match(appSource, /focusMapOn\(new naver\.maps\.LatLng\(group\.lat,group\.lng\),nextZoom,'overview',260\)/);
+  assert.match(appSource, /openPlaceChoice\(group\.places\)/);
+  assert.match(appSource, /handlePlaceGroupClick\(group\)/);
+  assert.match(appSource, /data-place-choice=/);
+  assert.match(appSource, /closePlaceChoice\(\{restoreFocus:false\}\);\s*openPlace\(id,'select'\)/);
+  assert.match(appSource, /class="map-marker colocated-map-marker/);
+  assert.match(appSource, /marker-overlap-count/);
+  assert.match(appSource, /sharedLocation\?openPlaceChoice\(group\.places\):handlePlaceGroupClick\(group\)/);
+  assert.match(appSource, /곳 보려면 지도 확대/);
+});
+
+test('shows a right-side map zoom control and uses one neutral cluster style', () => {
+  assert.match(appSource, /zoomControl:true/);
+  assert.match(appSource, /position:naver\.maps\.Position\.RIGHT_CENTER/);
+  assert.doesNotMatch(appSource, /const clusterColor=/);
+  assert.doesNotMatch(appSource, /--cluster-color:/);
+});
+
+test('personalizes only festival discovery from festival views and selections', () => {
+  const engineIndex = indexSource.indexOf('recommendation-engine.js');
+  const appIndex = indexSource.indexOf('app.js?v=');
+  assert.ok(engineIndex >= 0 && appIndex > engineIndex);
+  assert.match(indexSource, /나를 위한 추천 축제/);
+  assert.match(indexSource, /맞춤 추천 축제/);
+  assert.match(appSource, /daejeonMap\.festivalInteractions\.v2/);
+  assert.match(appSource, /function openPlace\(id,interactionKind='view'\)/);
+  assert.match(appSource, /recordFestivalInteraction\(activePlace,interactionKind\)/);
+  assert.match(appSource, /openPlace\(card\.dataset\.place,'select'\)/);
+  assert.match(appSource, /openPlace\(button\.dataset\.rankingPlace,'select'\)/);
+  assert.match(appSource, /if\(!festivalRecommender\|\|place\?\.type!=='festival'\)return/);
+  assert.match(appSource, /personalizedFestivalScoreFor\(b\)-personalizedFestivalScoreFor\(a\)/);
+  assert.match(appSource, /festivalDeadlineValue\(a\)-festivalDeadlineValue\(b\)\|\|personalizedFestivalScoreFor/);
+  assert.match(appSource, /축제 조회·선택 취향 반영/);
+  const plannerBlock = appSource.match(/function openPlanner\(\)[\s\S]*?\n}/)?.[0] || '';
+  const parkingBlock = appSource.match(/function renderParkings\(\)[\s\S]*?\n}\n\nfunction openPlanner/)?.[0] || '';
+  assert.doesNotMatch(plannerBlock, /recordFestivalInteraction|personalizedFestivalScoreFor/);
+  assert.doesNotMatch(parkingBlock, /recordFestivalInteraction|personalizedFestivalScoreFor/);
+});
