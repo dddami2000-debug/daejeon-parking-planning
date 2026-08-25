@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=63/);
-  assert.match(indexSource, /app\.js\?v=58/);
+  assert.match(indexSource, /seed-theme\.css\?v=66/);
+  assert.match(indexSource, /app\.js\?v=62/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=58/);
+  assert.match(indexSource, /app\.js\?v=62/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -169,4 +169,41 @@ test('replaces festival detail parking and homepage CTAs with travel guidance ap
     assert.match(appSource, new RegExp(`assets/navigation/${iconFile.replace('.', '\\.')}`));
     assert.equal(fs.existsSync(path.join(prototypeRoot, 'assets/navigation', iconFile)), true);
   }
+});
+
+test('chooses between the festival and the algorithm top parking before opening navigation apps', () => {
+  assert.match(indexSource, /id="festivalTravelBack"/);
+  assert.match(appSource, /어디까지 안내할까요\?/);
+  assert.match(appSource, /data-festival-destination="festival"/);
+  assert.match(appSource, /data-festival-destination="parking"/);
+  assert.match(appSource, /const parking=currentParkingList\(\)\[0\]\|\|null/);
+  assert.match(appSource, /const algorithmTop=parkingTemplates\.find\(candidate=>festivalDestination\(candidate\)\)/);
+  assert.match(appSource, /가장 추천하는 공영주차장이에요/);
+  assert.match(appSource, /축제장까지 도보 \$\{Number\(parking\.walk\)\|\|0\}분/);
+  assert.doesNotMatch(appSource, /추천 1순위/);
+  assert.match(appSource, /renderFestivalProviderStep\(festivalDestination\(choice\.parking\)\)/);
+  assert.match(themeSource, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+});
+
+test('treats public parking hours as paid hours instead of closing hours', () => {
+  assert.match(appSource, /function isPublicParking\(parking\)\{return parking\?\.type==='공영';\}/);
+  assert.match(appSource, /code:'public-always-open'/);
+  assert.match(appSource, /24시간 이용 가능하며 유료 시간대만 요금에 반영해요/);
+  assert.match(appSource, /paid<=0\)return isPublicParking\(parking\)\?0:null/);
+  assert.match(appSource, /24시간 이용 · 유료/);
+  assert.match(appSource, /이용·유료 시간/);
+});
+
+test('does not render ranked or other parking pins on the map', () => {
+  assert.doesNotMatch(appSource, /parkingMarkers|parkingPosition\(/);
+  assert.doesNotMatch(appSource, /parking-map-marker|parking-rank-dot|parking-dot/);
+  assert.doesNotMatch(themeSource, /parking-map-marker|parking-rank-dot/);
+});
+
+test('shows but does not navigate regional parking mock data', () => {
+  assert.match(appSource, /parkingDataState='regional-unavailable'/);
+  assert.match(appSource, /축제 인근 공영주차장 \(예시\)/);
+  assert.match(appSource, /공영주차장\$\{mock\?' · 목업 데이터':''\}/);
+  assert.match(appSource, /choice\.status!=='available'/);
+  assert.match(appSource, /목업 정보라 실제 길안내를 제공하지 않아요/);
 });

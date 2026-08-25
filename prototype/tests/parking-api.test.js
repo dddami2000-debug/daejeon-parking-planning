@@ -16,7 +16,7 @@ test('returns weather-aware rankings with capacity metadata but no live availabi
     longitude: 127.431,
     total_spaces: 999,
     available_spaces: 999,
-    operating_hours: { weekday: { open: '09:00', close: '22:00' } },
+    operating_hours: { weekday: { open: '09:00', close: '21:00' } },
     fee_rules: { baseRate: 500, baseTime: 30, addRate: 200, addTime: 10 },
     metadata: {}
   }];
@@ -59,6 +59,7 @@ test('returns weather-aware rankings with capacity metadata but no live availabi
   assert.equal(body.parkingLots.length, 1);
   assert.equal(body.parkingLots[0].scoreBreakdown.walkWeight, 0.8);
   assert.equal(body.parkingLots[0].capacity, 999);
+  assert.equal(body.parkingLots[0].estimatedCost, 3500);
   assert.equal(body.parkingLots[0].availabilityKnown, true);
   assert.equal('available' in body.parkingLots[0], false);
   assert.match(body.parkingLots[0].reason, /더운 날씨/);

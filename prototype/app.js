@@ -115,11 +115,11 @@ let excludedParkings = [];
 let pendingParking = null;
 let pendingFestivalDestination = null;
 let festivalTravelMode = null;
+let festivalTravelStage = 'provider';
 let festivalTravelLastTrigger = null;
 let navigationConfigPromise = null;
 let naverMap = null;
 let placeMarkers = [];
-let parkingMarkers = [];
 let currentLocationMarker = null;
 let userPosition = null;
 let isPlaceFocused = false;
@@ -137,6 +137,7 @@ let parkingDataState = 'demo';
 let placeDataUpdatedAt = null;
 let parkingDataUpdatedAt = null;
 let parkingWeather = null;
+let parkingRequestSequence = 0;
 const parkingCache = new Map();
 let placeSheetDrag = null;
 let suppressPlaceSheetGestureClick = false;
@@ -747,6 +748,16 @@ async function loadPlaces(){
 
 async function loadParkingForActivePlace(){
   if(!hasCoordinates(activePlace))return;
+  const requestId=++parkingRequestSequence;
+  if(!isDaejeonFestival(activePlace)){
+    parkingTemplates=[];
+    parkingWeather=null;
+    parkingSourceAttribution='대전 외 지역 공영주차장 데이터 준비 중';
+    parkingDataUpdatedAt=null;
+    parkingDataState='regional-unavailable';
+    renderParkings();renderMap();
+    return;
+  }
   const date=$('#visitDate').value||new Date().toISOString().slice(0,10);
   const cacheKey=`${activePlace.id}|${date}|${$('#startTime').value}|${$('#endTime').value}`;
   parkingDataState='loading';
@@ -760,6 +771,7 @@ async function loadParkingForActivePlace(){
       if(!response.ok)throw new Error('parking_unavailable');
       payload=await response.json();parkingCache.set(cacheKey,payload);
     }
+    if(requestId!==parkingRequestSequence)return;
     parkingWeather=payload.weather||null;
     if(!Array.isArray(payload.parkingLots)||!payload.parkingLots.length)throw new Error('empty_parking');
     parkingTemplates=payload.parkingLots.map(parking=>({...parking,dataStatus:'live'}));
@@ -768,12 +780,17 @@ async function loadParkingForActivePlace(){
     parkingDataState='live';
     renderParkings();renderMap();
   }catch{
+    if(requestId!==parkingRequestSequence)return;
     parkingTemplates=fallbackParkingTemplates.map((parking,index)=>({...parking,id:`demo-parking-${index}`,free:parking.base===0&&parking.add===0,unknownFee:false,scheduleVerified:true,feeVerified:true,availabilityKnown:false,updatedAt:'2026-08-25T00:00:00+09:00',dataStatus:'demo'}));
     parkingSourceAttribution='샘플 주차장 데이터 · 실제 운영·요금은 출발 전 확인 필요';
     parkingDataUpdatedAt=null;
     parkingDataState='demo';
     renderParkings();renderMap();
   }
+}
+
+function isDaejeonFestival(place=activePlace){
+  return /(?:^|\s)대전(?:광역시|시)?(?:\s|$)/.test(`${place?.region||''} ${place?.address||''}`.trim());
 }
 
 function renderFestivals(){
@@ -892,24 +909,11 @@ function renderMap(){
   renderNearbyPanel(visible);
   if(!naverMap)return;
   placeMarkers.forEach(marker=>marker.setMap(null));
-  parkingMarkers.forEach(marker=>marker.setMap(null));
-  parkingMarkers=[];
   if(isPlaceFocused){
     if(!hasCoordinates(activePlace))return;
     const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
     const activeFavorite=isFestivalFavorite(activePlace.id);
     placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker place-pin-festival${activeFavorite?' favorite-place-pin':''}" style="--pin:${activePlace.color}" aria-label="선택한 축제${activeFavorite?', 즐겨찾기':''}"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span>${activeFavorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</span>`,anchor:new naver.maps.Point(32,66)}})];
-    const recommendedParkings=currentParkingList();
-    const otherParkings=allParkingCandidates().filter(parking=>!recommendedParkings.some(recommended=>recommended.name===parking.name));
-    parkingMarkers=recommendedParkings.map((parking,index)=>{
-      const position=parkingPosition(index,parking);
-      const parkingId=encodeURIComponent(parking.id||parking.name);
-      return new naver.maps.Marker({map:naverMap,position,title:parking.name,zIndex:20-index,icon:{content:`<button class="parking-map-marker parking-rank-dot rank-${index+1}" aria-label="${escapeHtml(parking.rankLabel)} ${escapeHtml(parking.name)}" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'),${index+1})"><span>${index+1}</span></button>`,anchor:new naver.maps.Point(18,18)}});
-    });
-    parkingMarkers.push(...otherParkings.map((parking,index)=>{
-      const parkingId=encodeURIComponent(parking.id||parking.name);
-      return new naver.maps.Marker({map:naverMap,position:parkingPosition(index+3,parking),title:parking.name,zIndex:10-index,icon:{content:`<button class="parking-map-marker parking-dot" aria-label="${escapeHtml(parking.name)} 주차장 정보" onclick="event.stopPropagation();window.showParkingInfo(decodeURIComponent('${parkingId}'))"><span>●</span></button>`,anchor:new naver.maps.Point(13,13)}});
-    }));
     return;
   }
   const zoom=naverMap.getZoom();
@@ -954,14 +958,6 @@ function renderNearbyPanel(visible){
   $('#nearbyCount').textContent=`${near.length}곳`;
   $('#nearbyList').innerHTML=near.map(place=>`<button class="nearby-item" data-place="${escapeHtml(place.id)}" style="--tile:${place.tile};--accent:${place.color}"><span class="nearby-emoji">${escapeHtml(place.emoji)}</span><span class="nearby-info"><span>${escapeHtml(compactPlaceArea(place))}</span><b>${escapeHtml(place.name)}</b><p>${place.distance}km · ${place.eta}분 · ${escapeHtml(festivalDateBadge(place))}</p></span></button>`).join('');
   document.querySelectorAll('.nearby-item').forEach(item=>item.addEventListener('click',()=>openPlace(item.dataset.place)));
-}
-
-function parkingPosition(index,selectedParking){
-  const parking=selectedParking||allParkingCandidates()[index];
-  if(hasCoordinates(parking))return new naver.maps.LatLng(parking.lat,parking.lng);
-  const offsets=[[0.0020,0.0028],[-0.0016,0.0032],[0.0026,-0.0026],[-0.0050,-0.0048],[0.0050,0.0048],[-0.0050,0.0048],[0.0050,-0.0048]];
-  const [latOffset,lngOffset]=offsets[index%offsets.length];
-  return new naver.maps.LatLng(activePlace.lat+latOffset,activePlace.lng+lngOffset);
 }
 
 function isVisibleOverlay(element){
@@ -1323,11 +1319,13 @@ function visitInterval(){
   const start=minutes($('#startTime').value),end=minutes($('#endTime').value);
   return {start,end,valid:start!==null&&end!==null&&end>start,duration:start!==null&&end!==null?end-start:0};
 }
+function isPublicParking(parking){return parking?.type==='공영';}
 function parkingScheduleCheck(parking){
   const visit=visitInterval();
   const schedule=scheduleForVisit(parking);
   const open=minutes(schedule.open),close=minutes(schedule.close);
   if(!visit.valid)return {eligible:false,reason:'방문 시간을 다시 확인해 주세요.',code:'invalid-visit'};
+  if(isPublicParking(parking))return {eligible:true,reason:'24시간 이용 가능하며 유료 시간대만 요금에 반영해요.',code:'public-always-open'};
   if(open===null||close===null)return {eligible:false,reason:'운영 시간이 확인되지 않았어요.',code:'unknown-hours'};
   if(visit.start<open||visit.end>close)return {eligible:false,reason:'선택한 방문 시간 전체에 운영하지 않아요.',code:'closed'};
   return {eligible:true,reason:'선택한 방문 시간에 운영해요.',code:'open'};
@@ -1344,14 +1342,20 @@ function costFor(parking){
   const schedule=scheduleForVisit(parking);
   const start=minutes($('#startTime').value),end=minutes($('#endTime').value),open=minutes(schedule.open),close=minutes(schedule.close);
   if(start===null||end===null||open===null||close===null)return null;
-  if(end<=start||start<open||end>close)return null;
+  if(end<=start)return null;
+  if(!isPublicParking(parking)&&(start<open||end>close))return null;
   const paid=Math.max(0,Math.min(end,close)-Math.max(start,open));
-  if(paid<=0)return null;
+  if(paid<=0)return isPublicParking(parking)?0:null;
   if(!Number.isFinite(Number(parking.base))||!parking.addMin)return Number.isFinite(Number(parking.base))?Number(parking.base):null;
   return parking.base+Math.ceil(Math.max(0,paid-parking.baseMin)/parking.addMin)*parking.add;
 }
 function formatCost(parking){const cost=costFor(parking);return cost===null?'요금 확인 필요':`${cost.toLocaleString()}원`;}
-function parkingHours(parking){const schedule=scheduleForVisit(parking);return schedule.open&&schedule.close?`${schedule.open}–${schedule.close}`:'운영시간 확인';}
+function parkingHours(parking){
+  const schedule=scheduleForVisit(parking);
+  if(isPublicParking(parking))return schedule.open&&schedule.close?`24시간 이용 · 유료 ${schedule.open}–${schedule.close}`:'24시간 이용 · 유료시간 확인';
+  return schedule.open&&schedule.close?`${schedule.open}–${schedule.close} 운영`:'운영시간 확인';
+}
+function parkingHoursLabel(parking){return isPublicParking(parking)?'이용·유료 시간':'운영 시간';}
 function parkingFeeBasis(parking){
   const cost=costFor(parking);
   if(cost===null)return '공식 데이터에서 선택 시간의 요금을 계산할 수 없어요.';
@@ -1403,7 +1407,7 @@ function openParkingInfo(parking,rank){
   const planned=currentParkingList().find(candidate=>candidate.name===parking.name);
   const rankCopy=planned?`${planned.recommendationRank}위`:(rank?`${rank}위`:'주변 주차장');
   const capacity=Number.isFinite(Number(parking.capacity))?`${Number(parking.capacity).toLocaleString()}면`:'주차면수 확인 필요';
-  $('#parkingInfoContent').innerHTML=`<div class="parking-info-kicker"><span>${escapeHtml(parking.type)} 주차장</span><b>${rankCopy}</b></div><h2>${escapeHtml(parking.name)}</h2><div class="parking-info-grid"><div><span>예상 요금</span><b>${formatCost(parking)}</b><small>${escapeHtml(parkingFeeBasis(parking))}</small></div><div><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>운영 시간</span><b>${escapeHtml(parkingHours(parking))}</b></div><div><span>주차 규모</span><b>${escapeHtml(capacity)}</b><small>실시간 혼잡도는 제공되지 않습니다.</small></div></div><p class="parking-info-reason">✓ ${escapeHtml(rankedSelectionReason({...parking,recommendationRank:planned?.recommendationRank||rank}))}</p><p class="data-source-note">${escapeHtml(parkingSourceAttribution||'주차장 정보 출처 확인 필요')} · ${escapeHtml(parkingDataFreshness(parking).label)}</p><div class="parking-info-actions"><button class="route-button" id="parkingInfoRoute">이곳으로 길안내</button><button class="parking-info-plan" id="parkingInfoPlan">주차 플랜에서 비교</button></div>`;
+  $('#parkingInfoContent').innerHTML=`<div class="parking-info-kicker"><span>${escapeHtml(parking.type)} 주차장</span><b>${rankCopy}</b></div><h2>${escapeHtml(parking.name)}</h2><div class="parking-info-grid"><div><span>예상 요금</span><b>${formatCost(parking)}</b><small>${escapeHtml(parkingFeeBasis(parking))}</small></div><div><span>도보 거리</span><b>${parking.walk}분</b></div><div><span>${escapeHtml(parkingHoursLabel(parking))}</span><b>${escapeHtml(parkingHours(parking))}</b></div><div><span>주차 규모</span><b>${escapeHtml(capacity)}</b><small>실시간 혼잡도는 제공되지 않습니다.</small></div></div><p class="parking-info-reason">✓ ${escapeHtml(rankedSelectionReason({...parking,recommendationRank:planned?.recommendationRank||rank}))}</p><p class="data-source-note">${escapeHtml(parkingSourceAttribution||'주차장 정보 출처 확인 필요')} · ${escapeHtml(parkingDataFreshness(parking).label)}</p><div class="parking-info-actions"><button class="route-button" id="parkingInfoRoute">이곳으로 길안내</button><button class="parking-info-plan" id="parkingInfoPlan">주차 플랜에서 비교</button></div>`;
   showSheet('#parkingInfoSheet');
   $('#parkingInfoRoute').addEventListener('click',()=>selectNavigation(parking.name));
   $('#parkingInfoPlan').addEventListener('click',openPlanner);
@@ -1420,15 +1424,15 @@ function renderParkings(){
   $('#parkingSummary').textContent=`${Math.floor(duration/60)}시간 ${duration%60?duration%60+'분 ':''}주차 기준`;
   $('.parking-summary b').textContent=weatherTemperatureCopy();
   if(parkingDataState==='loading'){
-    $('#parkingTrustSummary').innerHTML='<b>이용 가능한 주차장을 확인하고 있어요</b><span>운영시간과 요금 규칙을 검증하는 중이에요.</span>';
+    $('#parkingTrustSummary').innerHTML='<b>이용 가능한 주차장을 확인하고 있어요</b><span>이용 가능 여부와 요금 규칙을 검증하는 중이에요.</span>';
     $('#parkingList').innerHTML='<div class="parking-loading" aria-hidden="true"><i></i><i></i><i></i></div>';
     return;
   }
   const list=currentParkingList();
   const report=parkingValidationReport();
   const excludedReasons=[report.scheduleExcluded&&`운영시간 ${report.scheduleExcluded}곳`,report.feeExcluded&&`요금 ${report.feeExcluded}곳`,report.capacityExcluded&&`주차면수 ${report.capacityExcluded}곳`].filter(Boolean).join(' · ');
-  $('#parkingTrustSummary').innerHTML=`<b>신뢰 가능한 주차장 ${report.trusted}곳을 찾았어요.</b><span>${excludedReasons?`${excludedReasons}은 정보가 불확실해 제외했어요.`:'선택한 시간의 운영·요금을 확인했어요.'}${parkingDataState==='demo'?' 현재는 샘플 데이터입니다.':''}</span>`;
-  $('#parkingList').innerHTML=list.length?list.map(parking=>{const capacity=Number.isFinite(Number(parking.capacity))?`${Number(parking.capacity).toLocaleString()}면`:'주차면수 확인 필요';return `<article class="parking-item parking-plan-rank-${parking.recommendationRank}"><div class="parking-plan-head"><span class="parking-plan-option" aria-label="${parking.recommendationRank}위">${parking.recommendationRank}</span><span class="parking-plan-reason"><b>${parkingPriority==='distance'?'거리 우선':parkingPriority==='price'?'가격 우선':'대형 주차장 우선'}</b><small>${escapeHtml(rankedSelectionReason(parking))}</small></span></div><span class="parking-type">${escapeHtml(parking.type)} 주차장</span><h3>${escapeHtml(parking.name)}</h3><div class="parking-meta"><span>도보 ${parking.walk}분</span><span>${escapeHtml(parkingHours(parking))} 운영</span><span>${escapeHtml(capacity)}</span></div><div class="parking-stats"><div class="criterion-stat"><span>예상 요금</span><b>${formatCost(parking)}</b><small>${escapeHtml(parkingFeeBasis(parking))}</small></div><div><span>혼잡도</span><b>제공 안 됨</b></div></div><div class="parking-actions"><button class="route-button" data-route="${escapeHtml(parking.name)}">이곳으로 길안내</button><button class="full-button" data-full="${escapeHtml(parking.name)}">이 주차장 제외</button></div></article>`;}).join(''):`<div class="parking-item parking-empty"><h3>확실하게 추천할 주차장이 없어요</h3><p class="place-description">선택한 시간에 운영하며 요금을 계산할 수 있는 후보가 없습니다. 시간을 바꾸거나 공식 주차 정보를 확인해 주세요.</p><button class="primary-button" id="resetParking">제외한 후보 다시 보기</button></div>`;
+  $('#parkingTrustSummary').innerHTML=`<b>신뢰 가능한 주차장 ${report.trusted}곳을 찾았어요.</b><span>${excludedReasons?`${excludedReasons}은 정보가 불확실해 제외했어요.`:'선택한 시간의 이용 가능 여부와 요금을 확인했어요.'}${parkingDataState==='demo'?' 현재는 샘플 데이터입니다.':''}</span>`;
+  $('#parkingList').innerHTML=list.length?list.map(parking=>{const capacity=Number.isFinite(Number(parking.capacity))?`${Number(parking.capacity).toLocaleString()}면`:'주차면수 확인 필요';return `<article class="parking-item parking-plan-rank-${parking.recommendationRank}"><div class="parking-plan-head"><span class="parking-plan-option" aria-label="${parking.recommendationRank}위">${parking.recommendationRank}</span><span class="parking-plan-reason"><b>${parkingPriority==='distance'?'거리 우선':parkingPriority==='price'?'가격 우선':'대형 주차장 우선'}</b><small>${escapeHtml(rankedSelectionReason(parking))}</small></span></div><span class="parking-type">${escapeHtml(parking.type)} 주차장</span><h3>${escapeHtml(parking.name)}</h3><div class="parking-meta"><span>도보 ${parking.walk}분</span><span>${escapeHtml(parkingHours(parking))}</span><span>${escapeHtml(capacity)}</span></div><div class="parking-stats"><div class="criterion-stat"><span>예상 요금</span><b>${formatCost(parking)}</b><small>${escapeHtml(parkingFeeBasis(parking))}</small></div><div><span>혼잡도</span><b>제공 안 됨</b></div></div><div class="parking-actions"><button class="route-button" data-route="${escapeHtml(parking.name)}">이곳으로 길안내</button><button class="full-button" data-full="${escapeHtml(parking.name)}">이 주차장 제외</button></div></article>`;}).join(''):`<div class="parking-item parking-empty"><h3>확실하게 추천할 주차장이 없어요</h3><p class="place-description">선택한 시간에 이용 가능하며 요금을 계산할 수 있는 후보가 없습니다. 시간을 바꾸거나 공식 주차 정보를 확인해 주세요.</p><button class="primary-button" id="resetParking">제외한 후보 다시 보기</button></div>`;
   document.querySelectorAll('[data-route]').forEach(button=>button.addEventListener('click',()=>selectNavigation(button.dataset.route)));
   document.querySelectorAll('[data-full]').forEach(button=>button.addEventListener('click',()=>markFull(button.dataset.full)));
   if($('#resetParking'))$('#resetParking').addEventListener('click',()=>{excludedParkings=[];renderParkings();toast('새로운 후보를 다시 계산했어요.');});
@@ -1490,6 +1494,7 @@ function festivalTravelProviders(mode){
 }
 
 function renderFestivalTravelOptions(config=null){
+  $('#festivalTravelOptions').classList.remove('festival-destination-options');
   const providers=festivalTravelProviders(festivalTravelMode);
   $('#festivalTravelOptions').innerHTML=providers.map(provider=>{
     const unavailable=festivalTravelMode==='navigation'&&config&&(
@@ -1504,8 +1509,105 @@ function renderFestivalTravelOptions(config=null){
   }).join('');
 }
 
+function regionalParkingMock(place=activePlace){
+  const seed=[...String(place?.name||'')].reduce((sum,char)=>sum+char.charCodeAt(0),0);
+  return {
+    id:`regional-parking-mock-${place?.id||'festival'}`,
+    name:'축제 인근 공영주차장 (예시)',
+    type:'공영',
+    walk:6+seed%7,
+    dataStatus:'regional-mock'
+  };
+}
+
+function festivalNavigationParkingChoice(){
+  if(parkingDataState==='loading')return {status:'loading',parking:null};
+  const parking=currentParkingList()[0]||null;
+  if(parkingDataState==='live'){
+    if(parking&&festivalDestination(parking))return {status:'available',parking};
+    const algorithmTop=parkingTemplates.find(candidate=>festivalDestination(candidate));
+    if(algorithmTop)return {status:'available',parking:algorithmTop,visitTimeFallback:true};
+    return {status:'unavailable',parking:null};
+  }
+  return {
+    status:'mock',
+    reason:parkingDataState==='regional-unavailable'?'regional':'demo',
+    parking:parking||regionalParkingMock(activePlace)
+  };
+}
+
+function parkingChoiceMarkup(choice){
+  if(choice.status==='loading')return '<button type="button" class="festival-destination-choice parking loading" disabled><span class="destination-choice-copy"><small>공영주차장</small><b>추천 주차장을 확인하고 있어요</b><em>이용 가능 여부와 요금을 반영해 선정 중이에요</em></span></button>';
+  if(choice.status==='unavailable')return '<button type="button" class="festival-destination-choice parking unavailable" data-festival-destination="parking" data-destination-available="false" aria-disabled="true"><span class="destination-choice-copy"><small>공영주차장</small><b>추천할 수 있는 주차장이 없어요</b><em>현재 조건에 맞는 공영주차장을 찾지 못했어요</em></span></button>';
+  const parking=choice.parking;
+  const mock=choice.status==='mock';
+  return `<button type="button" class="festival-destination-choice parking${mock?' mock':''}" data-festival-destination="parking" data-destination-available="${String(!mock)}"${mock?' aria-disabled="true"':''}><span class="destination-choice-copy"><small>공영주차장${mock?' · 목업 데이터':''}</small><b>${escapeHtml(parking.name)}</b><em>가장 추천하는 공영주차장이에요</em><strong>축제장까지 도보 ${Number(parking.walk)||0}분</strong>${choice.visitTimeFallback?`<u>${escapeHtml(parkingHours(parking))} · 요금 확인</u>`:''}</span><span class="destination-choice-arrow" aria-hidden="true">→</span></button>`;
+}
+
+function renderFestivalNavigationDestinations(){
+  const destination=festivalDestination();
+  const choice=festivalNavigationParkingChoice();
+  festivalTravelStage='destination';
+  pendingFestivalDestination=destination;
+  $('#festivalTravelBack').hidden=true;
+  $('#festivalTravelEyebrow').textContent='자동차 길찾기';
+  $('#festivalTravelTitle').textContent='어디까지 안내할까요?';
+  $('#festivalTravelDestination').textContent=activePlace.name;
+  $('#festivalTravelNote').textContent=choice.status==='mock'
+    ?choice.reason==='regional'
+      ?'대전 외 지역의 주차장 정보는 화면 확인용 목업이며 실제 길안내를 제공하지 않아요.'
+      :'현재 주차장 정보는 샘플 데이터라 실제 길안내를 제공하지 않아요.'
+    :choice.visitTimeFallback
+      ?'요금을 계산할 수 있는 후보가 없어 알고리즘 1위 주차장을 보여드려요. 유료 시간을 확인해 주세요.'
+      :'주차장은 현재 방문 조건을 반영한 기존 추천 결과의 첫 번째 후보예요.';
+  const options=$('#festivalTravelOptions');
+  options.classList.add('festival-destination-options');
+  options.innerHTML=`<button type="button" class="festival-destination-choice festival" data-festival-destination="festival" data-destination-available="true"><span class="destination-choice-copy"><small>축제 위치</small><b>${escapeHtml(destination.name)}</b><em>축제 위치로 바로 안내해요</em></span><span class="destination-choice-arrow" aria-hidden="true">→</span></button>${parkingChoiceMarkup(choice)}`;
+}
+
+function waitForParkingChoice(timeout=8000){
+  if(parkingDataState!=='loading')return Promise.resolve();
+  return new Promise(resolve=>{
+    const started=Date.now();
+    const check=()=>{
+      if(parkingDataState!=='loading'||Date.now()-started>=timeout){resolve();return;}
+      window.setTimeout(check,120);
+    };
+    check();
+  });
+}
+
+function renderFestivalProviderStep(destination){
+  if(!destination){toast('길안내 목적지의 정확한 위치를 확인하지 못했어요.');return;}
+  festivalTravelStage='provider';
+  pendingFestivalDestination=destination;
+  $('#festivalTravelBack').hidden=festivalTravelMode!=='navigation';
+  $('#festivalTravelEyebrow').textContent=festivalTravelMode==='transit'?'대중교통 앱 선택':'내비게이션 앱 선택';
+  $('#festivalTravelTitle').textContent=festivalTravelMode==='transit'?'어떤 지도로 갈까요?':'어떤 내비로 갈까요?';
+  $('#festivalTravelDestination').textContent=destination.name;
+  $('#festivalTravelNote').textContent=festivalTravelMode==='transit'
+    ?'현재 위치 권한을 허용하면 출발지까지 함께 전달해요.'
+    :'선택한 앱에서 바로 자동차 길안내를 시작해요.';
+  renderFestivalTravelOptions();
+  if(festivalTravelMode==='navigation')navigationConfig().then(config=>{
+    if($('#festivalTravelModal').classList.contains('show')&&festivalTravelMode==='navigation'&&festivalTravelStage==='provider')renderFestivalTravelOptions(config);
+  });
+}
+
+function selectFestivalNavigationDestination(kind){
+  if(kind==='festival'){renderFestivalProviderStep(festivalDestination());return;}
+  const choice=festivalNavigationParkingChoice();
+  if(choice.status!=='available'){
+    toast(choice.status==='mock'?(choice.reason==='regional'?'대전 외 지역 주차장은 목업 정보라 실제 길안내를 제공하지 않아요.':'샘플 주차장 정보로는 실제 길안내를 제공하지 않아요.'):'현재 조건에서 안내할 공영주차장을 찾지 못했어요.');
+    return;
+  }
+  renderFestivalProviderStep(festivalDestination(choice.parking));
+}
+
 function closeFestivalTravel(){
   $('#festivalTravelModal').classList.remove('show');
+  festivalTravelStage='provider';
+  $('#festivalTravelBack').hidden=true;
   const trigger=festivalTravelLastTrigger;
   festivalTravelLastTrigger=null;
   window.setTimeout(()=>trigger?.focus(),0);
@@ -1515,20 +1617,17 @@ function openFestivalTravel(mode,trigger){
   const destination=festivalDestination();
   if(!destination){toast('이 축제의 정확한 위치가 없어 길안내를 시작할 수 없어요.');return;}
   festivalTravelMode=mode;
-  pendingFestivalDestination=destination;
   festivalTravelLastTrigger=trigger||document.activeElement;
-  $('#festivalTravelEyebrow').textContent=mode==='transit'?'대중교통 앱 선택':'내비게이션 앱 선택';
-  $('#festivalTravelTitle').textContent=mode==='transit'?'어떤 지도로 갈까요?':'어떤 내비로 갈까요?';
-  $('#festivalTravelDestination').textContent=destination.name;
-  $('#festivalTravelNote').textContent=mode==='transit'
-    ?'현재 위치 권한을 허용하면 출발지까지 함께 전달해요.'
-    :'선택한 앱에서 바로 자동차 길안내를 시작해요.';
-  renderFestivalTravelOptions();
   $('#festivalTravelModal').classList.add('show');
   $('#closeFestivalTravel').focus();
-  if(mode==='navigation')navigationConfig().then(config=>{
-    if($('#festivalTravelModal').classList.contains('show')&&festivalTravelMode==='navigation')renderFestivalTravelOptions(config);
-  });
+  if(mode==='navigation'){
+    renderFestivalNavigationDestinations();
+    waitForParkingChoice().then(()=>{
+      if($('#festivalTravelModal').classList.contains('show')&&festivalTravelMode==='navigation'&&festivalTravelStage==='destination')renderFestivalNavigationDestinations();
+    });
+    return;
+  }
+  renderFestivalProviderStep(destination);
 }
 
 function guidanceCurrentPosition(){
@@ -1838,13 +1937,21 @@ $('#recalculate').addEventListener('click',()=>{parkingWeather=null;renderParkin
 $('#closeNav').addEventListener('click',()=>$('#navigationModal').classList.remove('show'));
 document.querySelectorAll('[data-nav]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('daejeonMap.preferredNavigation',button.dataset.nav);$('#navigationModal').classList.remove('show');toast(`${button.dataset.nav}로 ${pendingParking} 안내를 시작해요.`);}));
 $('#closeFestivalTravel').addEventListener('click',closeFestivalTravel);
+$('#festivalTravelBack').addEventListener('click',()=>{
+  if(festivalTravelMode==='navigation'&&festivalTravelStage==='provider')renderFestivalNavigationDestinations();
+});
 $('#festivalTravelModal').addEventListener('click',event=>{if(event.target===$('#festivalTravelModal'))closeFestivalTravel();});
 $('#festivalTravelOptions').addEventListener('click',async event=>{
+  const destinationButton=event.target.closest('[data-festival-destination]');
+  if(destinationButton){
+    selectFestivalNavigationDestination(destinationButton.dataset.festivalDestination);
+    return;
+  }
   const button=event.target.closest('[data-festival-provider]');
   if(!button||button.disabled)return;
   document.querySelectorAll('[data-festival-provider]').forEach(option=>{option.disabled=true;});
   await launchFestivalTravel(button.dataset.festivalProvider);
-  if($('#festivalTravelModal').classList.contains('show')){
+  if($('#festivalTravelModal').classList.contains('show')&&festivalTravelStage==='provider'){
     const config=festivalTravelMode==='navigation'?await navigationConfig():null;
     renderFestivalTravelOptions(config);
   }
