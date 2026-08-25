@@ -742,39 +742,25 @@ function setFestivalDateFilterOpen(open){
   trigger.setAttribute('aria-expanded',String(open));
 }
 
-function groupPlacesForZoom(visible,zoom){
+function groupPlacesForZoom(visible){
   const withCenter=places=>({
     places,
     lat:places.reduce((sum,place)=>sum+Number(place.lat),0)/places.length,
     lng:places.reduce((sum,place)=>sum+Number(place.lng),0)/places.length
   });
-  let groups=visible.map(place=>withCenter([place]));
-  if(!naverMap?.getProjection||!groups.length)return groups;
-  const minGap=zoom<=12?78:68;
+  const fallbackGroups=visible.map(place=>withCenter([place]));
+  if(!naverMap?.getProjection||!visible.length||!window.MapClustering)return fallbackGroups;
   const projection=naverMap.getProjection();
-
-  for(let pass=0;pass<visible.length;pass++){
-    let offsets;
-    try{
-      offsets=groups.map(group=>projection.fromCoordToOffset(new naver.maps.LatLng(group.lat,group.lng)));
-    }catch{return groups;}
-    const parent=groups.map((_,index)=>index);
-    const find=index=>{while(parent[index]!==index){parent[index]=parent[parent[index]];index=parent[index];}return index;};
-    const unite=(left,right)=>{const leftRoot=find(left),rightRoot=find(right);if(leftRoot!==rightRoot)parent[rightRoot]=leftRoot;};
-    for(let left=0;left<offsets.length;left++){
-      for(let right=left+1;right<offsets.length;right++){
-        if(Math.abs(offsets[left].x-offsets[right].x)<minGap&&Math.abs(offsets[left].y-offsets[right].y)<minGap)unite(left,right);
-      }
-    }
-    const merged=new Map();
-    groups.forEach((group,index)=>{
-      const root=find(index);
-      merged.set(root,[...(merged.get(root)||[]),...group.places]);
+  let projected;
+  try{
+    projected=visible.map(place=>{
+      const point=projection.fromCoordToOffset(new naver.maps.LatLng(place.lat,place.lng));
+      return {place,x:point.x,y:point.y};
     });
-    if(merged.size===groups.length)break;
-    groups=[...merged.values()].map(withCenter);
-  }
-  return groups;
+  }catch{return fallbackGroups;}
+  return window.MapClustering
+    .clusterProjectedPlaces(projected)
+    .map(cluster=>withCenter(cluster.map(item=>item.place)));
 }
 
 function renderMap(){
@@ -790,7 +776,7 @@ function renderMap(){
     if(!hasCoordinates(activePlace))return;
     const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
     const activeFavorite=isFestivalFavorite(activePlace.id);
-    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker place-pin-festival${activeFavorite?' favorite-place-pin':''}" style="--pin:${activePlace.color}" aria-label="선택한 축제${activeFavorite?', 즐겨찾기':''}"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span>${activeFavorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</span>`,anchor:new naver.maps.Point(24,46)}})];
+    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker place-pin-festival${activeFavorite?' favorite-place-pin':''}" style="--pin:${activePlace.color}" aria-label="선택한 축제${activeFavorite?', 즐겨찾기':''}"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span>${activeFavorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</span>`,anchor:new naver.maps.Point(32,66)}})];
     const recommendedParkings=currentParkingList();
     const otherParkings=allParkingCandidates().filter(parking=>!recommendedParkings.some(recommended=>recommended.name===parking.name));
     parkingMarkers=recommendedParkings.map((parking,index)=>{
@@ -805,10 +791,10 @@ function renderMap(){
     return;
   }
   const zoom=naverMap.getZoom();
-  placeMarkers=groupPlacesForZoom(visible,zoom).map(group=>{
+  placeMarkers=groupPlacesForZoom(visible).map(group=>{
     if(group.places.length>1){
       const groupFavoriteCount=group.places.filter(place=>isFestivalFavorite(place.id)).length;
-      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`축제 ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker${groupFavoriteCount?' favorite-place-cluster':''}" style="--cluster-color:#ff4f64" aria-label="축제 ${group.places.length}곳${groupFavoriteCount?`, 즐겨찾기 ${groupFavoriteCount}곳`:''} 확대해서 보기">${groupFavoriteCount?'<i aria-hidden="true">★</i>':''}<span>축제</span><b>${group.places.length}</b></button>`,anchor:new naver.maps.Point(31,31)}});
+      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`축제 ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker${groupFavoriteCount?' favorite-place-cluster':''}" style="--cluster-color:#ff4f64" aria-label="축제 ${group.places.length}곳${groupFavoriteCount?`, 즐겨찾기 ${groupFavoriteCount}곳`:''} 확대해서 보기">${groupFavoriteCount?'<i aria-hidden="true">★</i>':''}<span>축제</span><b>${group.places.length}</b></button>`,anchor:new naver.maps.Point(39,39)}});
       naver.maps.Event.addListener(marker,'click',()=>focusMapOn(new naver.maps.LatLng(group.lat,group.lng),Math.min(18,zoom+2),'overview',600));
       return marker;
     }
@@ -821,7 +807,7 @@ function renderMap(){
       zIndex:place.id===activePlace.id?20:10,
       icon:{
         content:`<button class="map-marker place-pin-festival${favorite?' favorite-place-pin':''} ${place.id===activePlace.id?'active':''}" style="--pin:${place.color}" aria-label="${escapeHtml(place.name)}${favorite?', 즐겨찾기':''} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${markerVisual(place)}</span></span>${favorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</button>`,
-        anchor:new naver.maps.Point(24,46)
+        anchor:new naver.maps.Point(32,66)
       }
     });
     naver.maps.Event.addListener(marker,'click',()=>openPlace(place.id));
