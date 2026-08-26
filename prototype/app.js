@@ -7,7 +7,6 @@ const fallbackPlaces = [
 const curatedExperiences = [
   {
     match:['0시 축제'],venue:'중앙로·은행동 일대',admission:'무료 프로그램 중심',audience:'친구 · 연인 · 가족',
-    tags:['야간 축제','거리 공연','먹거리'],
     highlights:[
       {icon:'🎤',title:'도심 한복판 라이브',description:'중앙로 곳곳의 무대와 거리 공연을 따라 걸으며 축제 분위기를 즐겨요.'},
       {icon:'🎭',title:'퍼레이드 구경',description:'시간대별 행렬과 퍼포먼스를 가까이서 보고 사진도 남겨보세요.'},
@@ -17,7 +16,6 @@ const curatedExperiences = [
   },
   {
     match:['사이언스','과학축제'],venue:'대전컨벤션센터·엑스포과학공원 일대',admission:'무료·유료 체험 혼합',audience:'가족 · 학생 · 과학 팬',
-    tags:['로봇·AI','우주 체험','가족 나들이'],
     highlights:[
       {icon:'🤖',title:'로봇·AI 체험',description:'직접 조작하고 결과를 확인하는 참여형 과학 프로그램을 골라 즐겨요.'},
       {icon:'🚀',title:'우주 테마 탐험',description:'전시와 체험 부스를 돌며 우주와 미래 기술 이야기를 만나보세요.'},
@@ -27,7 +25,6 @@ const curatedExperiences = [
   },
   {
     match:['와인','Wine'],venue:'대전컨벤션센터 일대',admission:'프로그램별 이용권 확인',audience:'연인 · 친구 · 미식가',
-    tags:['와인 시음','푸드 페어링','문화 공연'],
     highlights:[
       {icon:'🍷',title:'국내외 와인 시음',description:'여러 산지와 품종을 비교하며 내 취향의 와인을 발견해 보세요.'},
       {icon:'🧀',title:'푸드 페어링',description:'와인과 어울리는 음식 부스를 함께 둘러보며 조합을 즐겨요.'},
@@ -669,6 +666,18 @@ function updateDistancesFromCurrentLocation(lat,lng){
   renderMap();
 }
 
+function festivalTagsFor(place,{programs,existingTags}={}){
+  return window.FestivalTags?.deriveFestivalTags({
+    name:place.name,
+    summary:place.summary,
+    description:place.description,
+    category:compactPlaceCategory(place),
+    existingTags,
+    programs,
+    topicGroups:window.FestivalRecommender?.topicGroups
+  })||[];
+}
+
 function experienceFor(place){
   const content=place.metadata?.festival_content;
   if(content?.enriched_at){
@@ -678,19 +687,19 @@ function experienceFor(place){
       venue:content.venue||place.metadata?.place_name||place.address||'행사장 정보 확인',
       admission:content.admission||place.metadata?.usage_fee||'공식 데이터에 요금 정보가 없어요',
       audience:content.audience||'친구 · 연인 · 가족',
-      tags:Array.isArray(content.tags)&&content.tags.length?content.tags:['공식 일정 확인'],
+      tags:festivalTagsFor(place,{programs,existingTags:content.tags}),
       highlights:programs.slice(0,3).map((item,index)=>({icon:icons[index],title:String(item?.title||''),description:String(item?.description||'')})).filter(item=>item.title),
       tip:null,
       contentSource:content
     };
   }
   const curated=curatedExperiences.find(item=>item.match.some(keyword=>String(place.name).toLowerCase().includes(keyword.toLowerCase())));
-  if(curated)return curated;
+  if(curated)return {...curated,tags:festivalTagsFor(place,{programs:curated.highlights})};
   return {
     venue:place.metadata?.place_name||place.address||'행사장 정보 확인',
     admission:place.metadata?.usage_fee||'공식 데이터에 요금 정보가 없어요',
     audience:'친구 · 연인 · 가족',
-    tags:['공식 일정 확인 필요'],
+    tags:festivalTagsFor(place,{programs:[]}),
     highlights:[],
     tip:null
   };
@@ -1134,7 +1143,7 @@ function initNaverMap(){
     renderMap();
     return;
   }
-  naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),zoom:overviewPosition.zoom,minZoom:10,maxZoom:18});
+  naverMap=new naver.maps.Map('map',{center:new naver.maps.LatLng(overviewPosition.lat,overviewPosition.lng),zoom:overviewPosition.zoom,minZoom:7,maxZoom:18});
   naver.maps.Event.addListener(naverMap,'idle',()=>{if(!isPlaceFocused)renderMap();});
   renderMap();
   fitAllPlaces();
@@ -1290,14 +1299,13 @@ function openPlace(id){
   const status=placeOperationStatus(activePlace);
   const programs=experience.highlights.slice(0,3);
   const programsMarkup=programs.length?`<ol class="place-program-list">${programs.map(item=>`<li><span>${escapeHtml(item.icon)}</span><div><b>${escapeHtml(item.title)}</b>${item.description?`<small>${escapeHtml(item.description)}</small>`:''}</div></li>`).join('')}</ol>`:'<p class="missing-data-copy">공식 데이터와 검색 결과에서 확인된 세부 프로그램이 없어요.</p>';
+  const chipRowMarkup=experience.tags.length?`<div class="festival-chip-row">${experience.tags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div>`:'';
   const hasHeroImage=Boolean(activePlace.imageUrl);
   const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.add('festival-detail');
   const travelDisabled=hasCoordinates(activePlace)?'':' disabled aria-disabled="true"';
   const officialOverview=String(activePlace.metadata?.festival_content?.official_overview||'').trim();
   const overviewMarkup=officialOverview?`<section class="festival-overview"><div class="place-section-heading"><h3>축제 소개</h3><span>한국관광공사</span></div><p>${escapeHtml(officialOverview)}</p></section>`:'';
-  const topicTags=festivalTopicTagsFor(activePlace);
-  const topicTagsMarkup=topicTags.length?`<div class="festival-chip-row">${topicTags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div>`:'';
   const recommendationItems=recommendationSignalsFor(activePlace);
   const readableRecommendationItems=(recommendationItems.length?recommendationItems:['✓ 일정과 이동 거리를 확인한 추천이에요.']).map(item=>{
     const match=item.match(/^([★✓△])\s*/);
@@ -1306,7 +1314,7 @@ function openPlace(id){
   const recommendationMarkup=`<div class="recommend-reason"><i aria-hidden="true">✓</i><div><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><ul>${readableRecommendationItems.map(item=>`<li><em aria-hidden="true">${escapeHtml(item.icon)}</em><span>${escapeHtml(item.copy)}</span></li>`).join('')}</ul></div></div>`;
   $('#placeSheetContent').innerHTML=[
     `<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div>`,
-    topicTagsMarkup,
+    chipRowMarkup,
     '<div class="place-peek-end" id="placeSheetPeekEnd" aria-hidden="true"></div>',
     recommendationMarkup,
     '<section class="place-intro"><h3>방문 전에 확인하세요</h3></section>',

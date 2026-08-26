@@ -83,7 +83,7 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
   assert.match(indexSource, /seed-theme\.css\?v=92/);
-  assert.match(indexSource, /app\.js\?v=90/);
+  assert.match(indexSource, /app\.js\?v=93/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=90/);
+  assert.match(indexSource, /app\.js\?v=93/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -178,12 +178,11 @@ test('shows the official TourAPI overview before core programs when available', 
   assert.ok(detailBlock.indexOf('${overviewMarkup}') < detailBlock.indexOf('<section class="place-programs">'));
 });
 
-test('uses recommendation topics selected from the official overview as detail chips', () => {
+test('uses normalized evidence-based festival tags as detail chips', () => {
   const detailBlock = appSource.match(/function openPlace\(id\)[\s\S]*?\n}\n\nfunction setPlaceSheetHeights/)?.[0] || '';
   assert.match(appSource, /officialOverview:content\.official_overview\|\|''/);
-  assert.match(appSource, /festivalRecommender\.topicTagLabels\(topicSource,3\)/);
-  assert.match(detailBlock, /const topicTags=festivalTopicTagsFor\(activePlace\)/);
-  assert.doesNotMatch(detailBlock, /experience\.tags\.slice/);
+  assert.match(detailBlock, /const chipRowMarkup=experience\.tags\.length/);
+  assert.match(detailBlock, /chipRowMarkup,[\s\S]*?id="placeSheetPeekEnd"/);
 });
 
 test('replaces clipped recommendation-card descriptions with up to two topic tags', () => {
@@ -358,7 +357,7 @@ test('keeps recommendation ranking tabs out of sheet pull gestures', () => {
 test('shows readable festival dates and recommendation reasons before visit facts without rain cancellation copy', () => {
   assert.match(appSource, /function festivalPeriodMarkup\(place\)/);
   assert.match(appSource, /class="festival-period"/);
-  assert.match(appSource, /topicTagsMarkup,[\s\S]*?id="placeSheetPeekEnd"[\s\S]*?recommendationMarkup,\s*'<section class="place-intro"/);
+  assert.match(appSource, /chipRowMarkup,[\s\S]*?id="placeSheetPeekEnd"[\s\S]*?recommendationMarkup,\s*'<section class="place-intro"/);
   assert.match(appSource, /class="recommend-reason"[\s\S]*?<ul>/);
   assert.doesNotMatch(appSource, /placeRainNotice|우천·취소/);
   assert.match(themeSource, /#placeSheet\.festival-detail \.festival-period span \{[\s\S]*?white-space: nowrap;/);
@@ -414,8 +413,30 @@ test('does not render ranked or other parking pins on the map', () => {
 
 test('shows the nationwide festival map without a grayscale regional mask', () => {
   assert.match(indexSource, /aria-label="전국 축제 지도"/);
+  assert.match(appSource, /minZoom:7,maxZoom:18/);
   assert.doesNotMatch(indexSource, /daejeon-focus-mask/);
   assert.doesNotMatch(themeSource, /\.daejeon-focus-mask/);
+});
+
+test('derives festival detail tags from real data through the shared FestivalTags module instead of a hardcoded list', () => {
+  assert.match(indexSource, /<script src="festival-tags\.js/);
+  assert.doesNotMatch(appSource, /tags:\['야간 축제','거리 공연','먹거리'\]/);
+  assert.doesNotMatch(appSource, /tags:\['로봇·AI','우주 체험','가족 나들이'\]/);
+  assert.doesNotMatch(appSource, /tags:\['와인 시음','푸드 페어링','문화 공연'\]/);
+  assert.doesNotMatch(appSource, /'공식 일정 확인'/);
+  assert.doesNotMatch(appSource, /'공식 일정 확인 필요'/);
+
+  const helperBlock = appSource.match(/function festivalTagsFor\(place[\s\S]*?\r?\n}/)?.[0] || '';
+  assert.match(helperBlock, /window\.FestivalTags\?\.deriveFestivalTags/);
+  assert.match(helperBlock, /topicGroups:window\.FestivalRecommender\?\.topicGroups/);
+
+  const experienceBlock = appSource.match(/function experienceFor\(place\)[\s\S]*?\r?\n}/)?.[0] || '';
+  assert.match(experienceBlock, /tags:festivalTagsFor\(place,\{programs,existingTags:content\.tags\}\)/);
+  assert.match(experienceBlock, /tags:festivalTagsFor\(place,\{programs:curated\.highlights\}\)/);
+  assert.match(experienceBlock, /tags:festivalTagsFor\(place,\{programs:\[\]\}\)/);
+
+  assert.doesNotMatch(appSource, /experience\.tags\.slice\(0,3\)\.map/);
+  assert.match(appSource, /const chipRowMarkup=experience\.tags\.length\?`<div class="festival-chip-row">/);
 });
 
 test('shows but does not navigate regional parking mock data', () => {

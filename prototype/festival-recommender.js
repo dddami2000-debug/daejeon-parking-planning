@@ -306,6 +306,7 @@
     recordView,
     setFavorite,
     topicTagLabels,
+    topicGroups,
     topicTokens
   };
 });
