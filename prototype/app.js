@@ -1832,7 +1832,8 @@ function selectNavigation(parkingName){
 }
 
 function festivalDestination(place=activePlace){
-  return window.NavigationLinks?.normalizeDestination({name:place?.name,lat:place?.lat,lng:place?.lng})||null;
+  const address=place?.address||place?.metadata?.address||place?.metadata?.road_address||'';
+  return window.NavigationLinks?.normalizeDestination({name:place?.name,address,lat:place?.lat,lng:place?.lng})||null;
 }
 
 function navigationConfig(){
@@ -1987,6 +1988,7 @@ function openFestivalTravel(mode,trigger){
   festivalTravelLastTrigger=trigger||document.activeElement;
   $('#festivalTravelModal').classList.add('show');
   $('#closeFestivalTravel').focus();
+  if(mode==='transit')guidanceCurrentPosition();
   if(mode==='navigation'){
     renderFestivalNavigationDestinations();
     waitForParkingChoice().then(()=>{
@@ -2018,20 +2020,33 @@ function launchWithFallback(primaryUrl,fallbackUrl,delay=1600){
   window.location.assign(primaryUrl);
 }
 
+function openDesktopMap(url){
+  if(!url)return;
+  const mapWindow=window.open(url,'_blank');
+  if(!mapWindow){window.location.assign(url);return;}
+  try{mapWindow.opener=null;mapWindow.focus();}catch{}
+}
+
 async function launchFestivalTravel(provider){
   const links=window.NavigationLinks;
   const destination=pendingFestivalDestination;
   const mode=festivalTravelMode;
   if(!links||!destination){toast('길안내 링크를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');return;}
   const platform=links.platformFromUserAgent(navigator.userAgent);
-  const origin=mode==='transit'?await guidanceCurrentPosition():null;
+  const savedOrigin=mode==='transit'?links.normalizeOrigin(userPosition):null;
+  if(platform==='desktop'&&mode==='transit'&&!savedOrigin){
+    guidanceCurrentPosition();
+    toast('현재 위치를 확인 중이에요. 잠시 후 다시 선택해 주세요.');
+    return;
+  }
+  const origin=savedOrigin||(mode==='transit'?await guidanceCurrentPosition():null);
 
   if(provider==='naver-map'){
     const naverUrl=links.buildNaverUrl(mode,destination,origin,window.location.origin);
     closeFestivalTravel();
     if(platform==='android')return window.location.assign(links.buildNaverAndroidIntent(naverUrl));
     if(platform==='ios')return launchWithFallback(naverUrl,'https://itunes.apple.com/app/id311867728?mt=8');
-    return window.location.assign(links.buildNaverWebUrl(destination));
+    return openDesktopMap(links.buildNaverWebUrl(destination,origin));
   }
 
   if(provider==='kakao-map'){
@@ -2039,9 +2054,9 @@ async function launchFestivalTravel(provider){
     closeFestivalTravel();
     if(!origin){
       toast('현재 위치를 확인하지 못했어요. 카카오맵에서 출발지를 설정해 주세요.');
-      return window.location.assign(webUrl);
+      return openDesktopMap(webUrl);
     }
-    if(platform==='desktop')return window.location.assign(webUrl);
+    if(platform==='desktop')return openDesktopMap(webUrl);
     return launchWithFallback(
       links.buildKakaoMapAppUrl(destination,origin),
       links.buildKakaoMapMobileUrl(destination,origin)

@@ -22,6 +22,7 @@
     if (!validCoordinates(lat, lng)) return null;
     return {
       name: String(destination?.name || '축제 목적지').trim() || '축제 목적지',
+      address: String(destination?.address || '').trim(),
       lat,
       lng
     };
@@ -57,9 +58,15 @@
     return `intent://${String(naverUrl).slice('nmap://'.length)}#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end`;
   }
 
-  function buildNaverWebUrl(destination) {
+  function buildNaverWebUrl(destination, origin) {
     const target = normalizeDestination(destination);
-    return target ? `https://map.naver.com/p/search/${encodeURIComponent(target.name)}` : null;
+    if (!target) return null;
+    const start = normalizeOrigin(origin);
+    const originPath = start
+      ? `${start.lng},${start.lat},${encodeURIComponent('현재 위치')},,COORDINATE`
+      : '-';
+    const destinationPath = `${target.lng},${target.lat},${encodeURIComponent(target.name)},,ADDRESS_POI`;
+    return `https://map.naver.com/p/directions/${originPath}/${destinationPath}/-/transit?c=15.00,0,0,0,dh`;
   }
 
   function buildKakaoMapAppUrl(destination, origin) {
