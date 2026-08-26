@@ -440,7 +440,7 @@ function toggleMapTopicFilter(topic){
   updateFavoriteMapButton();
   renderMap();
   if(!activeMapTopicFilter){toast('전체 축제 핀을 표시해요.');return;}
-  const count=places.filter(place=>place.type==='festival'&&hasCoordinates(place)&&festivalMatchesDateFilter(place)&&festivalRecommender?.matchesTopicQuery(behaviorPlaceFor(place),activeMapTopicFilter)).length;
+  const count=places.filter(place=>place.type==='festival'&&hasCoordinates(place)&&festivalVisibleOnMap(place)&&festivalRecommender?.matchesTopicQuery(behaviorPlaceFor(place),activeMapTopicFilter)).length;
   toast(count?`${activeMapTopicFilter} 관련 축제 ${count}곳을 표시해요.`:`${activeMapTopicFilter} 관련 축제를 찾지 못했어요.`);
 }
 function todayInKorea(){return Date.parse(`${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})}T00:00:00+09:00`);}
@@ -477,6 +477,20 @@ function festivalMatchesDateFilter(place,range=activeFestivalDateRange()){
   return festivalStart<=range.end&&festivalEnd>=range.start;
 }
 function filteredFestivals(){return places.filter(place=>festivalMatchesDateFilter(place));}
+function festivalDateStatusOptions(range=activeFestivalDateRange()){
+  return {rangeStart:range?.startValue||null,rangeEnd:range?.endValue||null};
+}
+function festivalMapDateStatus(place,options=festivalDateStatusOptions()){
+  return window.FestivalTiming?.festivalDateStatus(place,options)||'unknown';
+}
+// The map keeps upcoming festivals as muted pins, so it deliberately shows more
+// than the ranking list: only festivals already over for the chosen window drop out.
+function festivalVisibleOnMap(place,options=festivalDateStatusOptions()){
+  return place.type==='festival'&&festivalMapDateStatus(place,options)!=='ended';
+}
+function festivalDateStatusLabel(status){
+  return status==='active'?'진행 중':status==='upcoming'?'예정':'일정 확인 필요';
+}
 function shortKoreanDate(value){
   const [,month,day]=String(value||'').split('-');
   return month&&day?`${Number(month)}.${Number(day)}`:'';
@@ -1002,7 +1016,8 @@ function groupPlacesForZoom(visible){
 
 function renderMap(){
   updateFavoriteMapButton();
-  const allVisible = placeDataState==='loading'?[]:places.filter(place=>hasCoordinates(place)&&festivalMatchesDateFilter(place));
+  const statusOptions=festivalDateStatusOptions();
+  const allVisible = placeDataState==='loading'?[]:places.filter(place=>hasCoordinates(place)&&festivalVisibleOnMap(place,statusOptions));
   const visible=showFavoritePinsOnly
     ? allVisible.filter(place=>isFestivalFavorite(place.id))
     : activeMapTopicFilter
@@ -1015,26 +1030,29 @@ function renderMap(){
     if(!hasCoordinates(activePlace))return;
     const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
     const activeFavorite=isFestivalFavorite(activePlace.id);
-    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker place-pin-festival${activeFavorite?' favorite-place-pin':''}" style="--pin:${activePlace.color}" aria-label="선택한 축제${activeFavorite?', 즐겨찾기':''}"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span>${activeFavorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</span>`,anchor:new naver.maps.Point(32,66)}})];
+    const activeStatus=festivalMapDateStatus(activePlace,statusOptions);
+    placeMarkers=[new naver.maps.Marker({map:naverMap,position:targetPosition,title:activePlace.name,zIndex:30,icon:{content:`<span class="map-marker selected-map-marker place-pin-festival${activeStatus==='active'?'':' place-pin-upcoming'}${activeFavorite?' favorite-place-pin':''}" style="--pin:${activePlace.color}" aria-label="선택한 축제, ${festivalDateStatusLabel(activeStatus)}${activeFavorite?', 즐겨찾기':''}"><span class="marker-bubble"><span class="marker-icon">${markerVisual(activePlace)}</span></span>${activeFavorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</span>`,anchor:new naver.maps.Point(32,66)}})];
     return;
   }
   const zoom=naverMap.getZoom();
   placeMarkers=groupPlacesForZoom(visible).map(group=>{
     if(group.places.length>1){
       const groupFavoriteCount=group.places.filter(place=>isFestivalFavorite(place.id)).length;
-      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`축제 ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker${groupFavoriteCount?' favorite-place-cluster':''}" style="--cluster-color:#ff4f64" aria-label="축제 ${group.places.length}곳${groupFavoriteCount?`, 즐겨찾기 ${groupFavoriteCount}곳`:''} 확대해서 보기">${groupFavoriteCount?'<i aria-hidden="true">★</i>':''}<span>축제</span><b>${group.places.length}</b></button>`,anchor:new naver.maps.Point(39,39)}});
+      const groupStatus=window.FestivalTiming?.groupDateStatus(group.places,statusOptions)||'upcoming';
+      const marker=new naver.maps.Marker({map:naverMap,position:new naver.maps.LatLng(group.lat,group.lng),title:`축제 ${group.places.length}곳`,zIndex:24,icon:{content:`<button class="place-cluster-marker${groupStatus==='active'?'':' upcoming-place-cluster'}${groupFavoriteCount?' favorite-place-cluster':''}" style="--cluster-color:${groupStatus==='active'?'#ff4f64':'#8b95a1'}" aria-label="축제 ${group.places.length}곳, ${groupStatus==='active'?'진행 중 포함':'예정'}${groupFavoriteCount?`, 즐겨찾기 ${groupFavoriteCount}곳`:''} 확대해서 보기">${groupFavoriteCount?'<i aria-hidden="true">★</i>':''}<span>축제</span><b>${group.places.length}</b></button>`,anchor:new naver.maps.Point(39,39)}});
       naver.maps.Event.addListener(marker,'click',()=>focusMapOn(new naver.maps.LatLng(group.lat,group.lng),Math.min(18,zoom+2),'overview',600));
       return marker;
     }
     const place=group.places[0];
     const favorite=isFestivalFavorite(place.id);
+    const status=festivalMapDateStatus(place,statusOptions);
     const marker=new naver.maps.Marker({
       map:naverMap,
       position:new naver.maps.LatLng(place.lat,place.lng),
       title:place.name,
-      zIndex:place.id===activePlace.id?20:10,
+      zIndex:place.id===activePlace.id?20:status==='active'?12:10,
       icon:{
-        content:`<button class="map-marker place-pin-festival${favorite?' favorite-place-pin':''} ${place.id===activePlace.id?'active':''}" style="--pin:${place.color}" aria-label="${escapeHtml(place.name)}${favorite?', 즐겨찾기':''} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${markerVisual(place)}</span></span>${favorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</button>`,
+        content:`<button class="map-marker place-pin-festival${status==='active'?'':' place-pin-upcoming'}${favorite?' favorite-place-pin':''} ${place.id===activePlace.id?'active':''}" style="--pin:${place.color}" aria-label="${escapeHtml(place.name)}, ${festivalDateStatusLabel(status)}${favorite?', 즐겨찾기':''} 상세 보기"><span class="marker-bubble"><span class="marker-icon">${markerVisual(place)}</span></span>${favorite?'<i class="marker-favorite-badge" aria-hidden="true">★</i>':''}</button>`,
         anchor:new naver.maps.Point(32,66)
       }
     });

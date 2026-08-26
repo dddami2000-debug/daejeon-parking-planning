@@ -3919,6 +3919,27 @@ textarea {
   }
 }
 
+/*
+ * Date state owns the pin body, favorites keep their star badge: a festival that
+ * has not started yet reads as muted even when it is saved, so the map never
+ * implies it is running today. Declared after the favorite rules so it wins.
+ */
+.map-marker.place-pin-upcoming .marker-bubble {
+  border-color: #fff;
+  background: #98a2ad;
+  box-shadow: 0 0 0 1.5px rgba(18, 29, 25, .32), 0 5px 12px rgba(18, 29, 25, .22);
+}
+
+.map-marker.place-pin-upcoming .marker-icon {
+  background: #fff;
+  opacity: .72;
+}
+
+.place-cluster-marker.upcoming-place-cluster {
+  border-color: rgba(255, 255, 255, .82);
+  box-shadow: 0 0 0 1.5px rgba(18, 29, 25, .3), 0 6px 15px rgba(18, 29, 25, .2);
+}
+
 @media (max-width: 760px) {
   .map-topic-filters {
     top: calc(72px + env(safe-area-inset-top));

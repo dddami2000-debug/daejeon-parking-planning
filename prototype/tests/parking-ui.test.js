@@ -82,8 +82,8 @@ test('auto-advances recommendation cards without overriding user or reduced-moti
   assert.match(appSource, /!slider\.contains\(document\.activeElement\)/);
   assert.match(appSource, /festivalSlider'\)\.addEventListener\('pointerdown'/);
   assert.match(appSource, /document\.addEventListener\('visibilitychange'/);
-  assert.match(indexSource, /seed-theme\.css\?v=92/);
-  assert.match(indexSource, /app\.js\?v=93/);
+  assert.match(indexSource, /seed-theme\.css\?v=93/);
+  assert.match(indexSource, /app\.js\?v=94/);
 });
 
 test('searches by province aliases and related festival topics', () => {
@@ -94,7 +94,7 @@ test('searches by province aliases and related festival topics', () => {
   assert.match(appSource, /if\(topicQuery\)return Boolean\(festivalRecommender\.matchesTopicQuery/);
   assert.match(appSource, /matchesTopicQuery\(searchPlace,term\)/);
   assert.match(appSource, /matchesRegionQuery\(searchPlace,term\)/);
-  assert.match(indexSource, /app\.js\?v=93/);
+  assert.match(indexSource, /app\.js\?v=94/);
 });
 
 test('refreshes recommendation ordering on load and every ten minutes instead of on favorite clicks', () => {
@@ -416,6 +416,42 @@ test('shows the nationwide festival map without a grayscale regional mask', () =
   assert.match(appSource, /minZoom:7,maxZoom:18/);
   assert.doesNotMatch(indexSource, /daejeon-focus-mask/);
   assert.doesNotMatch(themeSource, /\.daejeon-focus-mask/);
+});
+
+test('styles map pins by date state through the shared FestivalTiming module', () => {
+  assert.match(indexSource, /<script src="festival-timing\.js/);
+  const renderMap = appSource.match(/function renderMap\(\)[\s\S]*?\r?\n}\r?\n\r?\nfunction renderNearbyPanel/)?.[0] || '';
+
+  // Ended festivals drop off the map; upcoming and unknown ones stay as muted pins.
+  assert.match(renderMap, /festivalVisibleOnMap\(place,statusOptions\)/);
+  assert.doesNotMatch(renderMap, /festivalMatchesDateFilter/);
+  const visibilityBlock = appSource.match(/function festivalVisibleOnMap\(place[\s\S]*?\r?\n}/)?.[0] || '';
+  assert.match(visibilityBlock, /festivalMapDateStatus\(place,options\)!=='ended'/);
+
+  // Pins and clusters carry the state in the class list, not only in colour.
+  assert.match(renderMap, /place-pin-festival\$\{status==='active'\?'':' place-pin-upcoming'\}/);
+  assert.match(renderMap, /groupDateStatus\(group\.places,statusOptions\)/);
+  assert.match(renderMap, /\$\{groupStatus==='active'\?'':' upcoming-place-cluster'\}/);
+  assert.match(renderMap, /--cluster-color:\$\{groupStatus==='active'\?'#ff4f64':'#8b95a1'\}/);
+  assert.match(renderMap, /festivalDateStatusLabel\(status\)/);
+
+  // The favourite badge and favourite-only mode keep working alongside the state.
+  assert.match(renderMap, /favorite\?' favorite-place-pin':''/);
+  assert.match(renderMap, /marker-favorite-badge/);
+  assert.match(renderMap, /showFavoritePinsOnly/);
+  assert.match(renderMap, /matchesTopicQuery\(behaviorPlaceFor\(place\),activeMapTopicFilter\)/);
+
+  // Muted styling is declared after the favourite rules so date state wins the bubble.
+  assert.match(themeSource, /\.map-marker\.place-pin-upcoming \.marker-bubble/);
+  assert.match(themeSource, /\.place-cluster-marker\.upcoming-place-cluster/);
+  assert.ok(
+    themeSource.indexOf('.map-marker.place-pin-upcoming .marker-bubble')
+      > themeSource.indexOf('.map-marker.favorite-place-pin .marker-bubble'),
+    'the upcoming pin rule must come after the favourite pin rule to override the bubble colour'
+  );
+  // The translucent cluster bubble design stays intact.
+  assert.match(themeSource, /\.place-cluster-marker\s*\{[\s\S]*background: color-mix\(in srgb, var\(--cluster-color/);
+  assert.match(themeSource, /\.place-cluster-marker\s*\{[\s\S]*backdrop-filter: blur\(3px\)/);
 });
 
 test('derives festival detail tags from real data through the shared FestivalTags module instead of a hardcoded list', () => {
