@@ -105,6 +105,49 @@ test('matches broad search words to related festival topics', () => {
   assert.equal(recommender.matchesTopicQuery(wine, '충북'), false);
 });
 
+test('selects stable display tags from the official overview before old free-form tags', () => {
+  const festival = {
+    id: 'official-overview',
+    type: 'festival',
+    name: '도심 여름 축제',
+    category: '지역축제',
+    summary: '시민이 함께하는 행사',
+    officialOverview: '지역 양조장의 와인과 맥주를 시음하며 라이브 음악 공연을 즐기는 축제입니다.',
+    programs: '푸드 페어링과 콘서트',
+    tags: ['로봇', 'AI', '가족 체험']
+  };
+
+  assert.deepEqual(recommender.topicTagLabels(festival, 3), ['주류', '공연', '먹거리']);
+  assert.equal(recommender.topicTagLabels(festival, 3).includes('과학'), false);
+});
+
+test('does not infer one-character topics from unrelated Korean compound words', () => {
+  const industryExpo = {
+    id: 'industry-expo',
+    type: 'festival',
+    name: '도시지역혁신 산업박람회',
+    category: '지역축제',
+    officialOverview: '산업 기술과 정책 분야의 주체들이 성과를 공유하는 박람회입니다.'
+  };
+
+  assert.equal(recommender.topicTokens(industryExpo).has('alcohol'), false);
+  assert.equal(recommender.topicTokens(industryExpo).has('seafood'), false);
+  assert.equal(recommender.topicTokens(industryExpo).has('nature'), false);
+});
+
+test('treats a summer night as night content instead of chestnut produce', () => {
+  const summerNight = {
+    id: 'summer-night',
+    type: 'festival',
+    name: '한여름 밤 축제',
+    summary: '거리 공연과 야시장을 늦은 밤까지 즐기는 도심 행사',
+    programs: '라이브 공연과 먹거리 부스'
+  };
+
+  assert.deepEqual(recommender.topicTagLabels(summerNight, 3), ['야간', '공연', '먹거리']);
+  assert.equal(recommender.topicTokens(summerNight).has('local_produce'), false);
+});
+
 test('matches province abbreviations to their full administrative names', () => {
   const chungbuk = {...science, id: 'chungbuk', area: '충청북도 제천시'};
 

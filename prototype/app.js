@@ -123,6 +123,7 @@ let naverMap = null;
 let placeMarkers = [];
 let currentLocationMarker = null;
 let userPosition = null;
+let currentLocationRequestPending = false;
 let isPlaceFocused = false;
 let rankingFilter = 'popular';
 let showFavoritePinsOnly = false;
@@ -140,13 +141,18 @@ let parkingDataUpdatedAt = null;
 let parkingWeather = null;
 let parkingRequestSequence = 0;
 const parkingCache = new Map();
+const drivingRouteCache = new Map();
+let drivingRouteRequestSequence = 0;
 let placeSheetDrag = null;
+let placeSheetTopPull = null;
 let suppressPlaceSheetGestureClick = false;
 let plannerSheetDrag = null;
 let suppressPlannerSheetGestureClick = false;
 let plannerDismissTimer = null;
 let recommendSheetDrag = null;
+let recommendSheetTopPull = null;
 let suppressRecommendSheetGestureClick = false;
+let recommendGestureClickTimer = null;
 let festivalAutoplayTimer = null;
 let festivalAutoplayResumeTimer = null;
 let festivalAutoplayDirection = 1;
@@ -243,18 +249,35 @@ function readFestivalPreferences(){
 function persistFestivalPreferences(){
   try{localStorage.setItem(FESTIVAL_PREFERENCE_KEY,JSON.stringify(festivalPreferences));}catch{/* 저장 공간이 없어도 기본 추천은 유지한다. */}
 }
-function behaviorPlaceFor(place){
+function festivalTopicSourceFor(place){
+  const content=place.metadata?.festival_content||{};
   const experience=experienceFor(place);
-  const explicitAffinities=curatedTasteAffinities[place.id]||(validTasteAffinities(place.metadata?.taste_affinities)?place.metadata.taste_affinities:{});
+  const programs=[
+    content.official_program,
+    ...(experience.highlights||[]).flatMap(item=>[item.title,item.description])
+  ].filter(Boolean).join(' ');
   return {
     id:place.id,
     type:place.type,
     name:place.name,
     category:compactPlaceCategory(place),
     area:compactPlaceArea(place),
-    summary:[place.summary,place.description,placeValueLine(place),JSON.stringify(place.metadata||{})].filter(Boolean).join(' '),
-    tags:experience.tags||[],
-    audience:experience.audience||'',
+    summary:[place.summary,place.description,placeValueLine(place),content.summary].filter(Boolean).join(' '),
+    officialOverview:content.official_overview||'',
+    programs,
+    audience:experience.audience||''
+  };
+}
+function festivalTopicTagsFor(place,topicSource=festivalTopicSourceFor(place)){
+  if(!festivalRecommender||place?.type!=='festival')return [];
+  return festivalRecommender.topicTagLabels(topicSource,3);
+}
+function behaviorPlaceFor(place){
+  const topicSource=festivalTopicSourceFor(place);
+  const explicitAffinities=curatedTasteAffinities[place.id]||(validTasteAffinities(place.metadata?.taste_affinities)?place.metadata.taste_affinities:{});
+  return {
+    ...topicSource,
+    tags:festivalTopicTagsFor(place,topicSource),
     affinities:explicitAffinities,
     lat:Number(place.lat),
     lng:Number(place.lng)
@@ -476,9 +499,25 @@ function festivalDeadlineLabel(place){
   if(!Number.isFinite(end))return '마감일 확인';
   const endDate=koreaDateTime(place.endDate);
   const days=Math.max(0,Math.ceil((endDate-todayInKorea())/86400000));
-  if(days===0)return '오늘 마감';
-  if(days<=7)return `마감 D-${days}`;
-  return `${shortKoreanDate(place.endDate)} 마감`;
+  if(days===0)return '오늘 종료';
+  return `종료까지 D-${days}`;
+}
+function festivalDeadlineCardLabel(place){
+  const countdown=festivalCountdownLabel(place);
+  const deadline=festivalDeadlineLabel(place);
+  if(countdown.startsWith('시작까지 ')&&deadline.startsWith('종료까지 ')){
+    return `${countdown} · ${deadline}`;
+  }
+  if(countdown.startsWith('종료까지 '))return `진행 중 · ${deadline}`;
+  return deadline;
+}
+function festivalScheduleLabel(place){
+  const start=shortKoreanDate(place?.startDate);
+  const end=shortKoreanDate(place?.endDate);
+  if(start&&end)return `${start} ~ ${end}`;
+  if(start)return start;
+  if(end)return end;
+  return '일정 확인';
 }
 function distanceRecommendationScore(place){
   const distance=Number(place.distance);
@@ -531,7 +570,7 @@ function recommendationSignalsFor(place){
   const reference=behavior&&places.find(item=>item.id===behavior.referenceId);
   if(reference)signals.push(behavior.referenceFavorite?`★ 즐겨찾기한 ${reference.name}과 취향이 비슷해요`:`✓ 자주 본 ${reference.name} 취향을 반영했어요`);
   if(place.type==='festival')signals.push(festivalTimingScore(place)>=90?'✓ 선택한 날짜에 열리는 행사':'✓ 일정이 확인된 행사');
-  if(Number.isFinite(Number(place.distance)))signals.push(`✓ 현재 위치에서 차로 약 ${place.eta}분`);
+  if(userPosition&&Number.isFinite(Number(place.distance)))signals.push('✓ 현재 위치와의 거리를 반영했어요');
   const activityLabels={festival:'축제',experience:'체험',mood:'감성',rest:'휴식'};
   if(visitConditions.activity)signals.push(`✓ ${activityLabels[visitConditions.activity]} 활동 조건과 일치`);
   if(visitConditions.mobility==='near'&&Number(place.distance)>3)signals.push('△ 가까운 곳을 원한다면 이동 거리를 확인하세요');
@@ -563,12 +602,34 @@ function festivalDateBadge(place){
   const todayLabel=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});
   const today=Date.parse(`${todayLabel}T00:00:00+09:00`);
   const day=Math.ceil((start-today)/86400000);
-  if(day>0)return `시작 D-${day}`;
+  if(day>0)return `시작까지 D-${day}`;
   if(today<=end){
     const remaining=Math.max(0,Math.ceil((end-today)/86400000));
-    return remaining===0?'오늘 종료':`진행 중 · 종료 D-${remaining}`;
+    return remaining===0?'오늘 종료':`진행 중 · 종료까지 D-${remaining}`;
   }
   return '종료된 축제';
+}
+function searchResultMetaMarkup(place){
+  const timing=festivalDateBadge(place);
+  const area=compactPlaceArea(place);
+  let status='일정';
+  let countdown=timing;
+  let tone='neutral';
+  if(timing.startsWith('진행 중 · ')){
+    status='진행 중';
+    countdown=timing.replace('진행 중 · ','');
+    tone='ongoing';
+  }else if(timing.startsWith('시작까지 ')){
+    status='시작 전';
+    tone='upcoming';
+  }else if(timing==='오늘 종료'){
+    status='진행 중';
+    tone='ongoing';
+  }else if(timing==='종료된 축제'){
+    status='종료됨';
+    tone='ended';
+  }
+  return `<small class="search-result-meta"><span class="search-result-status is-${tone}">${escapeHtml(status)}</span><i aria-hidden="true">·</i><span class="search-result-countdown">${escapeHtml(countdown)}</span><i aria-hidden="true">·</i><span class="search-result-area">${escapeHtml(area)}</span></small>`;
 }
 function markerVisual(place){
   const fallback=`<span class="marker-fallback">${escapeHtml(place.emoji)}</span>`;
@@ -648,6 +709,18 @@ function compactPlaceCategory(place){
 
 function festivalCountdownLabel(place){
   return window.FestivalTiming?.festivalCountdownLabel(place)||'일정 확인';
+}
+
+function festivalCardCountdown(place){
+  const label=festivalCountdownLabel(place);
+  if(label.startsWith('시작까지 '))return {label,tone:'upcoming'};
+  if(label.startsWith('종료까지 '))return {label:`진행 중 · ${label}`,tone:'ongoing'};
+  if(label==='종료됨')return {label:'종료된 축제',tone:'neutral'};
+  return {label,tone:['일정 확인','종료일 확인'].includes(label)?'neutral':'upcoming'};
+}
+
+function festivalCardCountdownMarkup(countdown){
+  return `<span class="compact-festival-countdown is-${countdown.tone}">${escapeHtml(countdown.label)}</span>`;
 }
 
 function compactPlaceArea(place){
@@ -799,6 +872,13 @@ function isDaejeonFestival(place=activePlace){
   return /(?:^|\s)대전(?:광역시|시)?(?:\s|$)/.test(`${place?.region||''} ${place?.address||''}`.trim());
 }
 
+function festivalCardTitleDensity(name){
+  const length=[...String(name||'').replace(/\s+/g,'')].length;
+  if(length>=20)return 'is-title-compact';
+  if(length>=13)return 'is-title-long';
+  return '';
+}
+
 function renderFestivals(){
   if(placeDataState==='loading'){
     stopFestivalAutoplay();
@@ -813,10 +893,16 @@ function renderFestivals(){
   $('#festivalDateTrigger').classList.toggle('has-value',Boolean(festivalDateFilter.start||festivalDateFilter.end));
   $('#placeDataStatus').innerHTML=placeDataNotice();
   $('#festivalSlider').innerHTML = festivalPlaces.length?festivalPlaces.map(place=>{
-    const countdown=festivalCountdownLabel(place);
+    const countdown=festivalCardCountdown(place);
     const area=compactPlaceArea(place);
     const valueLine=placeValueLine(place);
-    return `<article class="festival-card" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><button class="festival-card-open" type="button" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${place.name}, ${countdown}, ${valueLine}, ${recommendationFitLabel(place)}, ${area} 상세 보기`)}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact"><span class="compact-place-kind">${escapeHtml(countdown)}</span><h3>${escapeHtml(place.name)}</h3><span class="compact-place-value">${escapeHtml(valueLine)}</span><span class="compact-place-location">${escapeHtml(area)}</span></span></button>${favoriteButtonMarkup(place,'festival-card-favorite')}</article>`;
+    const topicTags=festivalTopicTagsFor(place).slice(0,2);
+    const titleDensity=festivalCardTitleDensity(place.name);
+    const cardTopicMarkup=topicTags.length
+      ? `<span class="compact-place-tags">${topicTags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</span>`
+      : `<span class="compact-place-value">${escapeHtml(valueLine)}</span>`;
+    const cardAriaLabel=[place.name,countdown.label,valueLine,topicTags.length?`주제 ${topicTags.join(', ')}`:'',recommendationFitLabel(place),`${area} 상세 보기`].filter(Boolean).join(', ');
+    return `<article class="festival-card" style="--card-gradient:${place.gradient};--festival-accent:${place.color}"><button class="festival-card-open" type="button" data-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(cardAriaLabel)}"><span class="festival-visual"></span><span class="festival-shape festival-photo">${photoVisual(place)}</span><span class="festival-content festival-content-compact">${festivalCardCountdownMarkup(countdown)}<h3 class="compact-place-title ${titleDensity}"><span>${escapeHtml(place.name)}</span></h3><span class="compact-place-details">${cardTopicMarkup}<span class="compact-place-location">${escapeHtml(area)}</span></span></span></button>${favoriteButtonMarkup(place,'festival-card-favorite')}</article>`;
   }).join(''):`<div class="festival-filter-empty"><b>선택한 날짜에 열리는 축제가 없어요.</b><span>기간을 넓히거나 ‘전체’를 눌러보세요.</span></div>`;
   document.querySelectorAll('.festival-card-open').forEach(card=>card.addEventListener('click',()=>openPlace(card.dataset.place)));
   bindFavoriteButtons($('#festivalSlider'));
@@ -844,8 +930,11 @@ function renderRankings(){
     .slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const area=compactPlaceArea(place);
-    const deadline=isDeadline?`<em>${escapeHtml(festivalDeadlineLabel(place))}</em>`:isFavorites?`<em>${escapeHtml(festivalCountdownLabel(place))}</em>`:'';
-    return `<article class="ranking-item-shell"><button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${area}${isDeadline?`, ${festivalDeadlineLabel(place)}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>${favoriteButtonMarkup(place,'ranking-favorite')}</article>`;
+    const deadlineLabel=isDeadline?festivalDeadlineCardLabel(place):'';
+    const scheduleLabel=isDeadline?festivalScheduleLabel(place):'';
+    const favoriteCountdown=festivalCardCountdown(place).label;
+    const deadline=isDeadline?`<em><span class="ranking-deadline">${escapeHtml(deadlineLabel)}</span><span class="ranking-schedule"> | ${escapeHtml(scheduleLabel)}</span></em>`:isFavorites?`<em>${escapeHtml(favoriteCountdown)}</em>`:'';
+    return `<article class="ranking-item-shell"><button class="ranking-item" type="button" data-ranking-place="${escapeHtml(place.id)}" aria-label="${escapeHtml(`${index+1}위 ${place.name}, ${area}${isDeadline?`, ${scheduleLabel}, ${deadlineLabel}`:''} 상세 보기`)}"><strong class="ranking-number">${index+1}</strong><span class="ranking-copy"><b>${escapeHtml(place.name)}</b><span>${escapeHtml(area)}</span>${deadline}</span><span class="ranking-photo" style="--ranking-tile:${place.tile||'#f2f4f3'}">${photoVisual(place)}</span></button>${favoriteButtonMarkup(place,'ranking-favorite')}</article>`;
   }).join(''):isFavorites?'<p class="ranking-empty"><b>아직 즐겨찾기한 축제가 없어요.</b><span>카드의 별표를 누르면 여기에 모아볼 수 있어요.</span></p>':'<p class="ranking-empty">선택한 날짜에 순위를 표시할 축제가 없어요.</p>';
   document.querySelectorAll('[data-ranking-place]').forEach(button=>button.addEventListener('click',()=>openPlace(button.dataset.rankingPlace)));
   bindFavoriteButtons($('#rankingList'));
@@ -1051,20 +1140,43 @@ function initNaverMap(){
   fitAllPlaces();
 }
 
-function moveToCurrentLocation(){
-  if(!navigator.geolocation){toast('이 브라우저에서는 현재 위치를 사용할 수 없어요.');return;}
+function requestCurrentLocation({focusMap=true,announce=true}={}){
+  if(currentLocationRequestPending)return;
+  if(!navigator.geolocation){
+    if(isPlaceFocused)setPlaceRouteEstimate('현재 위치를 사용할 수 없어요.','브라우저의 위치 기능을 확인해 주세요.');
+    if(announce)toast('이 브라우저에서는 현재 위치를 사용할 수 없어요.');
+    return;
+  }
+  currentLocationRequestPending=true;
+  if(isPlaceFocused)setPlaceRouteEstimate('현재 위치 확인 중…','위치 권한을 확인해 주세요.');
   navigator.geolocation.getCurrentPosition(({coords})=>{
+    currentLocationRequestPending=false;
     if(!naverMap){toast('지도가 준비된 뒤 다시 시도해 주세요.');return;}
     userPosition={lat:coords.latitude,lng:coords.longitude};
     updateDistancesFromCurrentLocation(userPosition.lat,userPosition.lng);
+    if(isPlaceFocused)loadDrivingRouteForActivePlace();
     const position=new naver.maps.LatLng(coords.latitude,coords.longitude);
     if(currentLocationMarker)currentLocationMarker.setPosition(position);
     else currentLocationMarker=new naver.maps.Marker({map:naverMap,position,icon:{content:'<span class="current-location-marker" aria-label="현재 위치"><b aria-hidden="true"></b></span>',anchor:new naver.maps.Point(20,20)},zIndex:30});
     const fromDaejeon=haversineDistance(coords.latitude,coords.longitude,overviewPosition.lat,overviewPosition.lng);
-    if(fromDaejeon<=25)focusMapOn(position,14,'overview',650);
-    else fitAllPlaces();
-    toast(fromDaejeon<=25?'현재 위치에서 거리와 이동 시간을 다시 계산했어요.':'현재 위치에서 거리를 계산하고 지도는 대전 중심으로 유지했어요.');
-  },()=>toast('위치 권한을 허용하면 현재 위치를 기준으로 거리를 계산해요.'),{enableHighAccuracy:true,timeout:7000,maximumAge:60000});
+    if(focusMap){
+      if(fromDaejeon<=25)focusMapOn(position,14,'overview',650);
+      else fitAllPlaces();
+    }
+    if(announce)toast(fromDaejeon<=25?'현재 위치에서 거리를 다시 계산했어요.':'현재 위치에서 거리를 계산하고 지도는 대전 중심으로 유지했어요.');
+  },()=>{
+    currentLocationRequestPending=false;
+    if(isPlaceFocused)setPlaceRouteEstimate('현재 위치 설정 필요','위치 권한을 허용하면 실제 차량 시간을 계산해요.');
+    if(announce)toast('위치 권한을 허용하면 현재 위치를 기준으로 거리를 계산해요.');
+  },{enableHighAccuracy:true,timeout:7000,maximumAge:60000});
+}
+
+function moveToCurrentLocation(){
+  requestCurrentLocation({focusMap:true,announce:true});
+}
+
+function requestCurrentLocationForRoute(){
+  requestCurrentLocation({focusMap:false,announce:false});
 }
 
 function placeOperationStatus(place){
@@ -1077,12 +1189,84 @@ function placeOperationStatus(place){
   if(now<=end)return {label:'현재 진행 중',tone:'positive'};
   return {label:'행사 종료',tone:'muted'};
 }
-function placeRainNotice(place){
-  return place.metadata?.rain_info||place.metadata?.cancellation_info||place.metadata?.cancel_info||'공식 데이터에 우천·취소 정보가 제공되지 않았어요.';
-}
 function placeHoursNotice(place){
   const hours=String(place.hours||'').trim();
   return hours&&!/확인/.test(hours)?hours:'공식 데이터에 운영 시간이 제공되지 않았어요. 출발 전에 공식 행사 안내에서 확인해 주세요.';
+}
+
+function festivalPeriodMarkup(place){
+  const start=String(place?.startDate||'').trim();
+  const end=String(place?.endDate||'').trim();
+  if(start&&end){
+    return `<b class="festival-period"><span>${escapeHtml(start)}</span><span><i aria-hidden="true">—</i>${escapeHtml(end)}</span></b>`;
+  }
+  const period=String(place?.period||'일정 확인 필요').trim();
+  return `<b class="festival-period"><span>${escapeHtml(period)}</span></b>`;
+}
+
+function drivingRouteCacheKey(place){
+  if(!userPosition||!hasCoordinates(place))return '';
+  return [
+    Number(userPosition.lat).toFixed(3),
+    Number(userPosition.lng).toFixed(3),
+    Number(place.lat).toFixed(4),
+    Number(place.lng).toFixed(4)
+  ].join(':');
+}
+
+function initialRouteEstimateFor(place){
+  if(!userPosition){
+    return {value:'현재 위치로 계산하기',note:'누르면 실제 도로 거리와 차량 시간을 확인해요.'};
+  }
+  return {value:`직선거리 ${place.distance}km`,note:'TMAP 차량 경로 계산 중…'};
+}
+
+function setPlaceRouteEstimate(value,note){
+  const estimate=$('#placeRouteEstimate');
+  const source=$('#placeRouteSource');
+  if(estimate)estimate.textContent=value;
+  if(source)source.textContent=note||'';
+}
+
+async function loadDrivingRouteForActivePlace(){
+  const place=activePlace;
+  if(!place||!hasCoordinates(place))return;
+  if(!userPosition){
+    const fallback=initialRouteEstimateFor(place);
+    setPlaceRouteEstimate(fallback.value,fallback.note);
+    return;
+  }
+  const key=drivingRouteCacheKey(place);
+  const cached=drivingRouteCache.get(key);
+  if(cached){
+    setPlaceRouteEstimate(`도로 ${cached.distanceKm}km · 차로 약 ${cached.durationMinutes}분`,cached.source);
+    return;
+  }
+  const requestId=++drivingRouteRequestSequence;
+  setPlaceRouteEstimate(`직선거리 ${place.distance}km`,'TMAP 차량 경로 계산 중…');
+  const params=new URLSearchParams({
+    startLat:String(userPosition.lat),
+    startLng:String(userPosition.lng),
+    endLat:String(place.lat),
+    endLng:String(place.lng)
+  });
+  try{
+    const response=await fetch(`/api/tmap-route?${params.toString()}`,{headers:{Accept:'application/json'}});
+    if(!response.ok)throw new Error(`tmap_route_http_${response.status}`);
+    const route=await response.json();
+    if(!Number.isFinite(Number(route.distanceKm))||!Number.isFinite(Number(route.durationMinutes)))throw new Error('tmap_route_invalid');
+    const normalized={
+      distanceKm:Number(route.distanceKm),
+      durationMinutes:Math.max(1,Math.round(Number(route.durationMinutes))),
+      source:String(route.source||'TMAP 자동차 경로안내')
+    };
+    drivingRouteCache.set(key,normalized);
+    if(requestId!==drivingRouteRequestSequence||activePlace.id!==place.id)return;
+    setPlaceRouteEstimate(`도로 ${normalized.distanceKm}km · 차로 약 ${normalized.durationMinutes}분`,normalized.source);
+  }catch{
+    if(requestId!==drivingRouteRequestSequence||activePlace.id!==place.id)return;
+    setPlaceRouteEstimate(`직선거리 ${place.distance}km`,'차량 소요 시간을 불러오지 못했어요.');
+  }
 }
 
 function openPlace(id){
@@ -1098,13 +1282,9 @@ function openPlace(id){
   parkingWeather=null;
   $('.app-shell').classList.add('is-place-focused');
   renderMap();
-  if(naverMap&&hasCoordinates(activePlace)){
-    const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
-    focusMapOn(targetPosition,15,'place',750);
-  }
   if(!hasCoordinates(activePlace))toast('이 축제의 지도 좌표는 확인 중이에요. 상세 정보는 먼저 볼 수 있어요.');
   const placeLabel='축제';
-  const locationCopy=hasCoordinates(activePlace)?`${activePlace.distance}km · 차로 ${activePlace.eta}분`:'지도 좌표 확인 중';
+  const routeEstimate=hasCoordinates(activePlace)?initialRouteEstimateFor(activePlace):{value:'지도 좌표 확인 중',note:''};
   const experience=experienceFor(activePlace);
   const sourceCopy=`<p class="data-source-note">${escapeHtml(festivalContentAttribution(activePlace))} · ${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</p>`;
   const status=placeOperationStatus(activePlace);
@@ -1114,24 +1294,68 @@ function openPlace(id){
   const heroImage=hasHeroImage?`<img class="place-hero-photo" src="${escapeHtml(activePlace.imageUrl)}" alt="${escapeHtml(activePlace.name)} 대표 이미지" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-photo');this.remove()" />`:'';
   $('#placeSheet').classList.add('festival-detail');
   const travelDisabled=hasCoordinates(activePlace)?'':' disabled aria-disabled="true"';
-  $('#placeSheetContent').innerHTML=`<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div><div class="festival-chip-row">${experience.tags.slice(0,3).map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div><section class="place-intro"><h3>방문 전에 확인하세요</h3></section><div class="festival-facts"><div><span>행사 일정</span><b>${escapeHtml(activePlace.period||'일정 확인 필요')}</b></div><div><span>현재 상태</span><b>${escapeHtml(status.label)}</b></div><div><span>운영 시간</span><b>${escapeHtml(placeHoursNotice(activePlace))}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장·예약</span><b>${escapeHtml(experience.admission)}</b></div><div><span>현재 위치에서</span><b>${escapeHtml(locationCopy)}</b></div></div><section class="place-programs"><div class="place-section-heading"><h3>핵심 프로그램</h3><span>${escapeHtml(festivalProgramSourceLabel(activePlace))}</span></div>${programsMarkup}</section><div class="recommend-reason"><i>✓</i><span><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><b>${escapeHtml(recommendationReasonFor(activePlace))}</b></span></div><section class="visit-verification"><div><span>우천·취소</span><b>${escapeHtml(placeRainNotice(activePlace))}</b></div><div><span>정보 기준</span><b>${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</b></div></section><div class="festival-actions"><button class="festival-travel-button transit" id="openTransitGuide" type="button"${travelDisabled}><span><small>버스 · 지하철</small><b>대중교통 안내</b></span><em aria-hidden="true">→</em></button><button class="festival-travel-button navigation" id="openNavigationGuide" type="button"${travelDisabled}><span><small>자동차 길찾기</small><b>내비게이션 안내</b></span><em aria-hidden="true">→</em></button></div>${sourceCopy}`;
+  const officialOverview=String(activePlace.metadata?.festival_content?.official_overview||'').trim();
+  const overviewMarkup=officialOverview?`<section class="festival-overview"><div class="place-section-heading"><h3>축제 소개</h3><span>한국관광공사</span></div><p>${escapeHtml(officialOverview)}</p></section>`:'';
+  const topicTags=festivalTopicTagsFor(activePlace);
+  const topicTagsMarkup=topicTags.length?`<div class="festival-chip-row">${topicTags.map(tag=>`<span>${escapeHtml(tag)}</span>`).join('')}</div>`:'';
+  const recommendationItems=recommendationSignalsFor(activePlace);
+  const readableRecommendationItems=(recommendationItems.length?recommendationItems:['✓ 일정과 이동 거리를 확인한 추천이에요.']).map(item=>{
+    const match=item.match(/^([★✓△])\s*/);
+    return {icon:match?.[1]||'✓',copy:item.slice(match?.[0]?.length||0)};
+  });
+  const recommendationMarkup=`<div class="recommend-reason"><i aria-hidden="true">✓</i><div><strong>${escapeHtml(recommendationFitLabel(activePlace))}</strong><ul>${readableRecommendationItems.map(item=>`<li><em aria-hidden="true">${escapeHtml(item.icon)}</em><span>${escapeHtml(item.copy)}</span></li>`).join('')}</ul></div></div>`;
+  $('#placeSheetContent').innerHTML=[
+    `<div class="place-hero place-hero-rich${hasHeroImage?' has-photo':''}" style="--hero:${activePlace.gradient};--emoji:'${escapeHtml(activePlace.emoji)}'">${heroImage}${favoriteButtonMarkup(activePlace,'place-hero-favorite')}<div class="place-hero-badges"><span>${placeLabel}</span><span class="status-badge ${status.tone}">${escapeHtml(status.label)}</span></div><div class="place-hero-copy"><h2>${escapeHtml(activePlace.name)}</h2><p>${escapeHtml(placeValueLine(activePlace))}</p></div></div>`,
+    topicTagsMarkup,
+    '<div class="place-peek-end" id="placeSheetPeekEnd" aria-hidden="true"></div>',
+    recommendationMarkup,
+    '<section class="place-intro"><h3>방문 전에 확인하세요</h3></section>',
+    `<div class="festival-facts"><div><span>행사 일정</span>${festivalPeriodMarkup(activePlace)}</div><div><span>현재 상태</span><b>${escapeHtml(status.label)}</b></div><div><span>운영 시간</span><b>${escapeHtml(placeHoursNotice(activePlace))}</b></div><div><span>장소</span><b>${escapeHtml(experience.venue)}</b></div><div><span>입장·예약</span><b>${escapeHtml(experience.admission)}</b></div><div class="festival-route-fact"><span>현재 위치에서</span><button class="festival-route-request" id="placeRouteRequest" type="button"><b id="placeRouteEstimate">${escapeHtml(routeEstimate.value)}</b><small id="placeRouteSource">${escapeHtml(routeEstimate.note)}</small></button></div></div>`,
+    overviewMarkup,
+    `<section class="place-programs"><div class="place-section-heading"><h3>핵심 프로그램</h3><span>${escapeHtml(festivalProgramSourceLabel(activePlace))}</span></div>${programsMarkup}</section>`,
+    `<section class="visit-verification"><div><span>정보 기준</span><b>${escapeHtml(dataUpdatedLabel(activePlace.updatedAt||placeDataUpdatedAt))}</b></div></section>`,
+    `<div class="festival-actions"><button class="festival-travel-button transit" id="openTransitGuide" type="button"${travelDisabled}><span><small>버스 · 지하철</small><b>대중교통 안내</b></span><em aria-hidden="true">→</em></button><button class="festival-travel-button navigation" id="openNavigationGuide" type="button"${travelDisabled}><span><small>자동차 길찾기</small><b>내비게이션 안내</b></span><em aria-hidden="true">→</em></button></div>`,
+    sourceCopy
+  ].join('');
   document.querySelectorAll('.bottom-sheet').forEach(sheet=>sheet.classList.remove('show'));
   $('#sheetBackdrop').classList.remove('show');
   suppressPlaceSheetGestureClick=false;
   setPlaceSheetExpanded(false);
   setPlaceSheetHeights();
   $('#placeSheet').classList.add('show');
+  if(naverMap&&hasCoordinates(activePlace)){
+    const targetPosition=new naver.maps.LatLng(activePlace.lat,activePlace.lng);
+    focusMapOn(targetPosition,15,'place',750);
+  }
   bindFavoriteButtons($('#placeSheetContent'));
+  $('#placeRouteRequest').addEventListener('click',requestCurrentLocationForRoute);
   $('#openTransitGuide').addEventListener('click',event=>openFestivalTravel('transit',event.currentTarget));
   $('#openNavigationGuide').addEventListener('click',event=>openFestivalTravel('navigation',event.currentTarget));
+  loadDrivingRouteForActivePlace();
   loadParkingForActivePlace();
 }
 
 function setPlaceSheetHeights(){
-  const screenHeight=$('.map-card')?.getBoundingClientRect().height||window.innerHeight;
+  const mapRect=$('.map-card')?.getBoundingClientRect();
+  const screenHeight=mapRect?.height||window.innerHeight;
+  const header=$('.app-header');
+  const headerRect=isVisibleOverlay(header)?header.getBoundingClientRect():null;
+  const expandedTopInset=headerRect&&mapRect
+    ? Math.max(12,Math.round(headerRect.bottom-mapRect.top+8))
+    : 12;
+  const fullHeight=Math.max(320,Math.round(screenHeight-expandedTopInset));
   const sheet=$('#placeSheet');
-  sheet.style.setProperty('--place-sheet-peek-height',`${Math.round(screenHeight*.6)}px`);
-  sheet.style.setProperty('--place-sheet-full-height',`${Math.max(320,Math.round(screenHeight))}px`);
+  const peekEnd=$('#placeSheetPeekEnd');
+  const actions=$('.festival-actions');
+  const sheetRect=sheet.getBoundingClientRect();
+  const peekEndRect=peekEnd?.getBoundingClientRect();
+  const actionReserve=actions?Math.ceil(actions.getBoundingClientRect().height):0;
+  const measuredPeekHeight=peekEndRect
+    ? Math.ceil(peekEndRect.bottom-sheetRect.top+actionReserve+12)
+    : Math.round(screenHeight*.6);
+  const peekHeight=Math.min(fullHeight-56,Math.max(260,measuredPeekHeight));
+  sheet.style.setProperty('--place-sheet-peek-height',`${peekHeight}px`);
+  sheet.style.setProperty('--place-sheet-full-height',`${fullHeight}px`);
 }
 
 function setPlaceSheetExpanded(expanded){
@@ -1141,7 +1365,7 @@ function setPlaceSheetExpanded(expanded){
   sheet.style.removeProperty('--place-sheet-drag-height');
   const handle=$('#placeSheetHandle');
   handle.setAttribute('aria-expanded',String(expanded));
-  handle.setAttribute('aria-label',expanded?'상세창 60% 높이로 줄이기':'상세창 전체 화면으로 펼치기');
+  handle.setAttribute('aria-label',expanded?'축제 상세 축소하기':'축제 상세 펼치기');
   if(!expanded)sheet.scrollTop=0;
 }
 
@@ -1151,6 +1375,7 @@ function canStartSheetDrag(event,sheet,grabberSelector){
   if(target.closest('[data-no-sheet-drag]'))return false;
   if(target.closest(grabberSelector))return true;
   if(target.closest('button, a, input, select, textarea, label, [role="button"], [contenteditable="true"]'))return false;
+  if(sheet.id==='placeSheet')return !sheet.classList.contains('is-expanded');
   const contentBlock=target.closest([
     '.place-hero-rich',
     '.festival-chip-row',
@@ -1173,13 +1398,68 @@ function canStartSheetDrag(event,sheet,grabberSelector){
   return !contentBlock;
 }
 
+function isPlaceSheetTopPullTarget(event,sheet){
+  const target=event.target;
+  return sheet.id==='placeSheet'
+    && sheet.classList.contains('is-expanded')
+    && sheet.scrollTop<=1
+    && target instanceof Element
+    && !target.closest('.place-sheet-grabber, [data-no-sheet-drag], button, a, input, select, textarea, label, [role="button"], [contenteditable="true"]');
+}
+
+function expandPlaceSheetOnWheel(event){
+  const sheet=$('#placeSheet');
+  if(!sheet.classList.contains('show')||sheet.classList.contains('is-expanded')||event.deltaY<=0)return;
+  event.preventDefault();
+  setPlaceSheetExpanded(true);
+}
+
+function beginPlaceSheetTopPull(event){
+  const sheet=$('#placeSheet');
+  const target=event.target;
+  if(!sheet.classList.contains('show')||!sheet.classList.contains('is-expanded')||sheet.scrollTop>1||event.touches.length!==1){
+    placeSheetTopPull=null;
+    return;
+  }
+  if(!(target instanceof Element)||target.closest('.place-sheet-grabber, button, a, input, select, textarea, label, [role="button"], [contenteditable="true"]')){
+    placeSheetTopPull=null;
+    return;
+  }
+  const touch=event.touches[0];
+  placeSheetTopPull={identifier:touch.identifier,startY:touch.clientY};
+}
+
+function movePlaceSheetTopPull(event){
+  if(!placeSheetTopPull)return;
+  const sheet=$('#placeSheet');
+  const touch=Array.from(event.touches).find(item=>item.identifier===placeSheetTopPull.identifier);
+  if(!touch||!sheet.classList.contains('is-expanded')||sheet.scrollTop>1){
+    placeSheetTopPull=null;
+    return;
+  }
+  const pullDistance=touch.clientY-placeSheetTopPull.startY;
+  if(pullDistance<0){
+    placeSheetTopPull=null;
+    return;
+  }
+  if(pullDistance<=0)return;
+  if(event.cancelable)event.preventDefault();
+  if(pullDistance<10)return;
+  placeSheetTopPull=null;
+  setPlaceSheetExpanded(false);
+}
+
+function resetPlaceSheetTopPull(){
+  placeSheetTopPull=null;
+}
+
 function beginPlaceSheetDrag(event){
   if(event.button!==undefined&&event.button!==0)return;
   if(placeSheetDrag)return;
   const sheet=$('#placeSheet');
   if(!sheet.classList.contains('show'))return;
-  if(!canStartSheetDrag(event,sheet,'.place-sheet-grabber'))return;
-  event.preventDefault();
+  const topPullCandidate=isPlaceSheetTopPullTarget(event,sheet);
+  if(!topPullCandidate&&!canStartSheetDrag(event,sheet,'.place-sheet-grabber'))return;
   setPlaceSheetHeights();
   const styles=getComputedStyle(sheet);
   placeSheetDrag={
@@ -1190,16 +1470,35 @@ function beginPlaceSheetDrag(event){
     minHeight:Math.min(220,parseFloat(styles.getPropertyValue('--place-sheet-peek-height'))*.55),
     maxHeight:parseFloat(styles.getPropertyValue('--place-sheet-full-height')),
     expanded:sheet.classList.contains('is-expanded'),
+    captureTarget:event.currentTarget,
+    fromGrabber:Boolean(event.target instanceof Element&&event.target.closest('.place-sheet-grabber')),
+    topPullCandidate,
     moved:false
   };
-  sheet.classList.add('is-dragging');
-  if(event.pointerId!==undefined)event.currentTarget.setPointerCapture?.(event.pointerId);
+  if(!topPullCandidate)sheet.classList.add('is-dragging');
 }
 
 function movePlaceSheetDrag(event){
   if(!placeSheetDrag||event.pointerId!==placeSheetDrag.pointerId)return;
   const delta=placeSheetDrag.startY-event.clientY;
-  if(Math.abs(delta)>6)placeSheetDrag.moved=true;
+  if(placeSheetDrag.topPullCandidate){
+    if(delta>0){
+      placeSheetDrag=null;
+      return;
+    }
+    if(delta>=-1)return;
+    event.preventDefault();
+    if(delta>-10)return;
+    placeSheetDrag=null;
+    suppressPlaceSheetGestureClick=true;
+    window.setTimeout(()=>{suppressPlaceSheetGestureClick=false;},0);
+    setPlaceSheetExpanded(false);
+    return;
+  }
+  if(Math.abs(delta)>6&&!placeSheetDrag.moved){
+    placeSheetDrag.moved=true;
+    if(event.pointerId!==undefined)placeSheetDrag.captureTarget?.setPointerCapture?.(event.pointerId);
+  }
   const nextHeight=dampGestureValue(placeSheetDrag.startHeight+delta,placeSheetDrag.minHeight,placeSheetDrag.maxHeight);
   $('#placeSheet').style.setProperty('--place-sheet-drag-height',`${nextHeight}px`);
   if(placeSheetDrag.moved)event.preventDefault();
@@ -1211,6 +1510,12 @@ function endPlaceSheetDrag(event){
   const delta=drag.startY-event.clientY;
   const velocity=gestureVelocity(delta,drag.startTime);
   placeSheetDrag=null;
+  if(!drag.moved&&drag.fromGrabber){
+    suppressPlaceSheetGestureClick=true;
+    window.setTimeout(()=>{suppressPlaceSheetGestureClick=false;},0);
+    setPlaceSheetExpanded(!drag.expanded);
+    return;
+  }
   if(drag.moved){
     suppressPlaceSheetGestureClick=true;
     window.setTimeout(()=>{suppressPlaceSheetGestureClick=false;},0);
@@ -1302,6 +1607,7 @@ function closeSheets(){
 }
 
 function resetMapFocus(){
+  drivingRouteRequestSequence++;
   isPlaceFocused=false;
   $('.app-shell').classList.remove('is-place-focused');
   setPlaceSheetExpanded(false);
@@ -1796,11 +2102,90 @@ function setRecommendationsState(state){
   else scheduleFestivalAutoplay();
 }
 
+function suppressNextRecommendSheetClick(){
+  suppressRecommendSheetGestureClick=true;
+  clearTimeout(recommendGestureClickTimer);
+  recommendGestureClickTimer=window.setTimeout(()=>{suppressRecommendSheetGestureClick=false;},300);
+}
+
+function blockRecommendSheetGestureClick(event){
+  if(!suppressRecommendSheetGestureClick)return;
+  suppressRecommendSheetGestureClick=false;
+  clearTimeout(recommendGestureClickTimer);
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+}
+
+function isRecommendSheetInteractiveTarget(target){
+  return target instanceof Element
+    && Boolean(target.closest('button, a, input, select, textarea, [contenteditable="true"]'));
+}
+
+function isRecommendSheetTopPullTarget(event,section){
+  const target=event.target;
+  return section.classList.contains('is-expanded')
+    && section.scrollTop<=1
+    && target instanceof Element
+    && !target.closest('.recommend-sheet-grabber')
+    && !isRecommendSheetInteractiveTarget(target);
+}
+
+function collapseRecommendationsOnWheel(event){
+  const section=$('.recommend-section');
+  if(!section.classList.contains('is-expanded')||section.scrollTop>1||event.deltaY>=0)return;
+  event.preventDefault();
+  setRecommendationsState('preview');
+}
+
+function beginRecommendSheetTopPull(event){
+  const section=$('.recommend-section');
+  if(!section.classList.contains('is-expanded')||section.scrollTop>1||event.touches.length!==1){
+    recommendSheetTopPull=null;
+    return;
+  }
+  const target=event.target;
+  if(!(target instanceof Element)||target.closest('.recommend-sheet-grabber')||isRecommendSheetInteractiveTarget(target)){
+    recommendSheetTopPull=null;
+    return;
+  }
+  const touch=event.touches[0];
+  recommendSheetTopPull={identifier:touch.identifier,startY:touch.clientY};
+}
+
+function moveRecommendSheetTopPull(event){
+  if(!recommendSheetTopPull)return;
+  const section=$('.recommend-section');
+  const touch=Array.from(event.touches).find(item=>item.identifier===recommendSheetTopPull.identifier);
+  if(!touch||!section.classList.contains('is-expanded')||section.scrollTop>1){
+    recommendSheetTopPull=null;
+    return;
+  }
+  const pullDistance=touch.clientY-recommendSheetTopPull.startY;
+  if(pullDistance<0){
+    recommendSheetTopPull=null;
+    return;
+  }
+  if(pullDistance<=0)return;
+  if(event.cancelable)event.preventDefault();
+  if(pullDistance<10)return;
+  recommendSheetTopPull=null;
+  suppressNextRecommendSheetClick();
+  setRecommendationsState('preview');
+}
+
+function resetRecommendSheetTopPull(){
+  recommendSheetTopPull=null;
+}
+
 function beginRecommendSheetDrag(event){
   if(event.button!==undefined&&event.button!==0)return;
   if(recommendSheetDrag)return;
   const section=$('.recommend-section');
   if($('.app-shell').classList.contains('is-place-focused'))return;
+  const fromGrabber=Boolean(event.target instanceof Element&&event.target.closest('.recommend-sheet-grabber'));
+  const topPullCandidate=isRecommendSheetTopPullTarget(event,section);
+  if(!fromGrabber&&!topPullCandidate)return;
   const state=recommendationState();
   const expandedHeight=section.offsetHeight;
   const previewHeight=Math.min(260,Math.max(244,window.innerHeight*.31));
@@ -1816,16 +2201,33 @@ function beginRecommendSheetDrag(event){
     state,
     moved:false,
     previewOffset,
-    collapsedOffset
+    collapsedOffset,
+    fromGrabber,
+    topPullCandidate
   };
-  section.classList.add('is-dragging');
-  section.style.transform=`translateY(${recommendSheetDrag.startOffset}px)`;
-  if(event.pointerId!==undefined){try{event.currentTarget.setPointerCapture?.(event.pointerId);}catch{/* Pointer capture is optional. */}}
+  if(!topPullCandidate){
+    section.classList.add('is-dragging');
+    section.style.transform=`translateY(${recommendSheetDrag.startOffset}px)`;
+  }
+  if(fromGrabber&&event.pointerId!==undefined){try{event.currentTarget.setPointerCapture?.(event.pointerId);}catch{/* Pointer capture is optional. */}}
 }
 
 function moveRecommendSheetDrag(event){
   if(!recommendSheetDrag||event.pointerId!==recommendSheetDrag.pointerId)return;
   const delta=event.clientY-recommendSheetDrag.startY;
+  if(recommendSheetDrag.topPullCandidate){
+    if(delta<0){
+      recommendSheetDrag=null;
+      return;
+    }
+    if(delta<=0)return;
+    event.preventDefault();
+    if(delta<10)return;
+    recommendSheetDrag=null;
+    suppressNextRecommendSheetClick();
+    setRecommendationsState('preview');
+    return;
+  }
   if(Math.abs(delta)>5)recommendSheetDrag.moved=true;
   const offset=dampGestureValue(recommendSheetDrag.startOffset+delta,0,recommendSheetDrag.collapsedOffset);
   $('.recommend-section').style.transform=`translateY(${offset}px)`;
@@ -1839,8 +2241,7 @@ function endRecommendSheetDrag(event){
   const velocity=gestureVelocity(delta,drag.startTime);
   const endOffset=Math.max(0,Math.min(drag.collapsedOffset,drag.startOffset+delta));
   recommendSheetDrag=null;
-  suppressRecommendSheetGestureClick=true;
-  window.setTimeout(()=>{suppressRecommendSheetGestureClick=false;},0);
+  suppressNextRecommendSheetClick();
   const isTap=Math.abs(delta)<10;
   let nextState=drag.state;
   if(isTap){
@@ -1901,7 +2302,7 @@ function searchablePlaces(query=''){
 
 function renderSearchResults(query=''){
   const results=searchablePlaces(query);
-  $('#searchResults').innerHTML=results.length?results.map(place=>`<button class="search-result" data-search-place="${escapeHtml(place.id)}"><span class="search-result-icon">${escapeHtml(place.emoji)}</span><span><small>${escapeHtml(`${festivalDateBadge(place)} · ${compactPlaceArea(place)}`)}</small><b>${escapeHtml(place.name)}</b><em>${escapeHtml(place.address||experienceFor(place).venue||place.summary)}</em></span><i>→</i></button>`).join(''):`<p class="search-empty">검색 결과가 없어요. 다른 축제 이름이나 지역을 입력해 보세요.</p>`;
+  $('#searchResults').innerHTML=results.length?results.map(place=>`<button class="search-result" data-search-place="${escapeHtml(place.id)}"><span>${searchResultMetaMarkup(place)}<b>${escapeHtml(place.name)}</b><em>${escapeHtml(place.address||experienceFor(place).venue||place.summary)}</em></span></button>`).join(''):`<p class="search-empty">검색 결과가 없어요. 다른 축제 이름이나 지역을 입력해 보세요.</p>`;
   document.querySelectorAll('[data-search-place]').forEach(button=>button.addEventListener('click',()=>{
     $('#searchModal').classList.remove('show');
     openPlace(button.dataset.searchPlace);
@@ -1929,7 +2330,13 @@ $('#startTest').addEventListener('click',startTest);
 $('#skipTest').addEventListener('click',()=>closeOnboarding(false));
 $('#destinationEntry').addEventListener('click',()=>{closeOnboarding(false);window.setTimeout(openSearch,180);});
 $('#retestButton').addEventListener('click',()=>{localStorage.removeItem('daejeonMap.onboardingCompleted');localStorage.removeItem('daejeonMap.usageGuideSeen');localStorage.removeItem('daejeonMap.personalityProfile');localStorage.removeItem('daejeonMap.personalityResult');location.reload();});
-$('#recommendSheetGrabber').addEventListener('pointerdown',beginRecommendSheetDrag);
+$('.recommend-section').addEventListener('pointerdown',beginRecommendSheetDrag);
+$('.recommend-section').addEventListener('wheel',collapseRecommendationsOnWheel,{passive:false});
+$('.recommend-section').addEventListener('touchstart',beginRecommendSheetTopPull,{passive:true});
+$('.recommend-section').addEventListener('touchmove',moveRecommendSheetTopPull,{passive:false});
+$('.recommend-section').addEventListener('touchend',resetRecommendSheetTopPull,{passive:true});
+$('.recommend-section').addEventListener('touchcancel',resetRecommendSheetTopPull,{passive:true});
+$('.recommend-section').addEventListener('click',blockRecommendSheetGestureClick,true);
 document.addEventListener('pointermove',moveRecommendSheetDrag,{passive:false});
 document.addEventListener('pointerup',endRecommendSheetDrag);
 document.addEventListener('pointercancel',cancelRecommendSheetDrag);
@@ -2004,6 +2411,11 @@ $('#placeSearchForm').addEventListener('submit',event=>{event.preventDefault();r
 $('#placeSearchInput').addEventListener('input',()=>renderSearchResults($('#placeSearchInput').value));
 document.querySelectorAll('[data-search-query]').forEach(button=>button.addEventListener('click',()=>{$('#placeSearchInput').value=button.dataset.searchQuery;renderSearchResults(button.dataset.searchQuery);}));
 $('#placeSheet').addEventListener('pointerdown',beginPlaceSheetDrag);
+$('#placeSheet').addEventListener('wheel',expandPlaceSheetOnWheel,{passive:false});
+$('#placeSheet').addEventListener('touchstart',beginPlaceSheetTopPull,{passive:true});
+$('#placeSheet').addEventListener('touchmove',movePlaceSheetTopPull,{passive:false});
+$('#placeSheet').addEventListener('touchend',resetPlaceSheetTopPull,{passive:true});
+$('#placeSheet').addEventListener('touchcancel',resetPlaceSheetTopPull,{passive:true});
 document.addEventListener('pointermove',movePlaceSheetDrag,{passive:false});
 document.addEventListener('pointerup',endPlaceSheetDrag);
 document.addEventListener('pointercancel',endPlaceSheetDrag);
@@ -2012,8 +2424,6 @@ $('#placeSheetHandle').addEventListener('click',()=>{
   if($('#placeSheet').classList.contains('is-expanded'))setPlaceSheetExpanded(false);
   else setPlaceSheetExpanded(true);
 });
-$('#placeSheetBack').addEventListener('click',()=>setPlaceSheetExpanded(false));
-$('#placeSheetDismiss').addEventListener('click',resetMapFocus);
 $('#plannerSheet').addEventListener('pointerdown',beginPlannerSheetDrag);
 $('#parkingInfoSheet').addEventListener('pointerdown',beginPlannerSheetDrag);
 document.addEventListener('pointermove',movePlannerSheetDrag,{passive:false});

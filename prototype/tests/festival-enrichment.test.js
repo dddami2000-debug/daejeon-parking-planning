@@ -125,3 +125,49 @@ test('removes web citations from the purpose shown in the service', () => {
   assert.equal(content.summary, '황새 보전 가치를 알리는 축제입니다.');
   assert.equal(shouldEnrich({ metadata: { festival_content: { enriched_at: '2026-08-25T00:00:00Z', summary: '[출처](https://example.com)', programs: [{ title: '체험' }] } } }), true);
 });
+
+test('uses the next TourAPI key when the first key returns programs without an overview', async () => {
+  const originalFetch = global.fetch;
+  const originalFestivalKey = process.env.FESTIVAL_API_KEY;
+  const originalTourKey = process.env.TOUR_API_KEY;
+  process.env.FESTIVAL_API_KEY = 'intro-only-key';
+  process.env.TOUR_API_KEY = 'overview-key';
+  global.fetch = async (urlValue) => {
+    const url = new URL(urlValue);
+    const apiKey = url.searchParams.get('serviceKey');
+    const endpoint = url.pathname.split('/').pop();
+    if (endpoint === 'detailCommon2') {
+      assert.equal(url.searchParams.has('contentTypeId'), false);
+      assert.equal(url.searchParams.has('defaultYN'), false);
+      assert.equal(url.searchParams.has('overviewYN'), false);
+    } else assert.equal(url.searchParams.get('contentTypeId'), '15');
+    let item = {};
+    if (apiKey === 'intro-only-key' && endpoint === 'detailIntro2') item = { program: '재즈 공연' };
+    if (apiKey === 'overview-key' && endpoint === 'detailCommon2') item = { overview: '<p>유성재즈 공식 소개입니다.</p>' };
+    if (apiKey === 'intro-only-key' && endpoint === 'detailCommon2') {
+      return new Response(JSON.stringify({ resultCode: '10', resultMsg: 'INVALID_REQUEST_PARAMETER_ERROR(contentTypeId)' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    return new Response(JSON.stringify({ response: { header: { resultCode: '0000' }, body: { items: { item: [item] } } } }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  };
+  delete require.cache[require.resolve('../api/enrich-festivals')];
+  const { fetchTourApiDetails } = require('../api/enrich-festivals');
+
+  try {
+    const result = await fetchTourApiDetails({ external_id: '2833003', metadata: {} });
+    assert.equal(result.content.overview, '유성재즈 공식 소개입니다.');
+    assert.equal(result.content.programs[0].title, '재즈 공연');
+  } finally {
+    global.fetch = originalFetch;
+    if (originalFestivalKey === undefined) delete process.env.FESTIVAL_API_KEY;
+    else process.env.FESTIVAL_API_KEY = originalFestivalKey;
+    if (originalTourKey === undefined) delete process.env.TOUR_API_KEY;
+    else process.env.TOUR_API_KEY = originalTourKey;
+    delete require.cache[require.resolve('../api/enrich-festivals')];
+  }
+});
