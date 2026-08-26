@@ -32,12 +32,16 @@ test('builds Naver public-transit and navigation schemes with a named destinatio
   assert.equal(navigation.searchParams.has('slat'), false);
 });
 
-test('builds the Android intent and desktop fallback for Naver Map', () => {
+test('builds the Android intent and desktop public-transit route for Naver Map', () => {
   const scheme = buildNaverUrl('navigation', destination, null, 'https://example.com');
   const intent = buildNaverAndroidIntent(scheme);
   assert.match(intent, /^intent:\/\/navigation\?/);
   assert.match(intent, /package=com\.nhn\.android\.nmap/);
-  assert.equal(buildNaverWebUrl(destination), `https://map.naver.com/p/search/${encodeURIComponent(destination.name)}`);
+  assert.equal(
+    buildNaverWebUrl(destination,origin),
+    `https://map.naver.com/p/directions/${origin.lng},${origin.lat},${encodeURIComponent('현재 위치')},,COORDINATE/${destination.lng},${destination.lat},${encodeURIComponent(destination.name)},,ADDRESS_POI/-/transit?c=15.00,0,0,0,dh`
+  );
+  assert.match(buildNaverWebUrl(destination), /\/directions\/-\//);
 });
 
 test('builds Kakao Map public-transit links with and without an origin', () => {
