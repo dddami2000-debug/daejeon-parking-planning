@@ -3807,6 +3807,10 @@ textarea {
   line-height: 1;
 }
 
+.map-favorite-filter > span {
+  color: #f5b800;
+}
+
 .map-favorite-filter > strong {
   font: inherit;
 }

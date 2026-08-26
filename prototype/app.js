@@ -1,7 +1,7 @@
 const fallbackPlaces = [
-  {id:'zero',type:'festival',name:'대전 0시 축제',address:'대전광역시 중구 중앙로 일대',date:'축제',startDate:'2026-08-21',endDate:'2026-08-28',period:'8.21 — 8.28',hours:'14:00 — 00:00',distance:2.4,eta:12,taste:94,emoji:'🎆',imageUrl:'https://www.daejeon.go.kr/plugins/crosseditor4/binary/images/000396/20250822142519537_QFJ4O0PY.jpg',color:'#ff7657',tile:'#fff0eb',lat:36.3298,lng:127.4307,summary:'대전의 한여름 밤을 거대한 무대로 바꾸는, 도심 한복판의 대표 축제예요.',reason:'공연·축제 취향과 94% 일치해요',gradient:'linear-gradient(135deg,#ff7657,#ed4e7a)'},
-  {id:'science',type:'festival',name:'대전 사이언스 페스티벌',address:'대전광역시 유성구 엑스포로 일대',date:'축제',startDate:'2026-09-02',endDate:'2026-09-05',period:'9.02 — 9.05',hours:'10:00 — 20:00',distance:3.1,eta:16,taste:88,emoji:'🚀',imageUrl:'https://www.daejeon.go.kr/plugins/crosseditor4/binary/images/000326/20241016174536107_AEQ50TLH.png',color:'#8d72e1',tile:'#f0edff',lat:36.3746,lng:127.3869,summary:'과학도시 대전의 상상력을 직접 만지고 즐기는 대표 체험 축제예요.',reason:'가족·체험 취향에 딱 맞아요',gradient:'linear-gradient(135deg,#8d72e1,#5f78e9)'},
-  {id:'wine',type:'festival',name:'대전 국제 와인 EXPO',address:'대전광역시 유성구 엑스포로 일대',date:'축제',startDate:'2026-09-11',endDate:'2026-09-13',period:'9.11 — 9.13',hours:'11:00 — 21:00',distance:4.2,eta:19,taste:84,emoji:'🍇',imageUrl:'https://www.djwinefair.com/images/korean/new_202208/main/msection02/mp_tab04/mp_tab04_img02.JPG',color:'#a64f72',tile:'#faeaf1',lat:36.3741,lng:127.3860,summary:'와인과 미식, 음악이 한자리에 모이는 대전의 특별한 가을 미식 축제예요.',reason:'감성·데이트 취향과 잘 맞아요',gradient:'linear-gradient(135deg,#a64f72,#e58580)'}
+  {id:'zero',type:'festival',name:'대전 0시 축제',address:'대전광역시 중구 중앙로 일대',date:'축제',startDate:'2026-08-21',endDate:'2026-08-28',period:'8.21 — 8.28',hours:'14:00 — 00:00',distance:2.4,eta:12,taste:94,emoji:'🎆',imageUrl:'https://www.daejeon.go.kr/plugins/crosseditor4/binary/images/000396/20250822142519537_QFJ4O0PY.jpg',color:'#ff7657',tile:'#fff0eb',lat:36.3298,lng:127.4307,summary:'대전의 한여름 밤을 거대한 무대로 바꾸는, 도심 한복판의 대표 축제예요.',reason:'도심 한복판에서 열리는 대표 여름 축제예요',gradient:'linear-gradient(135deg,#ff7657,#ed4e7a)'},
+  {id:'science',type:'festival',name:'대전 사이언스 페스티벌',address:'대전광역시 유성구 엑스포로 일대',date:'축제',startDate:'2026-09-02',endDate:'2026-09-05',period:'9.02 — 9.05',hours:'10:00 — 20:00',distance:3.1,eta:16,taste:88,emoji:'🚀',imageUrl:'https://www.daejeon.go.kr/plugins/crosseditor4/binary/images/000326/20241016174536107_AEQ50TLH.png',color:'#8d72e1',tile:'#f0edff',lat:36.3746,lng:127.3869,summary:'과학도시 대전의 상상력을 직접 만지고 즐기는 대표 체험 축제예요.',reason:'가족·체험 취향에 잘 맞아요',gradient:'linear-gradient(135deg,#8d72e1,#5f78e9)'},
+  {id:'wine',type:'festival',name:'대전 국제 와인 EXPO',address:'대전광역시 유성구 엑스포로 일대',date:'축제',startDate:'2026-09-11',endDate:'2026-09-13',period:'9.11 — 9.13',hours:'11:00 — 21:00',distance:4.2,eta:19,taste:84,emoji:'🍇',imageUrl:'https://www.djwinefair.com/images/korean/new_202208/main/msection02/mp_tab04/mp_tab04_img02.JPG',color:'#a64f72',tile:'#faeaf1',lat:36.3741,lng:127.3860,summary:'와인과 미식, 음악이 한자리에 모이는 대전의 특별한 가을 미식 축제예요.',reason:'감성·데이트 취향에 잘 맞아요',gradient:'linear-gradient(135deg,#a64f72,#e58580)'}
 ];
 
 const curatedExperiences = [
@@ -157,6 +157,7 @@ let favoriteVisualRefreshFrame = null;
 let recommendationRefreshTimer = null;
 let recommendationLastRefreshedAt = 0;
 let recommendationScoreCache = new Map();
+let recommendationBehaviorCache = new Map();
 let tasteProfile = readTasteProfile();
 const FESTIVAL_PREFERENCE_KEY = 'daejeonMap.festivalPreferences.v1';
 const festivalRecommender = window.FestivalRecommender || null;
@@ -280,19 +281,34 @@ function behaviorPlaceFor(place){
     lng:Number(place.lng)
   };
 }
+// 같은 주제 + 같은 광역지역 축제가 3개 이상 연달아 나오지 않도록 상위 후보에서
+// 대체 후보를 끌어올린다. 원점수 순서를 크게 훼손하지 않게 탐색 범위는 제한된다.
+// 즐겨찾기 목록과 마감순위는 사용자가 기대하는 정렬이 따로 있어 적용하지 않는다.
+function diversifiedRecommendations(ordered){
+  if(!festivalRecommender)return ordered;
+  const keys=new Map(ordered.map(place=>[place.id,festivalRecommender.recommendationGroupKey(behaviorPlaceFor(place))]));
+  return festivalRecommender.diversifyRecommendations(ordered,{keyOf:place=>keys.get(place.id)??null});
+}
+// 카드마다 전체 카탈로그를 다시 만들지 않도록 점수 캐시와 같은 주기로 재사용한다.
+// 캐시가 비어 있을 때만 직접 계산한다.
 function festivalBehaviorFor(place){
   if(!festivalRecommender||place?.type!=='festival')return null;
+  if(recommendationBehaviorCache.has(place.id))return recommendationBehaviorCache.get(place.id);
   const catalog=places.filter(item=>item.type==='festival').map(behaviorPlaceFor);
   return festivalRecommender.behaviorAffinity(behaviorPlaceFor(place),catalog,festivalPreferences);
 }
 function refreshRecommendationScoreCache(){
   const catalog=places.filter(item=>item.type==='festival').map(behaviorPlaceFor);
+  const behaviors=new Map();
   recommendationScoreCache=new Map(places.map(place=>{
     const baseScore=baseRecommendationScoreFor(place);
     if(place?.type!=='festival')return [place.id,baseScore];
-    const behavior=festivalRecommender?.behaviorAffinity(behaviorPlaceFor(place),catalog,festivalPreferences);
+    const behavior=festivalRecommender?.behaviorAffinity(behaviorPlaceFor(place),catalog,festivalPreferences)??null;
+    behaviors.set(place.id,behavior);
     return [place.id,festivalRecommender?.combineScore(baseScore,behavior)??baseScore];
   }));
+  // 정렬 점수와 화면 문구가 같은 계산 결과를 보도록 함께 갱신한다.
+  recommendationBehaviorCache=behaviors;
   recommendationLastRefreshedAt=Date.now();
 }
 function refreshFestivalRecommendations(){
@@ -443,17 +459,13 @@ function toggleMapTopicFilter(topic){
   const count=places.filter(place=>place.type==='festival'&&hasCoordinates(place)&&festivalVisibleOnMap(place)&&festivalRecommender?.matchesTopicQuery(behaviorPlaceFor(place),activeMapTopicFilter)).length;
   toast(count?`${activeMapTopicFilter} 관련 축제 ${count}곳을 표시해요.`:`${activeMapTopicFilter} 관련 축제를 찾지 못했어요.`);
 }
-function todayInKorea(){return Date.parse(`${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'})}T00:00:00+09:00`);}
-function festivalTimingScore(place){
-  if(place.type!=='festival')return 70;
-  const start=place.startDate&&Date.parse(`${place.startDate}T00:00:00+09:00`);
-  const end=place.endDate&&Date.parse(`${place.endDate}T23:59:59+09:00`);
-  if(!Number.isFinite(start)||!Number.isFinite(end))return 60;
-  const today=todayInKorea();
-  if(today>end)return 0;
-  if(today>=start)return 100;
-  const days=Math.ceil((start-today)/86400000);
-  return days<=7?90:days<=30?75:60;
+function todayValueInKorea(){return window.FestivalTiming?.todayInKorea()||new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});}
+function todayInKorea(){return Date.parse(`${todayValueInKorea()}T00:00:00+09:00`);}
+// 여행 날짜를 고르면 '오늘'이 아니라 선택한 기간을 기준으로 일정 점수를 낸다.
+// 날짜를 고르지 않으면 비교 창이 '오늘 하루'가 되어 기존 동작을 그대로 유지한다.
+function festivalTimingScore(place,options=festivalDateStatusOptions()){
+  if(place?.type!=='festival')return 70;
+  return festivalRecommender?.scheduleScore(place,{today:todayValueInKorea(),...options})??60;
 }
 function koreaDateTime(value,endOfDay=false){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return NaN;
@@ -469,7 +481,7 @@ function activeFestivalDateRange(){
   return {start:first,end:last,startValue:startValue<=endValue?startValue:endValue,endValue:startValue<=endValue?endValue:startValue};
 }
 function festivalMatchesDateFilter(place,range=activeFestivalDateRange()){
-  if(place.type!=='festival'||festivalTimingScore(place)<=0)return false;
+  if(place.type!=='festival'||festivalTimingScore(place,festivalDateStatusOptions(range))<=0)return false;
   if(!range)return true;
   const festivalStart=koreaDateTime(place.startDate);
   const festivalEnd=koreaDateTime(place.endDate,true);
@@ -530,10 +542,10 @@ function festivalScheduleLabel(place){
   if(end)return end;
   return '일정 확인';
 }
+// 전국 축제를 다루므로 20km 밖을 전부 0점으로 만들지 않는다.
+// 실제 구간형 곡선은 festival-recommender.js의 distanceScore가 갖는다.
 function distanceRecommendationScore(place){
-  const distance=Number(place.distance);
-  if(!Number.isFinite(distance)||distance<0)return 50;
-  return Math.max(0,Math.round(100-Math.min(distance,20)*5));
+  return festivalRecommender?.distanceScore(Number(place?.distance))??50;
 }
 function audienceTextFor(place){
   return [place.name,place.summary,place.description,experienceFor(place).audience,JSON.stringify(place.metadata||{})].join(' ').toLowerCase();
@@ -556,14 +568,17 @@ function genderSuitabilityFor(place,profile=tasteProfile){
   if(!femaleTarget&&!maleTarget)return null;
   return (femaleTarget&&gender==='female')||(maleTarget&&gender==='male')?100:30;
 }
+// 가중치(취향 60 / 거리 25 / 일정 15)는 festival-recommender.js의
+// RECOMMENDATION_WEIGHTS에 상수로 두었다. 초기 MVP 가설값이다.
 function baseRecommendationScoreFor(place){
-  const signals=[
-    [tasteMatchFor(place),62],
-    [distanceRecommendationScore(place),23],
-    [festivalTimingScore(place),15]
-  ].filter(([score])=>Number.isFinite(score));
-  const weightTotal=signals.reduce((sum,[,weight])=>sum+weight,0);
-  return weightTotal?Math.round(signals.reduce((sum,[score,weight])=>sum+score*weight,0)/weightTotal):0;
+  const signals={
+    taste:tasteMatchFor(place),
+    distance:distanceRecommendationScore(place),
+    schedule:festivalTimingScore(place)
+  };
+  if(festivalRecommender)return festivalRecommender.baseScore(signals);
+  const values=Object.values(signals).filter(value=>Number.isFinite(value));
+  return values.length?Math.round(values.reduce((sum,value)=>sum+value,0)/values.length):0;
 }
 function recommendationScoreFor(place){
   if(recommendationScoreCache.has(place?.id))return recommendationScoreCache.get(place.id);
@@ -571,16 +586,27 @@ function recommendationScoreFor(place){
   if(place?.type!=='festival')return baseScore;
   return festivalRecommender?.combineScore(baseScore,festivalBehaviorFor(place))??baseScore;
 }
+// 숫자 추천 점수는 내부 정렬에만 쓰고, 화면에는 왜 추천했는지 설명하는 문구만 보여준다.
 function recommendationFitLabel(place){
-  const score=recommendationScoreFor(place);
-  return score>=82?'매우 잘 맞아요':score>=68?'잘 맞아요':'방문 조건에 맞아요';
+  return festivalRecommender?.recommendationFitCopy({
+    tasteScore:tasteMatchFor(place),
+    scheduleScore:festivalTimingScore(place),
+    behavior:festivalBehaviorFor(place),
+    tripSelected:Boolean(activeFestivalDateRange())
+  })??'방문 조건에 맞아요';
 }
 function recommendationSignalsFor(place){
   const signals=[];
   const behavior=festivalBehaviorFor(place);
   const reference=behavior&&places.find(item=>item.id===behavior.referenceId);
   if(reference)signals.push(behavior.referenceFavorite?`★ 즐겨찾기한 ${reference.name}과 취향이 비슷해요`:`✓ 자주 본 ${reference.name} 취향을 반영했어요`);
-  if(place.type==='festival')signals.push(festivalTimingScore(place)>=90?'✓ 선택한 날짜에 열리는 행사':'✓ 일정이 확인된 행사');
+  if(place.type==='festival'){
+    const schedule=festivalTimingScore(place);
+    const tripSelected=Boolean(activeFestivalDateRange());
+    signals.push(schedule>=100
+      ?(tripSelected?'✓ 여행 기간에 열리는 행사':'✓ 지금 열리고 있는 행사')
+      :schedule>=90?'✓ 곧 시작하는 행사':'✓ 일정이 확인된 행사');
+  }
   if(userPosition&&Number.isFinite(Number(place.distance)))signals.push('✓ 현재 위치와의 거리를 반영했어요');
   const activityLabels={festival:'축제',experience:'체험',mood:'감성',rest:'휴식'};
   if(visitConditions.activity)signals.push(`✓ ${activityLabels[visitConditions.activity]} 활동 조건과 일치`);
@@ -910,8 +936,8 @@ function renderFestivals(){
     $('#festivalSlider').innerHTML=placeLoadingMarkup();
     return;
   }
-  const festivalPlaces = filteredFestivals()
-    .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||a.distance-b.distance);
+  const festivalPlaces = diversifiedRecommendations(filteredFestivals()
+    .sort((a,b)=>recommendationScoreFor(b)-recommendationScoreFor(a)||a.distance-b.distance));
   $('#festivalFilterStatus').textContent=festivalFilterLabel(festivalPlaces.length);
   $('#festivalDateTrigger').classList.toggle('has-value',Boolean(festivalDateFilter.start||festivalDateFilter.end));
   $('#placeDataStatus').innerHTML=placeDataNotice();
@@ -946,11 +972,11 @@ function renderRankings(){
   $('#festivalDateTrigger').hidden=isFavorites;
   if(isFavorites)setFestivalDateFilterOpen(false);
   const rankingSource=isFavorites?places.filter(place=>place.type==='festival'&&isFestivalFavorite(place.id)):filteredFestivals();
-  const ranked=rankingSource
+  const sorted=rankingSource
     .sort((a,b)=>isDeadline
       ? festivalDeadlineValue(a)-festivalDeadlineValue(b)||recommendationScoreFor(b)-recommendationScoreFor(a)
-      : recommendationScoreFor(b)-recommendationScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99))
-    .slice(0,6);
+      : recommendationScoreFor(b)-recommendationScoreFor(a)||(Number(a.distance)||99)-(Number(b.distance)||99));
+  const ranked=(isDeadline||isFavorites?sorted:diversifiedRecommendations(sorted)).slice(0,6);
   $('#rankingList').innerHTML=ranked.length?ranked.map((place,index)=>{
     const area=compactPlaceArea(place);
     const deadlineLabel=isDeadline?festivalDeadlineCardLabel(place):'';
@@ -971,6 +997,9 @@ function applyFestivalDateFilter(changedField){
     else startInput.value=endInput.value;
   }
   festivalDateFilter={start:startInput.value||null,end:endInput.value||null};
+  // 일정 점수는 선택한 여행 기간을 기준으로 계산하므로, 정렬용 점수 캐시를
+  // 먼저 다시 채워야 추천 순서와 근거 문구가 같은 기간을 보게 된다.
+  refreshRecommendationScoreCache();
   renderFestivals();
   renderRankings();
   renderMap();
@@ -980,6 +1009,8 @@ function clearFestivalDateFilter(){
   $('#festivalStartDate').value='';
   $('#festivalEndDate').value='';
   festivalDateFilter={start:null,end:null};
+  // 기간을 지우면 다시 '오늘' 기준 일정 점수로 되돌려야 한다.
+  refreshRecommendationScoreCache();
   renderFestivals();
   renderRankings();
   renderMap();

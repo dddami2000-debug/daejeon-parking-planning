@@ -3,13 +3,58 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FestivalRecommender = api;
 })(typeof window !== 'undefined' ? window : globalThis, function createFestivalRecommender() {
+  // 개인화 신호의 세기. 상세 조회 1회는 1점, 즐겨찾기는 8점으로 센다.
+  // 반감기 30일은 '조회'에만 적용된다. 즐겨찾기는 사용자가 직접 해제할 때까지
+  // 세기가 줄지 않는 명시적 신호라 감쇠시키지 않는다.
   const VIEW_WEIGHT = 1;
   const FAVORITE_WEIGHT = 8;
   const VIEW_HALF_LIFE_DAYS = 30;
+  const MAX_VIEW_STRENGTH = 12; // 한 축제를 반복해서 본다고 무한정 세지지 않게 상한을 둔다.
   const MAX_HISTORY_ITEMS = 50;
-  const RAPID_REPEAT_MS = 600000;
-  const FULL_CONFIDENCE_STRENGTH = 8;
-  const MAX_BEHAVIOR_WEIGHT = 0.45;
+  const RAPID_REPEAT_MS = 600000; // 10분 안의 재방문은 같은 한 번의 조회로 본다.
+  const FULL_CONFIDENCE_STRENGTH = 8; // 즐겨찾기 1건이면 확신도가 1이 된다.
+  const MAX_BEHAVIOR_WEIGHT = 0.45; // 행동 신호가 최종 점수를 45% 넘게 좌우하지 않게 한다.
+  const DAY_MS = 86400000;
+
+  // 기본 추천 가중치. 취향 60 / 거리 25 / 일정 15은 초기 MVP 가설값이며,
+  // 사용자 데이터(상세 조회율·즐겨찾기율)로 추후 검증해 조정한다.
+  const RECOMMENDATION_WEIGHTS = { taste: 60, distance: 25, schedule: 15 };
+
+  // 전국 축제를 다루므로 20km 밖을 전부 0점으로 만들지 않는다. 구간 사이는
+  // 선형 보간해 경계에서 값이 끊기지 않고, 300km 밖도 5점까지만 완만히 낮아진다.
+  const DISTANCE_BANDS = [
+    { from: 0, to: 10, high: 100, low: 85 },   // 근거리
+    { from: 10, to: 50, high: 85, low: 65 },   // 당일 이동
+    { from: 50, to: 150, high: 65, low: 40 },  // 근교·단기 여행
+    { from: 150, to: 300, high: 40, low: 20 }  // 목적형 여행
+  ];
+  const DISTANCE_FAR_FLOOR = 5;
+  const DISTANCE_FAR_DECAY_KM = 400;
+  const NEUTRAL_DISTANCE_SCORE = 50; // 위치를 모르면 거리로 순위를 흔들지 않는다.
+
+  // 일정 점수. 여행 날짜를 고르면 '오늘'이 아니라 그 기간을 기준으로 계산한다.
+  const SCHEDULE_SCORES = { open: 100, soon: 90, near: 75, later: 60, ended: 0, unknown: 60 };
+  const SCHEDULE_SOON_DAYS = 7;
+  const SCHEDULE_NEAR_DAYS = 30;
+  const NON_FESTIVAL_SCHEDULE_SCORE = 70;
+
+  // 추천 목록의 과도한 중복 완화. 동일 주제 + 동일 광역지역이 3개 연속으로
+  // 나오지 않게 하되, 대체 후보는 바로 아래 구간에서만 끌어올려 원점수 순서를 지킨다.
+  const MAX_SAME_GROUP_RUN = 2;
+  const DIVERSITY_LOOKAHEAD = 6;
+
+  // 숫자 추천 점수는 내부 정렬에만 쓰고, 화면에는 근거를 설명하는 문구만 노출한다.
+  const FIT_COPY = {
+    favorite: '즐겨찾기한 축제와 비슷해요',
+    viewed: '자주 본 축제와 비슷해요',
+    taste: '취향에 잘 맞아요',
+    tripOpen: '여행 기간에 열려요',
+    openNow: '지금 열리고 있어요',
+    fallback: '방문 조건에 맞아요'
+  };
+  const FIT_TASTE_THRESHOLD = 70;
+  const FIT_BEHAVIOR_SIMILARITY = 55;
+  const FIT_BEHAVIOR_CONFIDENCE = 0.5;
   const genericValues = new Set(['지역축제', '지역 정보 확인', '공식 일정 확인 필요', '친구 · 연인 · 가족']);
   const topicGroups = {
     alcohol: ['와인', '술', '주류', '맥주', '막걸리', '소주', '칵테일', '시음', '양조', '브루어리'],
@@ -248,7 +293,7 @@
 
   function interactionStrength(entry, now = Date.now()) {
     const elapsedDays = Math.max(0, now - entry.lastViewAt) / 86400000;
-    const viewStrength = Math.min(12, entry.views * VIEW_WEIGHT) * Math.pow(0.5, elapsedDays / VIEW_HALF_LIFE_DAYS);
+    const viewStrength = Math.min(MAX_VIEW_STRENGTH, entry.views * VIEW_WEIGHT) * Math.pow(0.5, elapsedDays / VIEW_HALF_LIFE_DAYS);
     return viewStrength + (entry.favorite ? FAVORITE_WEIGHT : 0);
   }
 
@@ -286,15 +331,139 @@
     return Math.round(clamp(Number(baseScore) * (1 - behaviorWeight) + Number(behavior.score) * behaviorWeight));
   }
 
+  // 구간형 거리 점수. 0km=100, 10km=85, 50km=65, 150km=40, 300km=20이며
+  // 각 경계는 양쪽 구간이 같은 값을 내도록 맞춰 불연속이 없다.
+  function distanceScore(distanceKm) {
+    // null·''처럼 '거리를 모른다'는 값이 0km로 둔갑하지 않도록 숫자만 받는다.
+    const distance = typeof distanceKm === 'number' ? distanceKm : Number.NaN;
+    if (!Number.isFinite(distance) || distance < 0) return NEUTRAL_DISTANCE_SCORE;
+    const band = DISTANCE_BANDS.find(item => distance <= item.to);
+    if (band) {
+      const progress = (distance - band.from) / (band.to - band.from);
+      return band.high + (band.low - band.high) * progress;
+    }
+    // 300km 밖은 20점에서 지수적으로 완만하게 낮아지되 5점 아래로는 내려가지 않는다.
+    const farthest = DISTANCE_BANDS[DISTANCE_BANDS.length - 1];
+    const decay = Math.exp(-(distance - farthest.to) / DISTANCE_FAR_DECAY_KM);
+    return DISTANCE_FAR_FLOOR + (farthest.low - DISTANCE_FAR_FLOOR) * decay;
+  }
+
+  function koreaDayStart(value) {
+    const day = String(value == null ? '' : value).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return NaN;
+    return Date.parse(`${day}T00:00:00+09:00`);
+  }
+
+  function koreaDayEnd(value) {
+    const day = String(value == null ? '' : value).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return NaN;
+    return Date.parse(`${day}T23:59:59+09:00`);
+  }
+
+  // 여행 기간이 있으면 그 기간이, 없으면 '오늘 하루'가 비교 창이 된다.
+  // 한쪽 날짜만 고른 기간은 지도 핀 상태와 같은 규칙으로 당일치기처럼 다룬다.
+  function scheduleWindow({ today, rangeStart, rangeEnd } = {}) {
+    const first = koreaDayStart(rangeStart);
+    const last = koreaDayStart(rangeEnd);
+    const from = Number.isFinite(first) ? first : last;
+    const to = Number.isFinite(last) ? last : first;
+    if (Number.isFinite(from) && Number.isFinite(to)) {
+      return { start: Math.min(from, to), end: Math.max(from, to) + DAY_MS - 1000, selected: true };
+    }
+    const todayStart = koreaDayStart(today);
+    if (!Number.isFinite(todayStart)) return null;
+    return { start: todayStart, end: todayStart + DAY_MS - 1000, selected: false };
+  }
+
+  function scheduleScore(place, options = {}) {
+    if (place && place.type && place.type !== 'festival') return NON_FESTIVAL_SCHEDULE_SCORE;
+    const start = koreaDayStart(place && place.startDate);
+    const end = koreaDayEnd(place && place.endDate);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) return SCHEDULE_SCORES.unknown;
+    const window = scheduleWindow(options);
+    if (!window) return SCHEDULE_SCORES.unknown;
+    if (end < window.start) return SCHEDULE_SCORES.ended;
+    if (start <= window.end) return SCHEDULE_SCORES.open;
+    const days = Math.ceil((start - window.start) / DAY_MS);
+    if (days <= SCHEDULE_SOON_DAYS) return SCHEDULE_SCORES.soon;
+    if (days <= SCHEDULE_NEAR_DAYS) return SCHEDULE_SCORES.near;
+    return SCHEDULE_SCORES.later;
+  }
+
+  // 취향·거리·일정 신호를 가중 평균한다. 값을 낼 수 없는 신호는 빼고
+  // 남은 가중치로 다시 정규화해, 취향 미설정 사용자도 같은 척도를 유지한다.
+  function baseScore({ taste, distance, schedule } = {}) {
+    const signals = [
+      [taste, RECOMMENDATION_WEIGHTS.taste],
+      [distance, RECOMMENDATION_WEIGHTS.distance],
+      [schedule, RECOMMENDATION_WEIGHTS.schedule]
+    ].filter(([score]) => Number.isFinite(score));
+    const weightTotal = signals.reduce((sum, [, weight]) => sum + weight, 0);
+    if (!weightTotal) return 0;
+    return Math.round(clamp(signals.reduce((sum, [score, weight]) => sum + Number(score) * weight, 0) / weightTotal));
+  }
+
+  // 주제와 광역지역이 모두 확인된 축제만 묶음으로 센다. 둘 중 하나라도
+  // 모르면 null을 돌려주어 '같은 묶음이 반복됐다'고 단정하지 않는다.
+  function recommendationGroupKey(place) {
+    const topic = topicEvidence(place)[0];
+    const region = regionTokens(place)[0];
+    return topic && region ? `${topic.topic}|${region}` : null;
+  }
+
+  function diversifyRecommendations(items, options = {}) {
+    const queue = Array.isArray(items) ? [...items] : [];
+    const keyOf = typeof options.keyOf === 'function' ? options.keyOf : recommendationGroupKey;
+    const maxRun = Math.max(1, Math.floor(Number(options.maxRun) || MAX_SAME_GROUP_RUN));
+    const lookahead = Math.max(0, Math.floor(Number(options.lookahead ?? DIVERSITY_LOOKAHEAD)));
+    const ordered = [];
+    let runKey = null;
+    let runLength = 0;
+    while (queue.length) {
+      let index = 0;
+      if (runKey !== null && runLength >= maxRun && keyOf(queue[0]) === runKey) {
+        const alternative = queue.slice(0, lookahead + 1).findIndex(item => keyOf(item) !== runKey);
+        if (alternative > 0) index = alternative;
+      }
+      const [picked] = queue.splice(index, 1);
+      const key = keyOf(picked);
+      if (key !== null && key === runKey) runLength += 1;
+      else {
+        runKey = key;
+        runLength = 1;
+      }
+      ordered.push(picked);
+    }
+    return ordered;
+  }
+
+  // 정렬용 숫자 점수 대신 화면에 보여줄 근거 문구를 고른다.
+  function recommendationFitCopy({ tasteScore, scheduleScore: schedule, behavior, tripSelected } = {}) {
+    if (behavior
+      && Number(behavior.referenceSimilarity) >= FIT_BEHAVIOR_SIMILARITY
+      && Number(behavior.confidence) >= FIT_BEHAVIOR_CONFIDENCE) {
+      return behavior.referenceFavorite ? FIT_COPY.favorite : FIT_COPY.viewed;
+    }
+    if (Number(tasteScore) >= FIT_TASTE_THRESHOLD) return FIT_COPY.taste;
+    if (Number(schedule) >= SCHEDULE_SCORES.open) return tripSelected ? FIT_COPY.tripOpen : FIT_COPY.openNow;
+    return FIT_COPY.fallback;
+  }
+
   function hasHistory(rawHistory) {
     return Object.keys(normalizeHistory(rawHistory)).length > 0;
   }
 
   return {
     FAVORITE_WEIGHT,
+    FIT_COPY,
+    RECOMMENDATION_WEIGHTS,
+    SCHEDULE_SCORES,
     VIEW_WEIGHT,
+    baseScore,
     behaviorAffinity,
     combineScore,
+    distanceScore,
+    diversifyRecommendations,
     hasHistory,
     isFavorite,
     matchesRegionQuery,
@@ -303,7 +472,10 @@
     placeSimilarity,
     regionSimilarity,
     regionTokens,
+    recommendationFitCopy,
+    recommendationGroupKey,
     recordView,
+    scheduleScore,
     setFavorite,
     topicTagLabels,
     topicGroups,
